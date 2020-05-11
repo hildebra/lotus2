@@ -1,0 +1,69 @@
+#sdm options file to control sequence quality filtering, demultiplexing and preparation (can also be used without demultiplexing)
+#* indicates alternative quality filtering options, saved in *.add.fna etc. files separately from initial quality filtered dataset
+#sequence length refers to sequence length AFTER removal of Primers, Barcodes and trimming. this ensures that downstream analyis tools will have appropiate sequence information
+minSeqLength	250
+maxSeqLength	1000
+minAvgQuality	27
+*minSeqLength	200
+*minAvgQuality	20
+#truncate total Sequence length to X (length after Barcode, Adapter and Primer removals, set to -1 to deactivate)
+TruncateSequenceLength	250
+
+#Ambiguous bases in Sequence
+maxAmbiguousNT	0
+*maxAmbiguousNT	1
+
+#sequence is discarded if a homonucleotide run in sequence is longer
+maxHomonucleotide	8
+
+#Filter whole sequence if one window of quality scores is below average
+QualWindowWidth	50
+QualWindowThreshhold	25
+
+#Trim the end of a sequence if a window falls below quality threshhold. Useful for removing low qulaity trailing ends of sequence
+TrimWindowWidth	20
+TrimWindowThreshhold	25
+
+#Probabilistic max number of accumulated sequencing errors. After this length, the rest of the sequence will be deleted. Complimentary to TrimWindowThreshhold. (-1) deactivates this option.
+maxAccumulatedError	0.5
+#mid qual option
+*maxAccumulatedError	-1
+#Binomial error model of expected errors per sequence (see https://github.com/fpusan/moira), to deactivate, set BinErrorModelAlpha to -1
+BinErrorModelMaxExpError	2.5
+BinErrorModelAlpha	0.005
+
+
+#Max Barcode Errors 
+maxBarcodeErrs	0
+maxPrimerErrs	0
+
+#keep Barcode / Primer Sequence in the output fasta file - in a normal 16S analysis this should be deactivated (0) for Barcode and deactivated (0) for primer
+keepBarcodeSeq	0
+keepPrimerSeq	0
+
+
+#set fastqVersion to 1 if you use Sanger, Illumina 1.8+ or NCBI SRA files. Set fastqVersion to 2, if you use Illumina 1.3+ - 1.7+ or Solexa fastq files.
+fastqVersion	1
+
+#if one or more files have a technical adapter still included (e.g. TCAG 454) this can be removed by setting this option
+TechnicalAdapter	TCAG
+
+#delete X NTs (e.g. if the first 5 bases are known to have strange biases)
+TrimStartNTs	0
+
+#correct PE header format (1/2) this is to accomodate the illumina miSeq paired end annotations 2="@XXX 1:0:4" insteand of 1="@XXX/1". Note that the format will be automatically detected
+PEheaderPairFmt	1
+
+#sets if sequences without match to reverse primer will be accepted (T=reject ; F=accept all); default=F
+RejectSeqWithoutRevPrim	F
+*RejectSeqWithoutRevPrim	F
+
+#sets if sequences without a forward (LinkerPrimerSequence) primer will be accepted (T=reject ; F=accept all); default=F
+RejectSeqWithoutFwdPrim	T
+*RejectSeqWithoutFwdPrim	T
+
+#checks if pair1 and pair2 were switched
+CheckForReversedSeqs	F
+
+#this option should be "T" if your amplicons are possibly shorter than a single read in a paired end sequencing run (e.g. if the 16S amplicon length is 200bp in a 250x2 miSeq run, set this to "T"). This option increases runtime by 10%, if in doubt just set to "T". *Requires* LinkerPrimerSequence and ReversePrimer to be defined in mapping file.
+AmpliconShortPE	F

@@ -1,0 +1,11 @@
+*.sh
+sqLOGs
+myTestRun
+DB
+bin
+maps
+*.zip
+LotuSlicense.txt
+update_lotus.sh
+.git
+
