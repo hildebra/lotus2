@@ -1,6 +1,6 @@
 #!/usr/bin/perl
-# lOTUs - less OTU scripts
-# Copyright (C) 2013-2017  Falk Hildebrand
+# lOTUs2 - less OTU scripts
+# Copyright (C) 2020 Falk Hildebrand
 
 #This program is free software: you can redistribute it and/or modify
 #it under the terms of the GNU General Public License as published by
@@ -100,6 +100,8 @@ my $cmdCall = qx/ps -o args $$/;
 
 # --------------------
 # Progams Pathways  -- get info from lotus.cfg
+my $LCABin      = "";
+my $sdmBin      = "./sdm";
 my $usBin       = "";
 my $swarmBin    = "";
 my $VSBin       = "";
@@ -107,8 +109,7 @@ my $VSBinOri    = "";
 my $VSused      = 1;
 my $cdhitBin    = "";
 my $dnaclustBin = "";
-my $LCABin      = "";
-my $sdmBin      = "./sdm";
+my $mini2Bin    = "minimap2";
 my $mjar = ""; #RDP multiclassifier java archieve (e.g. /YY/MultiClassifier.jar)
 my $rdpjar = ""
   ; #alternatively leave this "" and set environmental variabel to RDP_JAR_PATH, as described in RDP documentary
@@ -289,7 +290,7 @@ GetOptions(
     "swarm_distance=i"      => \$swarmClus_d,
     "OTUbuild=s"            => \$otuRefDB,
     "count_chimeras=s"      => \$chimCnt,            #T or F
-    "custContamCheckDB=s"   => \$custContamCheckDB,
+    "offtargetDB=s"         => \$custContamCheckDB,
     "flash_param=s"         => \$flashCustom,
     "deactivateChimeraCheck=i" => \$noChimChk,
 	"VsearchChimera=i"		=> \$useVsearch,
@@ -1540,14 +1541,17 @@ sub contamination_rem($ $ $ ) {
         }
         my $hitsFile = $otusFA . ".cont_hit.uc";
         my @hits;
-        if ( $VSused == 0 ) {
+		if ($nameRDB ne "PhiX"){ #minimap2
+			$hitsFile= "$otusFA.cont.paf";
+			$cmd = "$mini2Bin -t $uthreads $otusFA $refDB > $hitsFile";
+        } elsif ( $VSused == 0 ) { #deprecated
             $cmd = "$usBin -usearch_local $otusFA -db $refDB -uc $hitsFile -query_cov .8 -log $logDir/$nameRDB"
               . "_contami_align.log ";
-            $cmd .= "-id .95 -threads $uthreads -strand both ";
+            $cmd .= "-id .9 -threads $uthreads -strand both ";
         }
         else {
             $cmd = "$VSBin -usearch_local $otusFA -db $refDB --maxseqlength 99999999999 -uc $hitsFile --query_cov .8 -log $logDir/$nameRDB" . "_contami_align.log ";
-            $cmd .= "-maxhits 1 -top_hits_only -strand both -id .95 -threads $uthreads --dbmask none --qmask none";    #.95
+            $cmd .= "-maxhits 1 -top_hits_only -strand both -id .9 -threads $uthreads --dbmask none --qmask none";    #.95
         }
 
         #die $cmd."\n";
@@ -1555,13 +1559,24 @@ sub contamination_rem($ $ $ ) {
         if ( systemL($cmd) != 0 ) { printL( "Failed command:\n$cmd\n", 1 ); }
 
         #create tmp
-        open I, "<", $hitsFile or die "Can't open search result file $hitsFile";
-        while (<I>) {
-            my @spl = split(/\t/);
-            if ( $spl[0] eq "H" ) { push( @hits, $spl[8] ); $contRem++; }
-        }
-        close I;
+		if ($hitsFile =~ m/\.paf/){
+			open I, "<", $hitsFile or die "Can't open search result file $hitsFile";
+			while (<I>) {my @spl = split(/\t/);
+				if ( $spl[9] > $spl[6] * 0.6 ) { push( @hits, $spl[5] ); $contRem++; }
+			}
+			close I;
+		} else {
+			open I, "<", $hitsFile or die "Can't open search result file $hitsFile";
+			while (<I>) {my @spl = split(/\t/);
+				if ( $spl[0] eq "H" ) { push( @hits, $spl[8] ); $contRem++; }
+			}
+			close I;
+		}
 
+        if ($contRem) {
+            printL frame
+              "Removed $contRem contaminated OTUs ($nameRDB ref DB).\n", 0;
+        } else {return(0);}
         #die ("@hits\n");
         #report
         my $hr   = readFasta($otusFA);
@@ -1583,24 +1598,16 @@ sub contamination_rem($ $ $ ) {
         }
         close O;
 
-        if ($contRem) {
-            printL frame
-              "Removed $contRem contaminated OTUs ($nameRDB ref DB).\n", 0;
-        }
 
         #if (($nonChimRm-$emptyOTUcnt)==0){
         #	printL "Empty OTU matrix.. aborting LotuS run!\n",87;
         #}
         #print "\n\n\n\n\n\nWARN DEBUG TODO .95 .45 $outContaminated\n";
-    }
-    elsif ($required) {
+    } elsif ($required) {
         my $warnStr = "Could not check for contaminated OTUs, because ";
         unless ( $refDB ne "" && -f $refDB ) {
-            $warnStr .=
-              "$nameRDB reference database \n\"$refDB\"\ndid not exist.\n";
-        }
-        else {
-            $warnStr .= "OTU fasta file was empty\n";
+            $warnStr .= "$nameRDB reference database \n\"$refDB\"\ndid not exist.\n";
+        } else {  $warnStr .= "OTU fasta file was empty\n";
         }
         finWarn($warnStr);
 
@@ -2235,6 +2242,9 @@ sub readPaths_aligners() {
         }
         elsif ( $line =~ m/^dnaclust\s+(\S+)/ ) {
             $dnaclustBin = $1;
+        }
+        elsif ( $line =~ m/^minimap2\s+(\S+)/ ) {
+            $mini2Bin = $1;
         }
         elsif ( $line =~ m/^lambda\s+(\S+)/ ) {
             $lambdaBin = $1;
@@ -4284,35 +4294,18 @@ sub doDBblasting($ $ $) {
 
     #die($cmd."\n");
     $duration = time - $start;
-    if ( $clQue ne "" ) {
-        my $tq   = $outdir . "/blast_tax.qsb";
-        my $qcmd = "#!/bin/bash\n#\$ -cwd\n#\$ -q $clQue\n\n";
-        open Q, ">", $tq;
-        print Q $qcmd . $cmd;
-        close Q;
-        if ( $exec == 0 ) {
-            printL frame(
-"Assigning taxonomy against reference using blast\nelapsed time: $duration s"
-            ), 0;
-            $cmd = "qsub -sync yes -pe make $BlastCores -N BLASTdead $tq";
-            if ( systemL($cmd) ) {
-                printL "Submission of blast command to cluster failed:\n$cmd\n",
-                  3;
-            }
-        }
-    }
-    else {
-        if ( $exec == 0 ) {
-            printL frame(
-"Assigning taxonomy against reference using $simMethod\nelapsed time: $duration s"
-            );
 
-            #print $cmd."\n";
-            if ( systemL($cmd) ) {
-                printL "$simMethod against ref database failed:\n$cmd\n", 3;
-            }
-        }
-    }
+	if ( $exec == 0 ) {
+		printL frame(
+"Assigning taxonomy against reference using $simMethod\nelapsed time: $duration s"
+		);
+
+		#print $cmd."\n";
+		if ( systemL($cmd) ) {
+			printL "$simMethod against ref database failed:\n$cmd\n", 3;
+		}
+	}
+
 
     #die $cmd."\n";
     return $taxblastf;
@@ -4412,11 +4405,8 @@ sub assignTaxOnly($ $) {
         }
         my $LCxtr = "";
         if ($pseudoRefOTU) { $LCxtr = "-showHitRead -reportBestHit"; }
-        my $cmd =
-            "$LCABin  -i "
-          . join( ",", @blOuts ) . " -r "
-          . join( ",", @TAX_RANKS )
-          . " -o $SIM_hierFile $LCxtr -LCAfrac $LCAfraction -id "
+        my $cmd =  "$LCABin  -i " . join( ",", @blOuts ) . " -r "
+          . join( ",", @TAX_RANKS ) . " -o $SIM_hierFile $LCxtr -LCAfrac $LCAfraction -id "
           . join( ",", @idThr ) . "\n";
 
         #die $cmd;
@@ -4484,7 +4474,7 @@ sub makeAbundTable2($ $) {
           . " -o $SIM_hierFile $LCxtr -LCAfrac $LCAfraction -id "
           . join( ",", @idThr ) . "\n";
 
-        die $cmd;
+        #die $cmd;
         if ( systemL $cmd) { printL "LCA command $cmd failed\n", 44; }
         unlink @blOuts;
     }
