@@ -102,7 +102,8 @@ my $cmdCall = qx/ps -o args $$/;
 # Progams Pathways  -- get info from lotus.cfg
 my $LCABin      = "";
 my $sdmBin      = "./sdm";
-my $usBin       = "";
+my $usBin       = ""; #absolute path to usearch binary
+my $dada2Scr    = ""; #absolute path to dada2 pipeline script
 my $swarmBin    = "";
 my $VSBin       = "";
 my $VSBinOri    = "";
@@ -141,9 +142,8 @@ my $FaProTax        = undef; #faprotax -> functional annotations from taxonomy~~
 
 # --------------------
 #general lOTUs parameters
-my $selfID = "LotuS 1.65"; #release candidate: 2.0
-my $citations =
-"$selfID: Hildebrand F, Tadeo RY, Voigt AY, Bork P, Raes J. 2014. LotuS: an efficient and user-friendly OTU processing pipeline. Microbiome 2: 30.\n";
+my $selfID = "LotuS 2.00"; #release candidate: 2.0
+my $citations = "$selfID: Hildebrand F, Tadeo RY, Voigt AY, Bork P, Raes J. 2014. LotuS: an efficient and user-friendly OTU processing pipeline. Microbiome 2: 30.\n";
 my $noChimChk = 0; #deactivate all chimera checks 1=no nothing, 2=no denovo, 3=no ref; default = 0
 my $mainLogFile = "";
 my $osname      = $^O;
@@ -177,6 +177,8 @@ my $ITSpartial       = 0;            #itsx --partial parameter
 my $finalWarnings    = "";
 my $remFromEnd       = ""; #fix for strange behavior of flash, where overlaps of too short amplicons can include rev primer / adaptor
 my $doPhiX			 = 1;
+my $dada2Seed        = 0; #seed for dada2 to produce reproducible results
+
 
 #my $combineSamples = 0; #controls if samples are combined
 my $chimCnt = "F";    #should chimeric OTU counts be split up among parents?
@@ -255,10 +257,9 @@ GetOptions(
     "q|qual=s"              => \$inq,
     "s|sdmopt=s"            => \$sdmOpt,
     "t|tmpDir=s"            => \$lotus_tempDir,
-    "c|config=s"            => \$lotusCfg,
-    "exe|executionMode=i"   => \$exec,
-    "UP|UPARSE=s"           => \$ClusterPipe_pre,
-    "CL|clustering=s"       => \$ClusterPipe_pre,
+    "c|config=s"                => \$lotusCfg,
+    "exe|executionMode=i"       => \$exec,
+    "CL|clustering|UP|UPARSE=s" => \$ClusterPipe_pre,
     "thr|threads=i"         => \$uthreads,
     "highmem=i"             => \$sdmDerepDo,
     "useBestBlastHitOnly=i" => \$maxHitOnly,
@@ -288,6 +289,7 @@ GetOptions(
     "endRem=s"              => \$remFromEnd,
     "keepTmpFiles=i"        => \$extendedLogs,
     "swarm_distance=i"      => \$swarmClus_d,
+	"dada2seed=i"           => \$dada2Seed,
     "OTUbuild=s"            => \$otuRefDB,
     "count_chimeras=s"      => \$chimCnt,            #T or F
     "offtargetDB=s"         => \$custContamCheckDB,
@@ -324,8 +326,9 @@ elsif ( $refDBwanted ne "" ) {
 if ( $platform eq "pacbio" ) {
     $dereplicate_minsize_def = 0;
 }
-$dereplicate_minsize = $dereplicate_minsize_def
-  if ( $dereplicate_minsize == -1 );
+if ( $dereplicate_minsize !~ m/\D/ && $dereplicate_minsize == -1 ){
+	$dereplicate_minsize = $dereplicate_minsize_def ;
+}
 
 #die $refDBwanted."\n";
 $ampliconType    = uc($ampliconType);
@@ -493,21 +496,20 @@ if ( $ClusterPipe_pre eq "CD-HIT" || $ClusterPipe_pre eq "CDHIT" || $ClusterPipe
     if ( !-e $cdhitBin ) {
         printL "No valid CD-Hit binary found at $cdhitBin\n", 88;
     }
-}
-elsif ( $ClusterPipe_pre eq "UPARSE" || $ClusterPipe_pre eq "1" ) {
+}elsif ( $ClusterPipe_pre eq "UPARSE" || $ClusterPipe_pre eq "1" ) {
     $ClusterPipe = 1;
-}
-elsif ( $ClusterPipe_pre eq "UNOISE" || $ClusterPipe_pre eq "6" ) {
+}elsif ( $ClusterPipe_pre eq "UNOISE" || $ClusterPipe_pre eq "UNOISE3" || $ClusterPipe_pre eq "6" ) {
     $ClusterPipe = 6;
 	$OTU_prefix = "Zotu";
-}
-elsif ( $ClusterPipe_pre eq "SWARM" || $ClusterPipe_pre eq "2" ) {
+}elsif ( $ClusterPipe_pre eq "DADA2" || $ClusterPipe_pre eq "7" ) {
+    $ClusterPipe = 7;
+	$OTU_prefix = "ASV";
+}elsif ( $ClusterPipe_pre eq "SWARM" || $ClusterPipe_pre eq "2" ) {
     $ClusterPipe = 2;
     if ( !-e $swarmBin ) {
         printL "No valid swarm binary found at $swarmBin\n", 88;
     }
-}
-elsif ( $ClusterPipe_pre eq "DNACLUST" || $ClusterPipe_pre eq "4" ) {
+}elsif ( $ClusterPipe_pre eq "DNACLUST" || $ClusterPipe_pre eq "4" ) {
     $ClusterPipe = 4;
     if ( !-e $dnaclustBin ) {
         printL "No valid DNA clust binary found at $dnaclustBin\n", 88;
@@ -557,7 +559,7 @@ $selfID =~ m/LotuS (\d\.\d+)/;
 my $sdmVer = checkLtsVer($1);
 if ( $sdmVer < $curSdmV ) {
     finWarn
-"Installed sdm version ($sdmVer < $curSdmV) seems to be outdated, please check on \n    psbweb05.psb.ugent.be/lotus\nfor the most recent version. Make sure the sdm path in '$lotusCfg' points to the correct sdm binary\n";
+"Installed sdm version ($sdmVer < $curSdmV) seems to be outdated, please check on \n    lotus2.earlham.ac.uk\nfor the most recent version. Make sure the sdm path in '$lotusCfg' points to the correct sdm binary\n";
 }
 $swarmClus_d = int($swarmClus_d);
 if ( $swarmClus_d < 1 ) {
@@ -576,8 +578,7 @@ if ( $sdmOpt eq "" ) {
     printL "No sdm Option specified, using standard 454 sequences options", 0;
 }
 if ( !-e $sdmOpt ) {
-    printL
-"Could not find sdm options file (specified via \"-s\". Please make sure this is available.\n Aborting run..\n",
+    printL "Could not find sdm options file (specified via \"-s\". Please make sure this is available.\n Aborting run..\n",
       33;
 }
 
@@ -592,10 +593,8 @@ if ( substr( $ampliconType, 0, 3 ) eq "ITS" ) {
     if (   $doBlasting == 0
         || ( !-f $blastBin && !-f $lambdaBin )  || @TAX_REFDB == 0 || !-f $TAX_REFDB[0] )
     {
-        my $failedBlastITS =
-"ITS region was chosen as target; this requires a similarity based taxnomic annotation and excludes RDP tax annotation.\n";
-        $failedBlastITS .=
-          "Blast similarity based annotation is not possible due to: ";
+        my $failedBlastITS = "ITS region was chosen as target; this requires a similarity based taxnomic annotation and excludes RDP tax annotation.\n";
+        $failedBlastITS .= "Blast similarity based annotation is not possible due to: ";
         if ( $doBlasting == 0 ) {
             $failedBlastITS .=
 "Similarity search was not explicitly activated (please use option \"-simBasedTaxo blast\" or \"-simBasedTaxo lambda\").";
@@ -628,14 +627,10 @@ if ( $saveDemulti < 0 || $saveDemulti > 3 ) {
 my @inputArray = split( /,/, $input );
 my @inqArray   = split( /,/, $inq );
 $numInput = scalar(@inputArray);
-if (   scalar(@inqArray) > 0
+if ( scalar(@inqArray) > 0
     && $numInput != scalar(@inqArray)
-    && -f $inqArray[0] )
-{
-    printL(
-"Error: fasta input file number does not correspond ot quality file number.\n",
-        1
-    );
+    && -f $inqArray[0] ){
+    printL("Error: fasta input file number does not correspond ot quality file number.\n", 1);
 }
 
 #unless ($platform eq "miSeq" || $platform eq "hiSeq") {#only support paired reads for hi/miSeq
@@ -661,9 +656,7 @@ if ( $ClusterPipe == 0 && $id_OTU_noise < $id_OTU ) {
     printL( "id_OTU must be bigger-or-equal than id_OTU_noise\n", 2 );
 }
 if ( $id_OTU > 1 || $id_OTU < 0 ) {
-    printL(
-        "\"-id\" set to value <0 or >1: $id_OTU\nHas to be between 0 and 1\n",
-        2 );
+    printL( "\"-id\" set to value <0 or >1: $id_OTU\nHas to be between 0 and 1\n", 2 );
 }
 
 my $t = $lotus_tempDir;
@@ -691,6 +684,9 @@ if ( !$onlyTaxRedo && !$TaxOnly ) {
     elsif ( $ClusterPipe == 1 ) {
         printL( "Running UPARSE $clustMode sequence clustering..\n", 0 );
     }
+    elsif ( $ClusterPipe == 7 ) {
+        printL( "Running DADA2 $clustMode sequence clustering..\n", 0 );
+    }
     elsif ( $ClusterPipe == 6 ) {
         printL( "Running UNOISE $clustMode sequence clustering..\n", 0 );
     }
@@ -714,8 +710,7 @@ else {    #prep for redoing tax, save previous tax somehwere
     while ( -d $newLDir ) { $k++; $newLDir = "$outdir/prevLtsTax_$k"; }
     printL frame("Saving previous Tax to $newLDir"), "w";
     systemL "mkdir -p $newLDir/LotuSLogS/";
-    systemL
-"mv $highLvlDir $FunctOutDir $RDP_hierFile $SIM_hierFile $outdir/hierachy_cnt.tax $outdir/cnadjusted_hierachy_cnt.tax $newLDir/";
+    systemL "mv $highLvlDir $FunctOutDir $RDP_hierFile $SIM_hierFile $outdir/hierachy_cnt.tax $outdir/cnadjusted_hierachy_cnt.tax $newLDir/";
     systemL "mv $outdir/LotuSLogS/* $newLDir/LotuSLogS/";
     systemL("mkdir -p $logDir") unless ( -d $logDir );
 
@@ -810,21 +805,12 @@ if ( 0 && ( $platform eq "miseq" || $platform eq "hiSeq" ) && $numInput == 2 ) {
             $flashCustom = " $flashCustom ";
         }
 
-        $mergCmd =
-            "$flashBin $flOvOption -o merged -d $t -t $BlastCores "
-          . $inputArray[0] . " "
-          . $inputArray[2];
-        $input .= $key . ".extendedFrags.fastq";
+        $mergCmd =  "$flashBin $flOvOption -o merged -d $t -t $BlastCores " . $inputArray[0] . " " . $inputArray[2];
+			$input .= $key . ".extendedFrags.fastq";
         $single1 = "$t/$key.notCombined_1.fastq";
     }
     else {    #try usearch
-        $mergCmd =
-            $usBin
-          . " -fastq_mergepairs "
-          . $inputArray[0]
-          . " -reverse "
-          . $inputArray[2]
-          . " -fastq_truncqual 12 -fastq_maxdiffs 10 -fastqout $input";
+        $mergCmd = $usBin . " -fastq_mergepairs " . $inputArray[0] . " -reverse " . $inputArray[2] . " -fastq_truncqual 12 -fastq_maxdiffs 10 -fastqout $input";
         $single1 = "XX";
     }
     if ( $exec == 0 ) {
@@ -841,7 +827,7 @@ if ( 0 && ( $platform eq "miseq" || $platform eq "hiSeq" ) && $numInput == 2 ) {
     $didMerge = 1;
 }
 
-# ////////////////////////// sdm /////////////////////////////////////////////
+# ////////////////////////// sdm 1st time (demult,qual etc) /////////////////////////////////////////////
 #  cmdArgs["-i_MID_fastq"]
 my $sdmcmd       = "";
 my $filterOut    = "$t/demulti.fna";
@@ -897,23 +883,25 @@ my $derepOutHQ2 = "";
 my $derepOutMap = "";
 
 my $sdmDemultiDir = "";
-my $sdmOptStr     = "-options $sdmOpt";
-if ( $saveDemulti == 2 || $saveDemulti == 1 ) {
+my $sdmOptStr     = "-options $sdmOpt ";
+if ( $saveDemulti == 2 || $saveDemulti == 1 || $ClusterPipe == 7 ) { #dada2 also requires filtered raw reads
     $sdmDemultiDir = "$outdir/demultiplexed/";
     if ( $saveDemulti == 1 ) {
-        printL
-"Demultiplexed input files into single samples, no quality filtering done\n";
+        printL "Demultiplexed input files into single samples, no quality filtering done\n";
         $sdmOptStr = "";
     }
+	if ($ClusterPipe == 7){ #dada2.. no rd pair info in head!
+		$sdmOptStr .= "-pairedRD_HD_out 0 ";
+	}
 }
 
 if ($sdmDerepDo) {
     $derepCmd = "-o_dereplicate $t/derep.fas ";
     if ( 0 && $ClusterPipe == 2 ) {
-        $derepCmd .= "-dere_size_fmt 1";
+        $derepCmd .= "-dere_size_fmt 1 ";
     }
-    else { $derepCmd .= "-dere_size_fmt 0"; }
-    $derepCmd .= " -min_derep_copies $dereplicate_minsize";
+    else { $derepCmd .= "-dere_size_fmt 0 "; }
+    $derepCmd .= " -min_derep_copies $dereplicate_minsize ";
     $derepOutHQ  = "$t/derep.hq.fq";
     $derepOutMap = "$t/derep.map";
     $derepOutHQ2 = "$t/derep.2.hq.fq";
@@ -937,8 +925,9 @@ if ($damagedFQ) { $dmgCmd = "-ignore_IO_errors 1"; }
 my $mainSDMlog = "$logDir/demulti.log";
 $sdmcmd =
 "$sdmBin $sdmIn $sdmOut -sample_sep $sep_smplID  -log $mainSDMlog -map $map $sdmOptStr $demultiSaveCmd $derepCmd $dmgCmd $qualOffset -paired $paired $paired_sdm -maxReadsPerOutput $linesPerFile -oneLineFastaFormat 1";    #4000000
-
 #die $sdmcmd."\n";
+
+
 if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly == 0 ) {
     $duration = time - $start;
     printL( frame("Demultiplexing input files\n elapsed time: $duration s"),
@@ -1002,6 +991,11 @@ my $cmd = "";
 #die();
 #exit;
 # ////////////////////////// OTU building ///////////////////////////////////////
+
+
+die "Rscript $dada2Scr $sdmDemultiDir $sdmDemultiDir $dada2Seed $uthreads\n";
+
+
 
 my $A_UCfil;
 my $tmpOTU = "$t/tmp_otu.fa";
@@ -2192,20 +2186,24 @@ sub readPaths_aligners() {
     my ($inF) = @_;
     die("$inF does not point to a valid lotus configuration\n")
       unless ( -f $inF );
+	  #die "$inF\n";
     open I, "<", $inF;
     while ( my $line = <I> ) {
         chomp $line;
         next if ( $line =~ m/^#/ );
         next if ( length($line) < 5 );    #skip empty lines
         $line =~ s/\"//g;
-
         if ( $line =~ m/^usearch\s(\S+)/ ) {
             $usBin = $1;
         }
+		elsif ( $line =~ m/^dada2R\s+(\S+)/ ) {
+            $dada2Scr = $1;
+			#die $dada2Scr;
+
+        }
         elsif ( $line =~ m/^vsearch\s+(\S+)/ ) {
             $VSBin = $1;
-            $VSBinOri =
-              $1;  #deactivate default vsearch again.. prob with chimera finder.
+            $VSBinOri = $1;  #deactivate default vsearch again.. prob with chimera finder.
         }
         elsif ( $line =~ m/^LCA\s+(\S+)/ ) {
             $LCABin = $1;
@@ -2275,6 +2273,7 @@ sub readPaths_aligners() {
           0;
         printL "Failed \"chmod +x $usBin\"\n"  if ( systemL "chmod +x $usBin" ), 33;
     }
+	#die;
 }
 
 #read database paths on hdd

@@ -29,8 +29,8 @@ if (@paired > 1 ){
 	die "Arg 2 has to be supplied and be either \"1\" or \"2\" (single / paired read input in dirs)\n";
 }
 #### regex search string
-my $rawFileSrchStr1 = '(R1_001|_1)\.f[^\.]*[aq][\.gz]*$';
-my $rawFileSrchStr2 = '(R2_001|_2)\.f[^\.]*[aq][\.gz]*$';
+my $rawFileSrchStr1 = '(R1_001|_1|\.R1)\.f[^\.]*[aq][\.gz]*$';
+my $rawFileSrchStr2 = '(R2_001|_2|\.R2)\.f[^\.]*[aq][\.gz]*$';
 
 
 my $rawSingSrchStr = '.f[^\.]*[aq][\.gz]*$';
