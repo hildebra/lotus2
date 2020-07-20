@@ -1163,7 +1163,7 @@ sub compile_LCA($){
 		system("rm -f $ldi2/*.o");
 		my $stat = system("make -C $ldi2");
 		if ($stat == 0){
-			system("rm -f $ldir/LCA; mv $ldi2/LCA $ldir/LCA; chmod +x $ldir/LCA");
+			system("rm -f $ldir/LCA $bdir/LCA; mv $ldi2/LCA $bdir/LCA; chmod +x $bdir/LCA");
 		} elsif ($isMac && $stat){
 			print "\n\n=================\nCompilation of LCA failed.\n It seems this is a Mac system and no native LCA compile is available, please try installing C++0x clang or gcc support for your system first, otherwise contact falk.hildebrand\@gmail.com .\n";
 			print "Press any key to continue installation\n";
@@ -1176,8 +1176,8 @@ sub compile_LCA($){
 			<STDIN>;
 		}
 	}
-	system("chmod +x $ldir/LCA");
-	return "$ldir/LCA";
+	system("chmod +x $bdir/LCA");
+	return "$bdir/LCA";
 }
 sub compile_rtk($){
 	my ($ldi2) = @_;
@@ -1186,7 +1186,7 @@ sub compile_rtk($){
 		system("rm -f $ldi2/*.o");
 		my $stat = system("make -C $ldi2");
 		if ($stat == 0){
-			system("rm -f $ldir/rtk; mv $ldi2/rtk $ldir/rtk; chmod +x $ldir/rtk");
+			system("rm -f $ldir/rtk $bdir/rtk; mv $ldi2/rtk $bdir/rtk; chmod +x $bdir/rtk");
 		} elsif ($isMac && $stat){
 			print "\n\n=================\nCompilation of trk failed.\n It seems this is a Mac system and no native rtk compile is available, please try installing C++0x clang or gcc support for your system first, otherwise contact falk.hildebrand\@gmail.com .\n";
 			print "Press any key to continue installation\n";
@@ -1199,8 +1199,8 @@ sub compile_rtk($){
 			<STDIN>;
 		}
 	}
-	system("chmod +x $ldir/rtk");
-	return "$ldir/rtk";
+	system("chmod +x $bdir/rtk");
+	return "$bdir/rtk";
 }
 
 sub compile_sdm($){
@@ -1217,7 +1217,7 @@ sub compile_sdm($){
 			$finalWarning .= "Can not read gzip file\n";
 		}
 		if ($stat == 0){
-			system("rm -f $ldir/sdm; mv $ldi2/sdm $ldir/sdm; chmod +x $ldir/sdm");
+			system("rm -f $ldir/sdm $bdir/sdm; mv $ldi2/sdm $bdir/sdm; chmod +x $bdir/sdm");
 		} elsif ($isMac && $stat){
 			print "\n\n=================\nCompilation of sdm failed.\n It seems this is a Mac system and no native sdm compile is available, please try installing C++0x clang or gcc support for your system first, otherwise contact falk.hildebrand\@gmail.com .\n";
 			print "Press any key to continue installation\n";
@@ -1232,5 +1232,5 @@ sub compile_sdm($){
 		}
 	}
 	system("chmod +x $ldir/sdm");
-	return "$ldir/sdm";
+	return "$bdir/sdm";
 }
