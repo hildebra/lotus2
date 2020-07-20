@@ -1,0 +1,143 @@
+Version 1.2.10
+--------------
+- FLASH now supports combining read pairs in outie orientation.  See help for
+  the new --allow-outies option.
+- Added warning messages in a few cases where it may be helpful to specify
+  different parameters.
+
+Version 1.2.9
+-------------------
+- The core algorithm of FLASH has been optimized using SSE and SSE2
+  instructions.  On x86_64 CPUs it now can run over twice as fast.
+- The help output of FLASH has been improved.
+- Added supported for tab-delimited input and output.
+- FLASH now displays more informative error messages in some cases.
+- Reorganized some of the code so that it's easier to modify.
+- Reading the data from standard input now works correctly.
+- With --to-stdout specified, informational messages are now written to standard
+  error rather than omitted.
+
+Version 1.2.8
+-------------------
+- FLASH's default behavior when assigning quality scores to mismatch sites in
+  the overlap region of combined reads has been improved.  See the documentation
+  for the new --cap-mismatch-quals option (which can be provided to request the
+  old behavior if desired) for more information about this change.
+
+Version 1.2.7
+-------------------
+- FLASH is now supported on Windows.  See the README.
+- Minor bug-fixes regarding printing of error messages.
+- Fixed a bug where the time that FLASH took to run may have been mis-calculated
+  on 32-bit systems in an unlikely case.  This only affected the printed
+  informational output.
+- Updated PERFORMANCE section in README to be accurate for the current version
+  of FLASH.
+
+Version 1.2.6
+-------------------
+- FLASH now works on files larger than 2GiB on 32-bit operating systems, unless
+  the system zlib library does not support such files.  64-bit operating systems
+  are unaffected as they already supported large files by default.
+
+Version 1.2.5
+-------------------
+- FLASH will now compile and run on Mac OS X.
+
+Version 1.2.4
+-------------------
+- Support for piping the output of FLASH through arbitrary compression programs
+  has been added via the --compress-prog option.  The --compress-prog-args
+  and/or --output-suffix options also may be useful.
+- FLASH with the --interleaved option will now use an interleaved output format
+  in addition to assuming interleaved input.  Use --interleaved-input or
+  --interleaved-output to specify only interleaved input or only interleaved
+  output, respectively.
+- The entirely single-threaded configuration of FLASH is no longer supported.
+  You can still use --threads=1 to use only 1 combiner thread, however.
+
+Version 1.2.3
+-------------------
+- Support for interleaved reads (-I, --interleaved), which may be read from one
+  FASTQ file or piped in from stdin
+- Fix --read-len option
+- Fix default --fragment-len-stddev option
+- Fix reading FASTQ files with embedded zero bytes
+- Fix memory leaks
+- Added license file
+
+Version 1.2.2
+-------------------
+- Fix linking problem in Makefile
+
+Version 1.2.1
+-------------------
+- There is no longer any read length or tag length limit, although you may still
+specify the --read-len parameter for the purpose of automatically computing the
+maximum overlap.
+- FLASH now prints some informational output while it's running, unless running
+with --quiet or --to-stdout.
+
+Version 1.2
+-------------------
+
+- Support for writing extended fragments directly to standard output.
+- Support for writing compressed output files.
+- Support for multithreading.  There are multiple I/O threads as well as
+multiple combiner threads.  Speedup of 3.6 times has been observed.  Compiling
+without support for multithreading is still supported.
+
+Version 1.1
+-------------------
+Rewrote the entire program.
+- Removed at least 3 instances of undefined behavior (such as using
+uninitialized variables).
+- Performance improvements. Neglecting I/O, the program now runs over twice as
+fast.  This improvement is not due to a change in algorithm; I expect it is due
+mainly to the rewritten align_position() function.
+- Use getopt_long() for option parsing.  Now, long options are accepted, and
+options do not have to be given after the mate pair FASTQ files.
+- Removed many fixed-size buffers.  This saves memory, removes many buffer
+overflow problems, and removes the READ_LENGTH parameter.  Note: the maximum tag
+length is still hard-coded as 1024 bytes.
+- Much more error checking, so the program will cleanly fail if something goes
+wrong.
+- Use a Makefile instead of a shell script.
+- The '.histogram' file is written a bit more narrowly (80 columns), but other
+than that, the output of the program should be the same (unless it was affected
+by any of the cases of undefined behavior I found).
+- Some changes to the MANUAL, although I didn't feel like changing the
+information that is redundant with the program help.
+- Note: I am calling this version 1.1, but feel free to call it something else.
+The version number is also listed in the version() function in flash.c.
+
+Version v1.0.3
+--------------
+1. FLASH allows reads files to be in gzip format.
+2. FLASH builds a histogram of fragment lengths produced by merged read pairs.
+3. FLASH now allows for reads longer than 170bp to be processed (READ_LENGTH is utilities.h file still needs to be changed manually to the read length if it is greater than 170).
+4. If original reads' ID contains barcode, the barcode is kept as a part of the ID in the output fragments.
+
+
+
+Version v1.0.2
+--------------
+Fixed bugs:
+1. In combine function in combineReads.c: modified selection of the base when quality values of bases are the same. Instead of random selection of the base, first check whether any base is "N" to avoid selection of "N" if not necessary.
+
+Added options for easier handling of the program:
+1. Added error messages in case no input files and no parameters are specified.
+2. Added the parameter to print 'help' for running the program.
+3. Added the option to specify prefix of the output files.
+4. Added the option to specify directory of the output files.
+
+Functional changes:
+1. Changed read length to 170.
+2. Automatic calculation of maximum overlap length given average read length, average fragment length, and fragment standard deviation.
+
+
+Version v1.0.1
+--------------
+Fixed bugs:
+1. In align_position function in combineReads.c: added the line *score=10001 when readLength2 < overlap.
+2. idSet function in utilities.c: added the part of the condition to end reading the line of file1[0] if '\n' is found.

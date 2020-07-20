@@ -1,0 +1,101 @@
+                                  INTRODUCTION
+
+FLASH (Fast Length Adjustment of SHort reads) is an accurate and fast tool
+to merge paired-end reads that were generated from DNA fragments whose
+lengths are shorter than twice the length of reads.  Merged read pairs result
+in unpaired longer reads, which are generally more desired in genome
+assembly and genome analysis processes.
+
+Briefly, the FLASH algorithm considers all possible overlaps at or above a
+minimum length between the reads in a pair and chooses the overlap that
+results in the lowest mismatch density (proportion of mismatched bases in
+the overlapped region).  Ties between multiple overlaps are broken by
+considering quality scores at mismatch sites.  When building the merged
+sequence, FLASH computes a consensus sequence in the overlapped region.
+More details can be found in the original publication
+(http://bioinformatics.oxfordjournals.org/content/27/21/2957.full).
+
+Limitations of FLASH include:
+   - FLASH cannot merge paired-end reads that do not overlap.
+   - FLASH is not designed for data that has a significant amount of indel
+     errors (such as Sanger sequencing data).  It is best suited for Illumina
+     data.
+
+                                  INSTALLATION
+
+On UNIX-compatible systems, including GNU/Linux and Mac OS X, you must compile
+FLASH from source.  The only dependency, other than functions that are expected
+to be available in the C library, is the zlib data compression library.  To
+install FLASH, download the tarball, untar it, and compile the code using the
+provided Makefile:
+
+    $ tar xzf FLASH-1.2.10.tar.gz
+    $ cd FLASH-1.2.10
+    $ make
+
+The executable file that is produced is named 'flash'.  To run it from the
+command line you must copy it to a location on your $PATH variable, or else run
+it with a path including a directory, such as "./flash".
+
+FLASH also runs on Windows, and you can compile it on Windows using MinGW.
+However, for convenience you may instead download a standalone Windows binary
+from the SourceForge page (https://sourceforge.net/projects/flashpage/).
+
+                                     USAGE
+
+Please compile FLASH and run `flash --help' to see command-line usage
+information and information about input/output files.
+
+                                 MULTITHREADING
+
+By default, FLASH uses multiple threads.  There are "combiner" threads that do
+the actual read combining, as well as up to 5 threads that are used for I/O (up
+to 2 readers, up to 3 writers).  The default number of combiner threads is the
+number of processors; however, it can be adjusted with the -t  option (long
+option: --threads).
+
+When multiple combiner threads are used, the order of the combined and
+uncombined reads in the output files will be nondeterministic.  If you need to
+enforce that the output reads appear in the same order as the input, you must
+specify --threads=1.
+
+                                  PERFORMANCE
+
+Since the FLASH algorithm considers each read pair independently, FLASH will, by
+default, process read pairs in parallel.  FLASH v1.2.9 and later also make use
+of vector instructions available on modern x86 CPUs.  Consequently, FLASH works
+quite fast, even with low-cost computing resources.  As an example, we ran FLASH
+v1.2.9 on a laptop with a dual-core 2.3 GHz AMD x86_64 processor and it
+processed one million 101-bp read pairs in 11.6 seconds with the default
+parameters.  Less than 2 MB of memory was used.  Actual timing results will
+vary, but they will depend primarily on the number of CPUs available, the speed
+of each CPU, and on the I/O speed of reading the input files and writing the
+output files.  FLASH is designed to be scalable to dozens of processors,
+although its speed may be limited by I/O in such cases.
+
+                                   ACCURACY
+
+With reads' error rate of 1% or less, FLASH processes over 99% of read pairs
+correctly.  With error rate of 2%, FLASH processes over 98% of read pairs
+correctly when default parameters are used. With more aggressive parameters
+(i.e., -x 0.35), FLASH processes over 90% of read pairs correctly even when the
+error rate is 5%.
+
+                                  PUBLICATION
+
+Title:   FLASH: fast length adjustment of short reads to improve genome assemblies
+Authors: Tanja Magoč and Steven L. Salzberg
+URL:     http://bioinformatics.oxfordjournals.org/content/27/21/2957.full
+
+                                    LICENSE
+
+FLASH is released under the GNU General Public License Version 3 or later (see
+COPYING).
+
+                          COMMENTS/QUESTIONS/REQUESTS
+
+Send an e-mail to flash.comment@gmail.com
+
+Other versions are available from the SourceForge page:
+
+https://sourceforge.net/projects/flashpage/
