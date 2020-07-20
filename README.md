@@ -39,9 +39,11 @@ to test your installation, run the example test set:
 ./lotus.pl -i Example/ -m Example/miSeqMap.sm.txt -s sdm_miSeq.txt -p miSeq -o myTestRun
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 Please cite Lotus with: 
+
 Hildebrand F, Tadeo RY, Voigt AY, Bork P, Raes J. 2014. LotuS: an efficient and user-friendly OTU processing pipeline. Microbiome 2: 30. 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 --- Acknowledgements of the softwares ---
 
