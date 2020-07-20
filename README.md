@@ -38,6 +38,7 @@ EXAMPLES
 to test your installation, run the example test set:
 ./lotus.pl -i Example/ -m Example/miSeqMap.sm.txt -s sdm_miSeq.txt -p miSeq -o myTestRun
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Please cite Lotus with: 
@@ -76,6 +77,7 @@ Clustal Omega - Sievers F, Wilm A, Dineen D, Gibson TJ, Karplus K, Li W, Lopez R
 fasttree2 - Price MN, Dehal PS, Arkin AP. 2010. FastTree 2--approximately maximum-likelihood trees for large alignments. ed. A.F.Y. Poon. PLoS One 5: e9490.
 
 --- Databases ---
+
 Greengenes - McDonald D, Price MN, Goodrich J, Nawrocki EP, DeSantis TZ, Probst A, Andersen GL, Knight R, Hugenholtz P. 2012. An improved Greengenes taxonomy with explicit ranks for ecological and evolutionary analyses of bacteria and archaea. ISME J 6: 610–8.
 
 SILVA - Yilmaz P, Parfrey LW, Yarza P, Gerken J, Pruesse E, Quast C, Schweer T, Peplies J, Ludwig W, Glockner FO (2014) The SILVA and "All-species Living Tree Project (LTP)" taxonomic frameworks. Nucleic Acid Res. 42:D643-D648 
@@ -87,6 +89,7 @@ beetax - Jones, JC, Fruciano, C, Hildebrand, F, et al. Gut microbiota compositio
 PR2 - Guillou L, Bachar D, Audic S, et al. The Protist Ribosomal Reference database (PR2): a catalog of unicellular eukaryote small sub-unit rRNA sequences with curated taxonomy. Nucleic Acids Res. 2013;41(Database issue):D597-D604
 
 --- ITS specific ---
+
 UNITE ITS chimera DB - Nilsson et al. 2015. A comprehensive, automatically updated fungal ITS sequence dataset for reference-based chimera control in environmental sequencing efforts. Microbes and Environments 
 
 UNITE ITS taxonomical refDB - Koljalg, Urmas, et al. "Towards a unified paradigm for sequence-based identification of fungi." Molecular Ecology 22.21 (2013): 5271-5277.
@@ -95,7 +98,9 @@ ITSx - Bengtsson‐Palme, J., Ryberg, M., Hartmann, M., Branco, S., Wang, Z., Go
 
 
 --- Mathematical models ---
+
 Puente-Sánchez 2016 - A novel conceptual approach to read-filtering in high-throughput amplicon sequencing studies. Nucleic Acids Res. 2016;44(4):e40. 
 
 --- C++ libraries ---
+
 gzip libraries - (gzstream.h) https://gist.github.com/piti118/1508048 and zlib library (http://www.zlib.net/)
