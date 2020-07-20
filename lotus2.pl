@@ -247,7 +247,7 @@ GetOptions(
     "o=s"                   => \$outdir,
     "barcode=s"             => \$barcodefile,
     "m|map=s"               => \$map,
-    "TaxOnly=i"             => \$TaxOnly,
+    "taxOnly|TaxOnly=i"             => \$TaxOnly,
     "check_map=s"           => \$check_map,
     "q|qual=s"              => \$inq,
     "s|sdmopt=s"            => \$sdmOpt,
@@ -273,7 +273,7 @@ GetOptions(
     "tolerateCorruptFq=i"   => \$damagedFQ,
     "keepUnclassified=i"    => \$keepUnclassified,
     "derepMin=s"            => \$dereplicate_minsize,
-    "doBlast|simBasedTaxo=s"=> \$doBlasting_pre,
+    "doBlast|simBasedTaxo|taxAligner=s"=> \$doBlasting_pre,
     "refDB=s"               => \$refDBwanted,
     "redoTaxOnly=i"         => \$onlyTaxRedo,
     "tax4refDB=s"           => \$refDBwantedTaxo,
@@ -451,7 +451,7 @@ if ( $doBlasting == -1 ) {
     }
 }
 elsif ( $doBlasting == 0 && $refDBwanted ne "" ) {
-    printL "RefDB $refDBwanted requested, but -simBasedTaxo set to \"0\": therefore RDP classification of reads will be done\n",
+    printL "RefDB $refDBwanted requested, but -taxAligner set to \"0\": therefore RDP classification of reads will be done\n",
       0;
 }
 
@@ -570,8 +570,7 @@ if ( substr( $ampliconType, 0, 3 ) eq "ITS" ) {
         my $failedBlastITS = "ITS region was chosen as target; this requires a similarity based taxnomic annotation and excludes RDP tax annotation.\n";
         $failedBlastITS .= "Blast similarity based annotation is not possible due to: ";
         if ( $doBlasting == 0 ) {
-            $failedBlastITS .=
-"Similarity search was not explicitly activated (please use option \"-simBasedTaxo blast\" or \"-simBasedTaxo lambda\").";
+            $failedBlastITS .= "Similarity search was not explicitly activated (please use option \"-taxAligner usearch\" or vsearch,lambda,blast).";
         }
         elsif ( !-f $blastBin || !-f $lambdaBin ) {
             $failedBlastITS .=
@@ -2652,7 +2651,7 @@ sub help {
 
     print "\n############### Taxonmomy related options ###############\n";
     print
-"  -TaxOnly skip most of the lotus pipeline and only run a taxonomic classification on a fasta file (provided via \"-i\" (could be an OTU fasta).\n";
+"  -taxOnly skip most of the lotus pipeline and only run a taxonomic classification on a fasta file (provided via \"-i\" (could be an OTU fasta).\n";
     print
 "  -redoTaxOnly [1: only redo the taxonomic assignments (useful for replacing a DB used on a finished lotus run), 0: normal lotus run, default]\n";
     print
@@ -2660,7 +2659,7 @@ sub help {
     print
 "  -keepUnclassified [1: includes unclassified OTUs (i.e. no match in RDP/Blast database) in OTU and taxa abundance matrix calculations; 0 does not take these OTU's into account, default 0]\n";
     print
-"  -simBasedTaxo [(previously doBlast) 0: deavtivated (just use RDP); [1 or \"blast\"]: use Blast; [2 or \"lambda\"]: use LAMBDA to search against a 16S reference database for taxonomic profiling of OTUs; [3 or \"utax\"]: use UTAX with custom databases. Default 0]\n";
+"  -taxAligner [(previously doBlast) 0: deavtivated (just use RDP); [1 or \"blast\"]: use Blast; [2 or \"lambda\"]: use LAMBDA to search against a 16S reference database for taxonomic profiling of OTUs; [3 or \"utax\"]: use UTAX with custom databases; [4 or \"vsearch \"]: use VSEARCH to align OTUs to custom databases; [5 or \"usearch\"]: use USEARCH to align OTUs to custom databases. Default 0]\n";
     print
 "  -useBestBlastHitOnly [1: don't use LCA (last common ancestor) to determine most likely taxnomic level (not recommended), instead just use the best blast hit. 0: (default) LCA algorithm]\n";
     print
