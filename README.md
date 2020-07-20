@@ -10,17 +10,19 @@
 
 ----------------------------------
 # LotuS
+----------------------------------
 (c) Falk.Hildebrand {at} gmail.com
 
 http://lotus2.earlham.ac.uk/
+
 http://www.microbiomejournal.com/content/2/1/30
-----------------------------------
+
 
 ### REQUIREMENTS
 LotuS requires a perl installation and sdm requires a fairly recent C++ compiler (like gcc or clang) that supports C++11.
 Lambda currently only works under linux, the option to use lambda is not available on mac os :( Instead, Blast can be installed.
 
-### INSTALL LOTUS
+### INSTALL LotuS
 To install LotuS and required properitary software execute
 ```{sh}
 perl autoInstall.pl
@@ -41,18 +43,18 @@ make
 cp sdm ../sdm
 ```
 
-###  UPDATE LOTUS
+###  UPDATE LotuS
 LotuS has a built in mechanism to upgrade LotuS, so that properitary programs & databases (once installed) don't have to be downloaded again. To use this feature a) install LotuS for the first time using the autoinstaller. 
 Once you know or want to check for new updates, simply excecute the autoinstaller again and you will be prompted if LotuS should be updated. In case no new updates are available, the autoinstaller will exit without making changes, so this function can be used frequently. New updates will always be announced on LotuS webpage (http://lotus2.earlham.ac.uk/).
 
 ### EXAMPLES
-to test your installation, run the example test set:
+To test your installation, run the example test set:
 ```{sh}
 ./lotus.pl -i Example/ -m Example/miSeqMap.sm.txt -s sdm_miSeq.txt -p miSeq -o myTestRun
 ```
 
 
-**Please cite Lotus with: **
+**Please cite LotuS with:**
 
 Hildebrand F, Tadeo RY, Voigt AY, Bork P, Raes J. 2014. LotuS: an efficient and user-friendly OTU processing pipeline. Microbiome 2: 30. 
 
