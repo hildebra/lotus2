@@ -143,6 +143,8 @@ my $citations = "$selfID: Hildebrand F, Tadeo RY, Voigt AY, Bork P, Raes J. 2014
 my $noChimChk = 0; #deactivate all chimera checks 1=no nothing, 2=no denovo, 3=no ref; default = 0
 my $mainLogFile = "";
 my $osname      = $^O;
+my $verbosity = 1;
+my $versionOut=0;
 
 my $ClusterPipe_pre = "1";
 my $ClusterPipe     = 1; #use UPARSE (1) or otupipe(0) or SWARM (2) or cd-hit(3), dnaclust (4), micca (5)
@@ -247,7 +249,7 @@ GetOptions(
     "o=s"                   => \$outdir,
     "barcode=s"             => \$barcodefile,
     "m|map=s"               => \$map,
-    "taxOnly|TaxOnly=i"             => \$TaxOnly,
+    "taxOnly|TaxOnly=i"     => \$TaxOnly,
     "check_map=s"           => \$check_map,
     "q|qual=s"              => \$inq,
     "s|sdmopt=s"            => \$sdmOpt,
@@ -256,6 +258,8 @@ GetOptions(
     "exe|executionMode=i"       => \$exec,
     "CL|clustering|UP|UPARSE=s" => \$ClusterPipe_pre,
     "thr|threads=i"         => \$uthreads,
+	"v"                     => \$versionOut,
+	"verbosity=i"           => \$verbosity,
     "highmem=i"             => \$sdmDerepDo,
     "useBestBlastHitOnly=i" => \$maxHitOnly,
     "pseudoRefOTUcalling=i" => \$pseudoRefOTU,
@@ -295,6 +299,11 @@ GetOptions(
     # "flashAvgLength" => \$flashLength,
     #"flashAvgLengthSD" => \$flashSD,
 ) or usage("Unknown options");
+
+if ($versionOut){
+	print "$selfID\n";
+	exit(0);
+}
 
 #still undocumented options: VsearchChimera removePhiX
 
@@ -366,6 +375,10 @@ system("mkdir -p $logDir") unless ( -d $logDir );#$3
 
 $mainLogFile = $logDir . "LotuS_run.log";
 my $cmdLogFile = $logDir . "LotuS_cmds.log";
+my $progOutPut = $logDir . "LotuS_progout.log";
+system "rm -f $progOutPut\n";
+
+die "TaxOnly option specified, but not an output dir: $outdir\n" unless (-d $outdir && -d $logDir);
 
 #reset logfile
 open LOG, ">", $mainLogFile or die "Can't open Logfile $mainLogFile\n";
@@ -490,10 +503,7 @@ if ( $ClusterPipe_pre eq "CD-HIT" || $ClusterPipe_pre eq "CDHIT" || $ClusterPipe
     }
 }
 if ( $platform eq "pacbio" && $ClusterPipe != 3 ) {
-    printL(
-"CD-HIT clustering is strongly recommended with PacBio reads (unless you know what you are doing).",
-        "w"
-    );
+    printL("CD-HIT clustering is strongly recommended with PacBio reads (unless you know what you are doing).","w");
 }
 
 #reference based OTU clustering requested?
@@ -1050,7 +1060,7 @@ if (   $numInput == 2){
 	$input   = "$t/$key.extendedFrags.fastq";
 	$single1 = "$t/$key.notCombined_1.fastq";
 	$single2 = "$t/$key.notCombined_2.fastq";
-	if (-s $mergeSeedsFiles[0] > 0 #check that file even exists..
+	if (@mergeSeedsFiles > 0 && -s $mergeSeedsFiles[0] > 0 #check that file even exists..
 			&& (-f $VSBin || -f $flashBin) #as well as the alignment programs
 			&& $otuRefDB ne "ref_closed" && $onlyTaxRedo == 0  && $TaxOnly == 0 ) #and otherwise also wanted step..
 	{
@@ -1595,24 +1605,20 @@ sub checkXtalk($ $) {
     my ( $otuFA, $otuM ) = @_;
     if ( !$doXtalk ) { return; }
     if ( $usearchVer < 11 ) {
-        printL
-"cannot check for cross-talk, as only implemented in usearch version > 11\n",
-          83;
+        printL "cannot check for cross-talk, as only implemented in usearch version > 11\n",83;
     }
     my $otuM1 = $otuM . ".noXref";
-    systemW "cp $otuM $otuM1";
-    my $cmd =
-"$usBin -otutab_xtalk $otuM1 -otutabout $otuM -report $logDir/crossTalk_analysis.txt\n";
+    systemL "cp $otuM $otuM1";
+    my $cmd = "$usBin -otutab_xtalk $otuM1 -otutabout $otuM -report $logDir/crossTalk_analysis.txt\n";
 
     #get the OTUs that are not in both tables
-    systemL $cmd;
+    systemL($cmd);
     if ( -z "$logDir/crossTalk_analysis.txt" ) {
-        printL "Cross talk unsuccessful\n";
+        printL "Cross talk unsuccessful, continuing without\n","w";
         systemL "rm $otuM; mv $otuM1 $otuM;";
     }
     else {
-        $citations .=
-"CrossTalk OTU removal: UNCROSS2: identification of cross-talk in 16S rRNA OTU tables. Robert C. Edgar . Bioarxiv (https://www.biorxiv.org/content/biorxiv/early/2018/08/27/400762.full.pdf)\n";
+        $citations .= "CrossTalk OTU removal: UNCROSS2: identification of cross-talk in 16S rRNA OTU tables. Robert C. Edgar . Bioarxiv (https://www.biorxiv.org/content/biorxiv/early/2018/08/27/400762.full.pdf)\n";
     }
 }
 
@@ -4077,7 +4083,7 @@ sub readMap() {
 sub finWarn($) {
     my ($msg) = @_;
     $finalWarnings .= $msg . "\n";
-    printL "$msg \n", 0;
+    print STDERR "$msg \n";
 }
 
 sub readOTUmat($) {
@@ -4134,9 +4140,7 @@ sub utaxTaxAssign($ $) {
     #die $utaCmd."\n";
 
     if ( $exec == 0 ) {
-        printL frame(
-"Assigning taxonomy against reference using UTAX with confidence $taxLconf bp\nelapsed time: $duration s"
-        );
+        printL frame("Assigning taxonomy against reference using UTAX with confidence $taxLconf bp\nelapsed time: $duration s");
 
         #print $cmd."\n";
         if ( systemL($cmd) ) { printL "UTAX failed:\n$cmd\n", 3; }
@@ -4641,14 +4645,18 @@ sub print_nseq($) {
 sub printL($ $) {
     my ( $msg, $stat ) = @_;
     if ( defined $stat && $stat eq "w" ) {
+		print LOG $msg;
         finWarn($msg);
         return;
     }
-    print $msg;
+    print $msg if ($verbosity > 0) ;
     if ( $mainLogFile ne "" ) {
         print LOG $msg;
     }
-    if ( defined $stat && $stat ne "0" ) { exit($stat); }
+    if ( defined $stat && $stat ne "0" ) { 
+		print $msg if ($verbosity < 1) ; #print in any case, since exiting on this message
+		exit($stat); 
+	}
 }
 
 sub systemL($) {
@@ -4659,13 +4667,18 @@ sub systemL($) {
     # print $stdout;
     # print LOG $stdout;
     # print callLog $subcmd."\n";
-    #printL("[cmd] $subcmd\n",0);
+    
+	print("[cmd] $subcmd\n") if ($verbosity > 2) ;
 	print cmdLOG "[cmd] $subcmd\n";
-    return system($subcmd);
+	my $attach = "";
+	$attach = ">> $progOutPut 2>&1" if ($verbosity < 2);
+	my $stat = system("$subcmd  $attach");
+    return $stat;
     # return $ENV{'PIPESTATUS[0]'};
 }
 
 sub announceClusterAlgo{
+	return;
 	   if ( $ClusterPipe == 0 ) {
 		printL "\n\n--------- OTUPIPE ----------- \nelapsed time: $duration s\n\n",0;
 	} elsif ( $ClusterPipe == 1 ) {
@@ -5036,16 +5049,16 @@ sub buildOTUs($) {
         if ( $noChimChk == 1 || $noChimChk == 2 ) {  #deactivate chimera de novo
             $xtraOptions .= " -uparse_break -999 ";
         }
-        printL("\n =========================================================================\n UPARSE core routine\n Cluster at "
-              . 100 * $id_OTU
-              . "%\n=========================================================================\n",0);
+        printL(frame("UPARSE core routine\n Cluster at ". 100 * $id_OTU),0);
+		#"\n =========================================================================\n UPARSE core routine\n Cluster at ". 100 * $id_OTU. "%\n=========================================================================\n",0);
 
         $cmd = "$usBin -cluster_otus $derepl -otus $OTUfastaTmp $idLabel $id_OTUup -log $logDir/UPARSE.log $xtraOptions";    # -threads $uthreads"; # -uc ".$UCguide[2]."
         $citations .= "UPARSE OTU clustering - Edgar RC. 2013. UPARSE: highly accurate OTU sequences from microbial amplicon reads. Nat Methods.\n";
 		#die $cmd."\n";
     }
     elsif ( $ClusterPipe == 7 ) { #dada2
-        printL("\n =========================================================================\n DADA2 ASV clustering\n Dereplication of reads\n=========================================================================\n",0);
+		printL(frame("DADA2 ASV clustering\nDereplication of reads"),0);
+        #printL("\n =========================================================================\n DADA2 ASV clustering\n Dereplication of reads\n=========================================================================\n",0);
 		die "incorrect dada2 script defined" unless (-f $dada2Scr);
 		$cmd = "$Rscript $dada2Scr $sdmDemultiDir $sdmDemultiDir $dada2Seed $uthreads\n";
 		$cmd .= "mv -f $sdmDemultiDir/*.pdf $logDir\n";
@@ -5053,7 +5066,8 @@ sub buildOTUs($) {
 		$citations .= "DADA2 ASV clustering - Callahan BJ, McMurdie PJ, Rosen MJ, et al. DADA2: High-resolution sample inference from Illumina amplicon data. Nat Methods 2016;13:581–3. doi:10.1038/nmeth.3869\n";
 	}
     elsif ( $ClusterPipe == 6 ) { #unoise3
-        printL("\n =========================================================================\n UNOISE core routine\n Cluster at ". 100 * $id_OTU . "%\n=========================================================================\n",0);
+		printL(frame("UNOISE core routine\n Cluster at ". 100 * $id_OTU . "%"),0);
+        #printL("\n =========================================================================\n UNOISE core routine\n Cluster at ". 100 * $id_OTU . "%\n=========================================================================\n",0);
 	
         $cmd = "$usBin -unoise3 $derepl -zotus $OTUfastaTmp -tabbedout $logDir/unoise3_longreport.txt -log $logDir/unoise3.log ";    # -threads $uthreads"; # -uc ".$UCguide[2]."
         $citations .= "UNOISE ASV (zOTU) clustering - R.C. Edgar (2016), UNOISE2: improved error-correction for Illumina 16S and ITS amplicon sequencing, https://doi.org/10.1101/081257 \n";
@@ -5063,10 +5077,9 @@ sub buildOTUs($) {
 #prelim de novo OTU filter
 #$cmd="$usBin -uchime_denovo  $derepl -chimeras $t/chimeras_denovo.fa -nonchimeras $t/tmp1.fa -abskew $chimera_absskew -log $logDir/uchime_dn.log";
 #if (systemL($cmd) != 0){exit(1);}	systemL("ls -lh $t/tmp1.fa");
-        if ( !-e $swarmBin ) {
-            printL "No valid swarm binary found at $swarmBin\n", 88;
-        }
-        printL("\n =========================================================================\n SWARM OTU clustering\n Cluster with d = ". $swarmClus_d. "\n=========================================================================\n",0);
+        if ( !-e $swarmBin ) {printL "No valid swarm binary found at $swarmBin\n", 88;}
+		printL(frame("SWARM OTU clustering\n Cluster with d = ". $swarmClus_d ),0);
+        #printL("\n =========================================================================\n SWARM OTU clustering\n Cluster with d = ". $swarmClus_d. "\n=========================================================================\n",0);
 
         #-z: unsearch size output. -u uclust result file
         my $uclustFile = "$t/clusters.uc";
@@ -5082,9 +5095,8 @@ sub buildOTUs($) {
 #$cmd.= "\ngrep -A 1 -F -f $t/tmp_seeds.txt $derepl | sed -e '/^--\$/d' > $OTUfastaTmp";
     }
     elsif ( $ClusterPipe == 3 ) {
-        if ( !-e $cdhitBin ) {
-            printL "No valid CD-Hit binary found at $cdhitBin\n", 88;
-        }
+        if ( !-e $cdhitBin ) {printL "No valid CD-Hit binary found at $cdhitBin\n", 88;}
+		printL(frame("CD-HIT OTU clustering\n Cluster at ". 100 * $id_OTU ),0);
         printL("\n =========================================================================\n CD-HIT OTU clustering\n Cluster at ". 100 * $id_OTU . "%\n=========================================================================\n", 0 );
         if ($REFflag) {  #$otuRefDB eq "ref_closed" || $otuRefDB eq "ref_open"){
             printL "CD-HIT ref DB clustering not supported!\n", 55;
