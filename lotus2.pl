@@ -56,8 +56,7 @@ sub buildTree;
 sub combine;
 sub contamination_rem;
 sub readOTUmat;
-
-#fasta IO
+sub runPhyloObj;
 sub readFastaHd;
 sub replaceFastaHd;
 sub splitFastas;
@@ -99,6 +98,7 @@ my $LCABin      = "";
 my $sdmBin      = "./sdm";
 my $usBin       = ""; #absolute path to usearch binary
 my $dada2Scr    = ""; #absolute path to dada2 pipeline script
+my $phyloLnk    = ""; #R helper script to create phyloSeq objects
 my $Rscript     = ""; #absolute path to Rscript -> also serves as check that Rscript exists on cluster..
 my $swarmBin    = "";
 my $VSBin       = "";
@@ -158,6 +158,7 @@ my $chimera_prefix = "CHIMERA_"
   ;    # Prefix for chimera label, default is CHIM_ giving CHIM_1, OTU_2 ...
 my $sep_smplID = "___";    #separator of smpID & ori fasta id
 my $extendedLogs    = 1; #write chimeric OTUs, exact blast/RDP hits to extra dir
+my $keepTmpFiles    = 0; #more of a debugging option
 my $checkForUpdates = 1; #check online if a new lotus version is avaialble
 my $maxReadOverlap   = 250;          #flash parameter
 my $maxHitOnly       = 0;
@@ -256,6 +257,9 @@ GetOptions(
     "t|tmpDir=s"            => \$lotus_tempDir,
     "c|config=s"                => \$lotusCfg,
     "exe|executionMode=i"       => \$exec,
+    "redoTaxOnly=i"         => \$onlyTaxRedo,
+    "keepTmpFiles=i"        => \$keepTmpFiles,
+    "extendedLogs=i"        => \$extendedLogs,
     "CL|clustering|UP|UPARSE=s" => \$ClusterPipe_pre,
     "thr|threads=i"         => \$uthreads,
 	"v"                     => \$versionOut,
@@ -279,13 +283,11 @@ GetOptions(
     "derepMin=s"            => \$dereplicate_minsize,
     "doBlast|simBasedTaxo|taxAligner=s"=> \$doBlasting_pre,
     "refDB=s"               => \$refDBwanted,
-    "redoTaxOnly=i"         => \$onlyTaxRedo,
     "tax4refDB=s"           => \$refDBwantedTaxo,
     "amplicon_type=s"       => \$ampliconType,       #SSU LSU ITS ITS1 ITS2
     "tax_group=s"           => \$organism,           #fungi bacteria, euakaryote
     "readOverlap=i"         => \$maxReadOverlap,
     "endRem=s"              => \$remFromEnd,
-    "keepTmpFiles=i"        => \$extendedLogs,
     "swarm_distance=i"      => \$swarmClus_d,
 	"dada2seed=i"           => \$dada2Seed,
     "OTUbuild=s"            => \$otuRefDB,
@@ -654,6 +656,7 @@ my $highLvlDir   = $outdir . "/higherLvl/";
 my $FunctOutDir = $outdir . "/derrivedFunctions/";
 my $RDP_hierFile = "$outdir/hiera_RDP.txt";
 my $SIM_hierFile = "$outdir/hiera_BLAST.txt";
+
 
 #my $currdir=`pwd`;
 my $clustMode = "de novo";
@@ -1244,6 +1247,8 @@ if ( !-d $FunctOutDir ) {
     }
 }
 systemL("cp $OTUmFile $highLvlDir");
+
+#higher taxonomy & bioms
 $duration = time - $start;
 if ( $REFTAX || $RDPTAX ) {
 	my $taxRefHR;
@@ -1280,36 +1285,24 @@ if ($REFflag) {
 }
 
 #building tree & MSA
-$duration = time - $start;
-if ( -f $clustaloBin && -f $fasttreeBin ) {
-    printL( frame("Building tree and aligning OTUs\nelapsed time: $duration s"),
-        0 );
-    buildTree( $OTUfa, $outdir );
-}
-else {
-    printL(
-        frame(
-"Skipping tree building and multiple alignment: \nclustaloBin or fasttreeBin are not defined\nelapsed time: $duration s"
-        ),
-        0
-    );
-}
+buildTree( $OTUfa, $outdir );
 
 #citations file
 open O, ">$logDir/citations.txt";
 print O $citations;
 close O;
 
+my $phyloseqCreated=runPhyloObj();
+
+
 #print"\n".$repStr;
 $duration = time - $start;
-if ( $exec == 0 ) { printL "Delete temp dir $t\n", 0; systemL("rm -rf $t"); }
-printL(
-    frame(
-"Finished after $duration s \nOutput files are in \n$outdir\nThe files in LotuSLogS/ have statistics about this run\nSee LotuSLogS/citations.txt for programs used in this run\nNext steps: you can use the rtk program in this pipeline, to generate rarefaction curves and diversity estimates of your samples.\n"
-    ),
-    0
-);
 
+systemL("rm -rf $t") if ($exec == 0 && !$keepTmpFiles);  #printL "Delete temp dir $t\n", 0; }
+printL(    frame("Finished after $duration s \nOutput files are in \n\n$outdir\n\- LotuSLogS/ contains run statistics (useful for describing data/amount of reads/quality\n- LotuSLogS/citations.txt: papers of programs used in this run\nNext steps: you can use the rtk program in this pipeline, to generate rarefaction curves and diversity estimates of your samples.\n"    ),0);
+my $phyloHlp="";
+$phyloHlp="- Phyloseq: $outdir/phyloseq.Rdata can be directly loaded in R\n" if ($phyloseqCreated);
+printL(frame("          Next steps:          \n- Rarefaction analysis: can be done with rtk (avaialble in R or use bin/rtk)\n$phyloHlp- Phylogeny: OTU phylogentic tree available in $outdir/tree.nwk\n- .biom: $outdir/OTU.biom contains biom formated output\n- tutorial: Visit lotus2.earlham.ac.uk for more tutorials in data anlysis\n"));
 printWarnings();
 
 close LOG; close cmdLOG;
@@ -1358,6 +1351,17 @@ close LOG; close cmdLOG;
 
 #--------------------------############################----------------------------------###########################
 
+
+sub runPhyloObj{
+	return 0 if (!-f $phyloLnk || !-f $Rscript);
+	die "Incorrect phyloLnk script defined $phyloLnk" unless (-f $phyloLnk);
+	die "Incorrect R installation (can't find Rscript)" unless (-f $Rscript);
+	my $cmd = "$Rscript $phyloLnk $OTUmFile $SIM_hierFile $map";
+	die "$cmd\n";
+	systemL $cmd;
+	return 1;
+}
+
 sub printWarnings() {
     if ( $finalWarnings eq "" ) { return; }
     printL "The following WARNINGS occured:\n", 0;
@@ -1378,10 +1382,6 @@ sub readLinkRefFasta() {
 
     #unlink $inF;
     return \%ret;
-}
-
-sub hexFasta($ $) {
-    my ( $in, $out ) = @_;
 }
 
 sub loadFaProTax($){
@@ -1483,10 +1483,6 @@ sub contamination_rem($ $ $ ) {
         #die "hex seq to 50kb pieces\n";
         my $hexDB = $refDB;
         $hexDB .= ".lts.fna";
-        if ( 0 && -s $refDB > 100000 ) {    #hex
-            hexFasta( $refDB, $hexDB );
-            $refDB = $hexDB;
-        }
         my $hitsFile = $otusFA . ".cont_hit.uc";
         my @hits;
 		if ($nameRDB ne "PhiX"){ #minimap2
@@ -2157,12 +2153,11 @@ sub readPaths_aligners() {
         $line =~ s/\"//g;
         if ( $line =~ m/^usearch\s(\S+)/ ) {
             $usBin = truePath($1);
-        }
-		elsif ( $line =~ m/^dada2R\s+(\S+)/ ) {
+        } elsif ( $line =~ m/^dada2R\s+(\S+)/ ) {
             $dada2Scr = $1;
-			#die $dada2Scr;
-        }
-        elsif ( $line =~ m/^vsearch\s+(\S+)/ ) {
+        } elsif ( $line =~ m/^phyloLnk\s+(\S+)/ ) {
+            $phyloLnk = $1;
+        } elsif ( $line =~ m/^vsearch\s+(\S+)/ ) {
             $VSBin = truePath($1);
             $VSBinOri = truePath($1);  #deactivate default vsearch again.. prob with chimera finder.
         }
@@ -2588,9 +2583,7 @@ sub readPaths() {    #read tax databases and setup correct usage
 "VSEARCH 1.13 (chimera de novo / ref; OTU alignments): Rognes T (2015) https://github.com/torognes/vsearch\n";
     }
     if ( !-f $mjar && !-f $rdpjar && $doRDPing > 0 ) {
-        printL
-"Could not find rdp jar at\n\"$mjar\"\nor\n\"$rdpjar\"\n.Aborting..\n",
-          3;
+        printL "Could not find rdp jar at\n\"$mjar\"\nor\n\"$rdpjar\"\n.Aborting..\n", 3;
     }
 
 }
@@ -2626,10 +2619,8 @@ sub checkBlastAvaila() {
 }
 
 sub help {
-    print
-"\nPlease provide at least 3 arguments:\n(1) -i [input fasta / fastq / dir]\n";
-    print
-"(2) -o [output dir]\n(3) -m/-map [mapping file]\nOptional options are:\n";
+    print "\nPlease provide at least 3 arguments:\n(1) -i [input fasta / fastq / dir]\n";
+    print "(2) -o [output dir]\n(3) -m/-map [mapping file]\nOptional options are:\n";
     print "############### Basic pipeline options ###############\n";
     print "  -check_map [mapping file] only checks mapping file and exists\n";
     print "  -q [input qual file (empty in case of fastq or directory)]\n";
@@ -2751,8 +2742,7 @@ sub get16Sstrand($ $) {    #
     my ( $OTUfa, $refDB ) = @_;
     my $ret      = "both";
     my $OTUfa_sh = firstXseqs( $OTUfa, 6, "$t/otus4blast.tmp" );
-    my $cmd =
-"$blastBin -query $OTUfa_sh -db $refDB -out $t/blast4dire.blast -outfmt 6 -max_target_seqs 200 -perc_identity 75 -num_threads $BlastCores -strand both \n"
+    my $cmd = "$blastBin -query $OTUfa_sh -db $refDB -out $t/blast4dire.blast -outfmt 6 -max_target_seqs 200 -perc_identity 75 -num_threads $BlastCores -strand both \n"
       ;                    #-strand plus both
     if ( systemL($cmd) != 0 ) {
         printL "FAILED pre-run blast command:\n$cmd\n", 5;
@@ -2951,8 +2941,8 @@ sub calcHighTax($ $ $ $ $) {
         my $assPerc = 0;
         $assPerc = $assCnt{$l} / $totCnt{$l} if ( $totCnt{$l} > 0 );
         my $assPerc2 = 0;
-        $assPerc2 = $assTax{$l} / ( $assTax{$l} + $unassTax{$l} )
-          if ( ( $totCnt{$l} + $unassTax{$l} ) > 0 );
+		my $lsum=( $assTax{$l} + $unassTax{$l} );
+        $assPerc2 = $assTax{$l} / $lsum if ( $lsum > 0 );
         printL "$l\t" . ( 100 * $assPerc ) . "\t" . ( 100 * $assPerc2 ) . "\n",
           0;
     }
@@ -2962,6 +2952,15 @@ sub calcHighTax($ $ $ $ $) {
 
 sub buildTree($ $) {
     my ( $OTUfa, $outdir ) = @_;
+
+	if ( -f $clustaloBin && -f $fasttreeBin ) {
+		$duration = time - $start;
+		printL( frame("Building tree and aligning OTUs\nelapsed time: $duration s"),0 );
+	} else {
+		printL(frame("Skipping tree building and multiple alignment: \nclustaloBin or fasttreeBin are not defined\nelapsed time: $duration s"),0);
+	}
+
+	
     my $multAli  = $outdir . "/otuMultAlign.fna";
     my $outTree  = $outdir . "/Tree.tre";
     my $tthreads = $uthreads;
@@ -5391,9 +5390,7 @@ sub swarmClust($) {
     my $filtered = $filterOut;
     my $derepl   = "$t/derep.fas";            #,$totSeqs,$arL)
     if ( !-f $derepl || -z $derepl ) {
-        printL
-"The sdm dereplicated output file was either empty or not existant, aborting lotus.\n$derepl\n",
-          1;
+        printL "The sdm dereplicated output file was either empty or not existant, aborting lotus.\n$derepl\n", 1;
     }
 
     my ( $totSeqs, $SeqLength ) = parseSDMlog("$logDir/demulti.log");
