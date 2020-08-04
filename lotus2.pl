@@ -1357,8 +1357,11 @@ sub runPhyloObj{
 	die "Incorrect phyloLnk script defined $phyloLnk" unless (-f $phyloLnk);
 	die "Incorrect R installation (can't find Rscript)" unless (-f $Rscript);
 	my $cmd = "$Rscript $phyloLnk $OTUmFile $SIM_hierFile $map";
-	die "$cmd\n";
-	systemL $cmd;
+	#die "$cmd\n";
+	if (!(systemL $cmd)){
+		printL "Could not create phyloseq object\n","w";
+		return 0;
+	}
 	return 1;
 }
 
@@ -4171,7 +4174,7 @@ sub doDBblasting($ $ $) {
         $cmd =
 "$blastBin -query $query -db $DB -out $taxblastf -outfmt 6 -max_target_seqs 200 -perc_identity 75 -num_threads $BlastCores -strand $strand \n"
           ;    #-strand plus both minus
-        if ( !-s $query ) { $cmd = "touch $taxblastf"; }
+        if ( !-s $query ) { $cmd = "touch $taxblastf\n"; }
         else {
             $citations .=
 "Blast taxonomic similarity search: Altschul SF, Gish W, Miller W, Myers EW, Lipman DJ. 1990. Basic local alignment search tool. J Mol Biol 215: 403–10.\n";
@@ -4188,7 +4191,7 @@ sub doDBblasting($ $ $) {
             }
         }
         print "Starting ublast.. ";
-        $cmd = "$usBin -ublast $query -db $udbDB -evalue 1e-9 -accel 0.8 -id 0.75 -query_cov 0.9 -blast6out $taxblastf -strand both -threads $BlastCores";
+        $cmd = "$usBin -ublast $query -db $udbDB -evalue 1e-9 -accel 0.8 -id 0.75 -query_cov 0.9 -blast6out $taxblastf -strand both -threads $BlastCores\n";
         print "Done.\n";
         if ( !-s $query ) { $cmd = "touch $taxblastf"; }
         $simMethod = "usearch";
@@ -4213,7 +4216,7 @@ sub doDBblasting($ $ $) {
 			$simMethod = "USEARCH";
 			$citations .= "USEARCH taxonomic database search: \n" unless ( $citations =~ m/USEARCH taxonomic database search/ );
 		}
-		$cmd .= "--usearch_global $query --db $udbDB  --id 0.75 --query_cov 0.5 --blast6out $taxblastf --maxaccepts 200 --maxrejects 100 -strand both --threads $BlastCores";
+		$cmd .= "--usearch_global $query --db $udbDB  --id 0.75 --query_cov 0.5 --blast6out $taxblastf --maxaccepts 200 --maxrejects 100 -strand both --threads $BlastCores\n";
 		#die "$cmd\n";
     } elsif ( $doBlasting == 2 ) {    #lambda
         printL "Could not find lambda executable.\n$lambdaBin\n", 33   unless ( -f $lambdaBin );
@@ -4263,7 +4266,7 @@ sub doDBblasting($ $ $) {
     } else {
         printL "Unknown similarity comparison program option (-simBasedTaxo): \"$doBlasting\"\n", 98;
     }
-    if ($extendedLogs) { $cmd .= "cp $taxblastf $extendedLogD/\n"; }
+    if ($extendedLogs) { $cmd .= "\ncp $taxblastf $extendedLogD/\n"; }
     #die($cmd."\n");
     $duration = time - $start;
 	if ( $exec == 0 ) {
@@ -4671,7 +4674,8 @@ sub systemL($) {
 	print cmdLOG "[cmd] $subcmd\n";
 	my $attach = "";
 	$attach = ">> $progOutPut 2>&1" if ($verbosity < 2);
-	my $stat = system("$subcmd  $attach");
+	my $stat = system("$subcmd $attach");
+	print "CMD failed: $subcmd \n" if ($stat);
     return $stat;
     # return $ENV{'PIPESTATUS[0]'};
 }
