@@ -2813,7 +2813,7 @@ sub calcHighTax($ $ $ $ $) {
 		}
 	}
 	my @matOTUs2 = keys %matOTUs;
-	print "@matOTUs2   ".@matOTUs2."\n"."\n";
+	#print "@matOTUs2   ".@matOTUs2."\n"."\n";
 
     #pseudo OTU ref hits
     if ( $xtraOut ne "" ) {
@@ -5061,8 +5061,11 @@ sub buildOTUs($) {
         #printL("\n =========================================================================\n DADA2 ASV clustering\n Dereplication of reads\n=========================================================================\n",0);
 		die "incorrect dada2 script defined" unless (-f $dada2Scr);
 		$cmd = "$Rscript $dada2Scr $sdmDemultiDir $sdmDemultiDir $dada2Seed $uthreads\n";
+		#cleanup of important dada2 files
 		$cmd .= "mv -f $sdmDemultiDir/*.pdf $logDir\n";
 		$cmd .= "cp $sdmDemultiDir/uniqueSeqs.fna $OTUfastaTmp\n";
+		$cmd .= "cp $sdmDemultiDir/uniqueSeqs.fna $outdir/primary/;gzip $outdir/primary//uniqueSeqs.fna\n";
+		$cmd .= "rm -r $sdmDemultiDir\n";
 		$citations .= "DADA2 ASV clustering - Callahan BJ, McMurdie PJ, Rosen MJ, et al. DADA2: High-resolution sample inference from Illumina amplicon data. Nat Methods 2016;13:581–3. doi:10.1038/nmeth.3869\n";
 	}
     elsif ( $ClusterPipe == 6 ) { #unoise3
