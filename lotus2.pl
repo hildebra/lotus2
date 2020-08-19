@@ -26,15 +26,12 @@ use Getopt::Long qw( GetOptions );
 #use threads;
 use 5.012;
 use FindBin qw($RealBin);
-my $LWPsimple = eval {
-    require LWP::Simple;
-    LWP::Simple->import();
-    1;
-};
+#my $LWPsimple = eval {require LWP::Simple;LWP::Simple->import();1;};
 
 sub usage;
 sub help;
-sub frame;
+sub frame;sub printL;
+sub announce_options;
 sub readPaths;sub readPaths_aligners;
 sub announceClusterAlgo;  sub buildOTUs;
 sub mergeUCs;sub delineateUCs;sub cutUCstring;sub uniq;
@@ -43,7 +40,7 @@ sub checkBlastAvaila;sub getSimBasedTax;
 
 sub makeAbundTable2;
 sub readMap;
-sub assignTaxOnly;
+sub assignTaxOnly; sub runRDP;
 
 sub writeUTAXhiera;
 sub doDBblasting;
@@ -70,7 +67,6 @@ sub newUCSizes;
 sub readLinkRefFasta;
 sub readTaxIn;
 sub biomFmt;
-sub printL;
 sub finWarn;
 sub printWarnings;    #1 to add warnings, the other to print these
 sub forceMerge_fq2fna;
@@ -185,8 +181,8 @@ my $chimCnt = "F";    #should chimeric OTU counts be split up among parents?
 
 #flow controls
 my $onlyTaxRedo = 0;    #assumes that outdir already contains finished lotus run
-my $TaxOnly     = 0
-  ; #will override most functionality and skip directly ahead to tax assignment part
+my $TaxOnly     = "0"; #will override most functionality and skip directly ahead to tax assignment part
+						#can also be used to assign tax directly to fa given as argument, e.g. -taxOnly /xx/test.fa
 
 # --------------------
 #similarity taxo search options
@@ -252,14 +248,14 @@ GetOptions(
     "o=s"                   => \$outdir,
     "barcode=s"             => \$barcodefile,
     "m|map=s"               => \$map,
-    "taxOnly|TaxOnly=i"     => \$TaxOnly,
+    "taxOnly|TaxOnly=s"     => \$TaxOnly,
+    "redoTaxOnly=i"         => \$onlyTaxRedo,
     "check_map=s"           => \$check_map,
     "q|qual=s"              => \$inq,
     "s|sdmopt=s"            => \$sdmOpt,
     "t|tmpDir=s"            => \$lotus_tempDir,
     "c|config=s"                => \$lotusCfg,
     "exe|executionMode=i"       => \$exec,
-    "redoTaxOnly=i"         => \$onlyTaxRedo,
     "keepTmpFiles=i"        => \$keepTmpFiles,
     "extendedLogs=i"        => \$extendedLogs,
     "CL|clustering|UP|UPARSE=s" => \$ClusterPipe_pre,
@@ -352,21 +348,29 @@ if ( $check_map ne "" ) {
 
 getSimBasedTax();
 
-if ( !defined($input) && !defined($outdir) && !defined($map) ) { usage(""); }
-defined($input) or usage("-i option (input dir/files) is required\n");
-if ( $input =~ m/\*/ ) {
-    die
-"\"*\" not supported in input command. Please see documentation on how to set up the mapping file for several input files.";
+if ( $TaxOnly eq "0" && !defined($input) && !defined($outdir) && !defined($map) ) { 
+	defined($input) or usage("-i option (input dir/files) is required\n");
+	if ( $input =~ m/\*/ ) {
+		usage
+	"\"*\" not supported in input command. Please see documentation on how to set up the mapping file for several input files.";
+	}
+	defined($outdir) or usage("-o option (output dir) is required\n");
+	if ( !defined($map) ) {
+		usage("-m missing option (mapping file)\n");
+	}
 }
-defined($outdir) or usage("-o option (output dir) is required\n");
-if ( !defined($map) && $TaxOnly == 0 ) {
-    usage("-m missing option (mapping file)\n");
-}
-if ( !defined($sdmOpt) && $TaxOnly == 0 ) {
+if ( !defined($sdmOpt) && $TaxOnly eq "0" ) {
     finWarn("WARNING:\n sdm options not set\n WARNING\n");
 }
+my $rmOutDir = 0;
+if ($TaxOnly ne "0" && -f $TaxOnly){
+	$TaxOnly =~ m/.*\/(.*)$/;$outdir = $1."/tmp/";;
+	printL "Using tmp outdir $outdir\n";
+	$rmOutDir=1;
+}
+
 defined($lotus_tempDir) or $lotus_tempDir = $outdir . "/tmpFiles/";
-system("rm -f -r $outdir") if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly == 0 );
+system("rm -f -r $outdir") if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" );
 system("mkdir -p $outdir") unless ( -d $outdir );
 if ( !-d $outdir ) {  die( "Failed to make outputdir or doesn't exist: " . $outdir . "\n" );}
 
@@ -534,7 +538,7 @@ if ($REFflag) {
     }
     if ( $refDBwanted eq "" ) {
         printL
-"You selected ref based OTU building, please set -refDB to \"SLV\", \"GG\", \"HITdb\", \"PR2\" or a custom fasta file.\n",
+"You selected ref based $OTU_prefix building, please set -refDB to \"SLV\", \"GG\", \"HITdb\", \"PR2\" or a custom fasta file.\n",
           22;
     }
 
@@ -561,13 +565,13 @@ if ( (`cat /proc/meminfo |  grep "MemTotal" | awk '{print \$2}'`) < 16524336 ) {
 }
 
 #die();
-if ( $sdmOpt eq "" ) {
-    $sdmOpt = "$RealBin/sdm_miSeq.txt";
-    printL "No sdm Option specified, using standard 454 sequences options", 0;
-}
-if ( !-e $sdmOpt ) {
-    printL "Could not find sdm options file (specified via \"-s\". Please make sure this is available.\n Aborting run..\n",
-      33;
+
+if ( !-e $sdmOpt && $TaxOnly eq "0") {
+	if ( $sdmOpt eq "" ) {
+		$sdmOpt = "$RealBin/sdm_miSeq.txt";
+		printL "No sdm Option specified, using standard 454 sequences options", 0;
+	}
+    printL "Could not find sdm options file (specified via \"-s\". Please make sure this is available.\n Aborting run..\n",33;
 }
 
 #die $LCABin."\n";
@@ -627,7 +631,7 @@ if ( scalar(@inqArray) > 0
 #read map, also check map file format
 my ( $mapHref, $combHref, $hasCombiSmpls ) = ( {}, {}, 0 );
 my %mapH;
-if ( $TaxOnly == 0 ) {
+if ( $TaxOnly eq "0" ) {
     ( $mapHref, $combHref, $hasCombiSmpls ) = readMap();
     %mapH = %{$mapHref};
 }
@@ -664,115 +668,7 @@ my $SIM_hierFile = "$outdir/hiera_BLAST.txt";
 my $clustMode = "de novo";
 $clustMode = "reference closed" if ( $otuRefDB eq "ref_closed" );
 $clustMode = "reference open"   if ( $otuRefDB eq "ref_open" );
-if ( !$onlyTaxRedo && !$TaxOnly ) {
-    if ( $ClusterPipe == 0 ) {
-        printL( "Running otupipe $clustMode sequence clustering..\n", 0 );
-    }
-    elsif ( $ClusterPipe == 1 ) {
-        printL( "Running UPARSE $clustMode sequence clustering..\n", 0 );
-    }
-    elsif ( $ClusterPipe == 7 ) {
-        printL( "Running DADA2 $clustMode sequence clustering..\n", 0 );
-		die "Incorrect dada2 script defined $dada2Scr" unless (-f $dada2Scr);
-		die "Incorrect R installation (can't find Rscript)" unless (-f $Rscript);
-		
-    }
-    elsif ( $ClusterPipe == 6 ) {
-        printL( "Running UNOISE $clustMode sequence clustering..\n", 0 );
-    }
-    elsif ( $ClusterPipe == 2 ) {
-        printL( "Running SWARM $clustMode sequence clustering..\n", 0 );
-    }
-    elsif ( $ClusterPipe == 3 ) {
-        printL( "Running CD-HIT $clustMode sequence clustering..\n", 0 );
-    }
-    elsif ( $ClusterPipe == 4 ) {
-        printL( "Running DNACLUST $clustMode sequence clustering..\n", 0 );
-    }
-    if   ($sdmDerepDo) { printL "Running fast LotuS mode..\n"; }
-    else               { printL "Running low-mem LotuS mode..\n"; }
-}
-else {    #prep for redoing tax, save previous tax somehwere
-    printL "Re-Running only tax assignments, no de novo clustering\n", 0;
-    my $k       = 0;
-    my $newLDir = "$outdir/prevLtsTax_$k";
-    while ( -d $newLDir ) { $k++; $newLDir = "$outdir/prevLtsTax_$k"; }
-    printL frame("Saving previous Tax to $newLDir"), "w";
-    systemL "mkdir -p $newLDir/LotuSLogS/;";
-    systemL "mv $highLvlDir $FunctOutDir $RDP_hierFile $SIM_hierFile $outdir/hierachy_cnt.tax $outdir/cnadjusted_hierachy_cnt.tax $newLDir/;";
-    systemL "mv $outdir/LotuSLogS/* $newLDir/LotuSLogS/;";
-    systemL("mkdir -p $logDir;") unless ( -d $logDir );
-
-    if ($extendedLogs) {
-        systemL("mkdir -p $extendedLogD;") unless ( -d $extendedLogs );
-    }
-
-}
-printL "------------ I/O configuration --------------\n", 0;
-printL( "Input=   $input\nOutput=  $outdir\n", 0 );    #InputFileNum=$numInput\n
-if ( $barcodefile ne "" ) {
-    printL "Barcodes= $barcodefile\n";
-}
-printL "TempDir= $t\n",                                     0;
-printL "------------ Configuration LotuS --------------\n", 0;
-printL( "Sequencing platform=$platform\nAmpliconType=$ampliconType\n", 0 );
-if ( $ClusterPipe == 2 ) {
-    printL "Swarm inter-cluster distance=$swarmClus_d\n", 0;
-}
-else {
-    printL "OTU id=$id_OTU\n", 0;
-}
-printL "min unique read abundance=" . ($dereplicate_minsize) . "\n", 0;
-if ( $noChimChk == 1 || $noChimChk == 3 ) {
-    printL "No RefDB based Chimera checking\n", 0;
-}
-elsif ( $noChimChk == 0 || $noChimChk == 2 ) {
-    printL "UCHIME_REFDB, ABSKEW=$UCHIME_REFDB, $chimera_absskew\nOTU, Chimera prefix=$OTU_prefix, $chimera_prefix\n",
-      0;
-}
-if ( $noChimChk == 1 || $noChimChk == 2 ) {
-    printL "No deNovo Chimera checking\n", 0;
-}
-if ( $doBlasting == 1 ) {
-    printL "Similarity search with Blast\n", 0;
-    if ( !-e $blastBin ) {
-        printL "Can't find blast binary at $blastBin\n", 97;
-    }
-} elsif ( $doBlasting == 2 ) {
-    printL "Similarity search with Lambda\n", 0;
-    if ( !-e $lambdaBin ) {
-        printL "Can't find LAMBDA binary at $lambdaBin\n", 96;
-    }
-    if ( !-e $lambdaIdxBin ) {
-        printL "Can't find valid labmda indexer executable at $lambdaIdxBin\n",  98;
-    }
-}elsif ( $doBlasting == 4 ) {
-    printL "Similarity search with VSEARCH\n", 0;
-    if ( !-e $VSBinOri ) {
-        printL "Can't find VSEARCH binary at $VSBinOri\n", 96;
-    }
-}elsif ( $doBlasting == 5 ) {
-    printL "Similarity search with USEARCH\n", 0;
-    if ( !-e $usBin ) {
-        printL "Can't find VSEARCH binary at $usBin\n", 96;
-    }
-}
-unless ( $doBlasting < 1 ) {
-    printL "ReferenceDatabase=@refDBname\nRefDB location=@TAX_REFDB\n", 0;
-    if ( !-e $TAX_REFDB[0] ) {
-        printL "RefDB does not exist at loction. Aborting..\n", 103;
-    }
-}
-
-printL "TaxonomicGroup=$organism\n", 0;
-if ( $ClusterPipe == 0 ) {
-    printL "PCTID_ERR=$id_OTU_noise\n";
-}
-if ( $custContamCheckDB ne "" ) {
-	printL "Custom DB for off-targets: $custContamCheckDB\n", 0;
-}
-printL "--------------------------------------------\n", 0;
-
+announce_options($ClusterPipe);
 systemL("mkdir -p $outdir/primary/;") unless ( -d "$outdir/primary" );
 
 #=========
@@ -782,164 +678,7 @@ systemL("mkdir -p $outdir/primary/;") unless ( -d "$outdir/primary" );
 
 # ////////////////////////// sdm 1st time (demult,qual etc) /////////////////////////////////////////////
 #  cmdArgs["-i_MID_fastq"]
-my $sdmcmd       = "";
-my $filterOut    = "$t/demulti.fna";
-my $filterOutAdd = "$t/demulti.add.fna";
-if ( $numInput > 1 ) {
-    $filterOut    = "$t/demulti.1.fna,$t/demulti.2.fna";
-    $filterOutAdd = "$t/demulti.1.add.fna,$t/demulti.2.add.fna";
-}
-my $filOutCmd = "-o_fna ";
-if ($UPARSEfilter) {
-    $filterOut    = "$t/demulti.fastq";
-    $filOutCmd    = "-o_fastq ";
-    $filterOutAdd = "$t/demulti.add.fastq";
-    if ( $numInput > 1 ) {
-        $filterOut    = "$t/demulti.1.fastq,$t/demulti.2.fastq";
-        $filterOutAdd = "$t/demulti.1.add.fastq,$t/demulti.2.add.fastq";
-    }
-}
-my $qualOffset = "-o_qual_offset 33";       #33 for UPARSE
-my $sdmOut     = $filOutCmd . $filterOut;
-my $sdmIn      = "";
-my $paired     = $numInput;
-if ( -d $input ) {
-    $sdmIn = "-i_path $input ";
-}
-elsif ( -f $inputArray[0] && $inq ne "" && -f $inqArray[0] ) {
-    if ( $paired == 1 ) {
-        $sdmIn = "-i_fna $inputArray[0] -i_qual $inqArray[0] ";
-    }
-    elsif ( $paired == 2 ) {
-        $sdmIn =
-"-i_fna $inputArray[0],$inputArray[1] -i_qual $inqArray[0],$inqArray[1] ";
-    }
-}
-else {
-    if ( $paired == 1 ) {
-        $sdmIn = "-i_fastq $inputArray[0]";
-    }
-    elsif ( $paired == 2 ) {
-        $sdmIn = "-i_fastq $inputArray[0],$inputArray[1]";
-    }
-}
-
-#for now: only use fwd pair
-#if ($paired != 1){$paired.= " -onlyPair 1";}
-if ( $barcodefile ne "" ) {
-    $sdmIn .= " -i_MID_fastq $barcodefile";
-}
-my $derepCmd    = "";
-my $paired_sdm  = "";
-my $derepOutHQ  = "";
-my $derepOutHQ2 = "";
-my $derepOutMap = "";
-
-my $sdmDemultiDir = "";
-my $sdmOptStr     = "-options $sdmOpt ";
-if ( $saveDemulti == 2 || $saveDemulti == 1 || $ClusterPipe == 7 ) { #dada2 also requires filtered raw reads
-    $sdmDemultiDir = "$outdir/demultiplexed/";
-    if ( $saveDemulti == 1 ) {
-        printL "Demultiplexed input files into single samples, no quality filtering done\n";
-        $sdmOptStr = "";
-    }
-	if ($ClusterPipe == 7){ #dada2.. no rd pair info in head!
-		$sdmOptStr .= "-pairedRD_HD_out 0 ";
-	}
-}
-
-if ($sdmDerepDo) {
-    $derepCmd = "-o_dereplicate $t/derep.fas ";
-    if ( 0 && $ClusterPipe == 2 ) {
-        $derepCmd .= "-dere_size_fmt 1 ";
-    }
-    else { $derepCmd .= "-dere_size_fmt 0 "; }
-    $derepCmd .= " -min_derep_copies $dereplicate_minsize ";
-    $derepOutHQ  = "$t/derep.hq.fq";
-    $derepOutMap = "$t/derep.map";
-    $derepOutHQ2 = "$t/derep.2.hq.fq";
-    if ( $saveDemulti == 3 ) {   #temp deactivated, since I have  $sdmDemultiDir
-        $derepCmd .= " -suppressOutput 0";
-    }
-    else {
-        $derepCmd .= " -suppressOutput 1";
-    }
-}
-else {
-    if ( $paired != 1 ) { $paired_sdm .= " -onlyPair 1"; }
-}
-my $demultiSaveCmd = "";
-if ( $sdmDemultiDir ne "" ) {
-    systemL "mkdir -p $sdmDemultiDir;" unless ( -d $sdmDemultiDir );
-    $demultiSaveCmd .= " -o_demultiplex $sdmDemultiDir";
-}
-my $dmgCmd = "";
-if ($damagedFQ) { $dmgCmd = "-ignore_IO_errors 1"; }
-my $mainSDMlog = "$logDir/demulti.log";
-$sdmcmd =
-"$sdmBin $sdmIn $sdmOut -sample_sep $sep_smplID  -log $mainSDMlog -map $map $sdmOptStr $demultiSaveCmd $derepCmd $dmgCmd $qualOffset -paired $paired $paired_sdm -maxReadsPerOutput $linesPerFile -oneLineFastaFormat 1";    #4000000
-#die $sdmcmd."\n";
-
-
-if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly == 0 ) {
-    $duration = time - $start;
-    printL( frame("Demultiplexing input files\n elapsed time: $duration s"),
-        0 );
-    systemL("cp $map $outdir/primary\n cp $sdmOpt $outdir/primary");
-    if ( systemL($sdmcmd) != 0 ) {
-        printL "FAILED sdm demultiplexing step: " . $sdmcmd . "\n";
-        exit(4);
-    }
-    my $fileNum = `ls -1 $mainSDMlog* | wc -l`;
-    if ( $fileNum > 0 ) {
-		systemL "mkdir -p $logDir/SDMperFile/; mv $mainSDMlog". "0* $logDir/SDMperFile/";
-	}
-    if ( $fileNum > 10 ) {
-        systemL "tar zcf $logDir/SDMperFile.tar.gz $logDir/SDMperFile/; rm -r $logDir/SDMperFile/;";
-    }
-    if ( `cat $mainSDMlog` =~ m/binomial est\. errors/ ) {
-        $citations .=
-"Poisson binomial model based read filtering: Fernando Puente-Sánchez, Jacobo Aguirre, Víctor Parro (2015).A novel conceptual approach to read-filtering in high-throughput amplicon sequencing studies. Nucleic Acids Res.(2015).\n";
-    }
-
-    #postprocessing of output files
-    if ( $saveDemulti == 1 || $saveDemulti == 2 ) {    #gzip stuff
-        printL "Zipping demultiplex output..\n";
-        systemL "gzip $sdmDemultiDir/*.fq;";
-    }
-    if ( $saveDemulti == 1 ) {
-        printL
-"Demultiplexed intput files with not quality filtering to:\n$sdmDemultiDir\nFinished task, if you want to have a complete LotuS run, change option \"-saveDemultiplex\"\n";
-        exit(0);
-    }
-    if ( $saveDemulti == 3 && $exec == 0 )
-    {    #&& $onlyTaxRedo==0){#gzip demultiplexed fastas
-        systemL "mkdir -p $outdir/demultiplexed; ";
-        my @allOuts = split /,/, $filterOut;
-        foreach (@allOuts) {
-            $_ =~ m/\/([^\/]+$)/;
-            my $fn  = $1;
-            my $fns = $fn;
-            $fns =~ s/\.(f[^\.]+)$/\.singl\.$1/;
-
-#			systemL "gzip -c $_*.singl > $outdir/demultiplexed/$fn.singl.gz; rm -f $_*.singl";
-#			systemL "gzip -c $_* > $outdir/demultiplexed/$fn.gz; rm -f $_*";
-            die "DEBUG new singl filenames\n";
-            systemL "gzip -c $fns > $outdir/demultiplexed/$fn.singl.gz; rm -f $_*.singl;";
-            systemL "gzip -c $_* > $outdir/demultiplexed/$fn.gz; rm -f $_*;";
-        }
-        @allOuts = split /,/, $filterOutAdd;
-        foreach (@allOuts) {
-            $_ =~ m/\/([^\/]+$)/;
-            systemL "gzip -c $_* > $outdir/demultiplexed/$1.gz; rm -f $_*;";
-        }
-    }
-}
-elsif ($onlyTaxRedo) {
-    printL "Skipping Quality Filtering & demultiplexing & dereplication step\n",
-      0;
-}
-my $cmd = "";
+my ($sdmIn,$derepOutHQ,$qualOffset,$filterOutAdd,$filterOut,$derepOutHQ2,$derepOutMap,$sdmDemultiDir)=sdmStep1();
 
 #die();
 #exit;
@@ -954,7 +693,7 @@ my $OTUfa  = "$outdir/otus.fa";
 
 my $ucFinalFile = "";
 $duration = time - $start;
-if ( $ClusterPipe != 0 && $onlyTaxRedo == 0 && $TaxOnly == 0 ) {
+if ( $ClusterPipe != 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 	#$ClusterPipe == 0 
 	announceClusterAlgo();
 	($A_UCfil) = buildOTUs($tmpOTU);
@@ -965,17 +704,14 @@ if ( $ClusterPipe != 0 && $onlyTaxRedo == 0 && $TaxOnly == 0 ) {
 elsif ( $onlyTaxRedo == 1 ) {
     printL "Clustering step was skipped\n", 0;
 }
-elsif ( $TaxOnly == 1 ) {
+elsif ( $TaxOnly ne "0" ) {
     printL
 "No qual filter, demultiplexing or clustering required, as taxonomy only requested\n",
       0;
 }
 else {
-    printL
-"clustering method (-CL/-clustering) unknown, given argument was '$ClusterPipe'\n",
-      5;
+    printL"clustering method (-CL/-clustering) unknown, given argument was '$ClusterPipe'\n",5;
 }
-$duration = time - $start;
 
 #/////////////////////////////////////////  SEED extension /////////////////////
 #$derepOutMap,$derepOutHQ
@@ -1017,6 +753,7 @@ if ( $numInput == 2 ) {
 my $upVer = "";
 $upVer = "-uparseVer $usearchVer " if ($ClusterPipe == 1);
 $upVer = "-uparseVer N11 "if ($ClusterPipe == 6);
+my $sdmcmd="";
 if ($sdmDerepDo) {
     $sdmIn = "-i_fastq $derepOutHQ";
     if ( $numInput == 2 ) { $sdmIn = "-i_fastq $derepOutHQ,$derepOutHQ2"; }
@@ -1024,12 +761,13 @@ if ($sdmDerepDo) {
 } else {
     $sdmcmd = "$sdmBin $sdmIn $sdmOut2 $upVer -optimalRead2Cluster $ucFinalFile -paired $numInput -sample_sep $sep_smplID -map $map -options $sdmOpt $qualOffset -log $logDir/SeedExtensionStats.txt -mergedPairs $didMerge -OTU_fallback $tmpOTU -otu_matrix $OTUmFile -ucAdditionalCounts $ucFinalFile.ADD -ucAdditionalCounts1 $ucFinalFile.REST -count_chimeras $chimCnt $refClusSDM";
 }
+#die;
 my $status = 0;
 
 #die $sdmcmd."\n";
 #systemL "$sdmcmd";
-if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly == 0 ) {
-    printL frame("Extending OTU Seeds\nelapsed time: $duration s"), 0;
+if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
+    printL (frame("Extending $OTU_prefix Seeds"), 0);
 	#die "$sdmcmd\n";
     $status = systemL($sdmcmd);
 
@@ -1038,7 +776,7 @@ if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly == 0 ) {
 elsif ($onlyTaxRedo) { printL "Skipping Seed extension step\n", 0; }
 if ($status) {
     printL "Failed $sdmcmd\n",                    0;
-    printL "Fallback to OTU median sequences.\n", 0;
+    printL "Fallback to $OTU_prefix median sequences.\n", 0;
     $seedExtDone = 0;
 	$OTUSEED = $tmpOTU;
     #exit(11);
@@ -1051,7 +789,7 @@ undef $tmpOTU;
 
 #/////////////////////////////////////////  paired read merging /////////////////////
 
-if (   $numInput == 2){
+if ( $numInput == 2){
 	my $key = "merged";
 	$input = "$t/$key";
 	my $single1  = "";my $single2  = "";
@@ -1060,7 +798,7 @@ if (   $numInput == 2){
 	$single2 = "$t/$key.notCombined_2.fastq";
 	if (@mergeSeedsFiles > 0 && -s $mergeSeedsFiles[0] > 0 #check that file even exists..
 			&& (-f $VSBin || -f $flashBin) #as well as the alignment programs
-			&& $otuRefDB ne "ref_closed" && $onlyTaxRedo == 0  && $TaxOnly == 0 ) #and otherwise also wanted step..
+			&& $otuRefDB ne "ref_closed" && $onlyTaxRedo == 0  && $TaxOnly eq "0" ) #and otherwise also wanted step..
 	{
 		my $mergCmd = "";
 		
@@ -1092,7 +830,7 @@ if (   $numInput == 2){
 		if ( $exec == 0 ) {
 
 			#die $mergCmd."\n".$flashCustom."\n";
-			printL frame("Merging OTU seed paired reads\nelapsed time: $duration s"), 0;
+			printL (frame("Merging $OTU_prefix seed paired reads"), 0);
 			if ( !systemL($mergCmd) == 0 ) {
 				printL( "Merge command failed: \n$mergCmd\n", 3 );
 			}
@@ -1108,6 +846,11 @@ if (   $numInput == 2){
 	#needs to be run in any case for paired input, just to make sure all reads are correctly listed in $OTUSEED
 	forceMerge_fq2fna( $single1, $single2, $input,$mergeSeedsFilesSing[0], $OTUSEED );
 }
+if ($TaxOnly ne "0" && -f $TaxOnly){
+	$OTUfa = $TaxOnly;
+	if ($TaxOnly =~ m/\.gz$/){$OTUfa =~ s/\.gz//; systemL "gunzip -c $TaxOnly >$OTUfa "; }
+}
+#die "$OTUfa\n";
 #
 #merge not combined reads & check for reverse adaptors/primers
 #do this also in case no pairs were found at all.. Singletons need to be fq->fna translated into $OTUSEED
@@ -1119,7 +862,7 @@ if (   $numInput == 2){
 #new algo 0.97: don't need to rename reads any longer (and keep track of this), done by sdm - but no backlinging to uparse any longer
 #/////////////////////////////////////////  check for contaminants /////////////////////
 my $OTUrefDBlnk;
-if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly == 0 ) {
+if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 
     #ITSx
     ITSxOTUs($OTUSEED);
@@ -1131,11 +874,8 @@ if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly == 0 ) {
 	}
 
     #custom DB for contamination - off-target
-	my @splCustRefDB = split /,/,$custContamCheckDB;
 	my $xtraContCnt=0;
-	foreach (my $i=0;$i<@splCustRefDB;$i++){
-		$xtraContCnt += contamination_rem( $OTUSEED, $splCustRefDB[$i], "offTarget$i" );
-	}
+	$xtraContCnt += contamination_rem( $OTUSEED, $custContamCheckDB, "offTarget" );
 
     #remove chimeras on longer merged reads
     my $refChims = chimera_rem( $OTUSEED, $OTUfa );
@@ -1158,48 +898,9 @@ if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly == 0 ) {
 my $RDPTAX = 0;
 my $REFTAX = 0;
 
-my $msg = "";
-$duration = time - $start;
+runRDP();
 
-
-my $rdpGene = "16srrna";
-$rdpGene = "fungallsu" if ( $organism eq "fungi" || $organism eq "eukaryote" );
-if ( $doRDPing > 0 && $mjar ne "" && -f $mjar ) {
-    $msg = "Assigning taxonomy with multiRDP";
-
-    #ampliconType
-    $cmd = "java -Xmx1g -jar $mjar --gene=$rdpGene --format=fixrank --hier_outfile=$outdir/hierachy_cnt.tax --conf=0.1 --assign_outfile=$t/RDPotus.tax $OTUfa;";
-    $RDPTAX = 2;
-} elsif ( $doRDPing > 0 && ( $rdpjar ne "" || exists( $ENV{'RDP_JAR_PATH'} ) ) ) {
-    $msg = "Assigning taxonomy with RDP";
-    my $toRDP = $ENV{'RDP_JAR_PATH'};
-    if ( $rdpjar ne "" ) { $toRDP = $rdpjar; }
-    my $subcmd = "classify";
-    $cmd =        "java -Xmx1g -jar " . $toRDP  . " $subcmd -f fixrank -g $rdpGene -h $outdir/hierachy_cnt.tax -q $OTUfa -o $t/RDPotus.tax -c 0.1;";
-    $RDPTAX = 1;
-}    
-$msg .= "\nelapsed time: $duration s";
-if ( $doRDPing > 0 && $exec == 0 ) {    #ITS can't be classified by RDP
-    printL frame($msg), 0;
-
-    #die "XXX  $cmd\n";
-    if ( systemL($cmd) ) {
-        printL "FAILED RDP classifier execution:\n$cmd\n", 2;
-    }
-    $citations .= "RDP OTU taxonomy: Wang Q, Garrity GM, Tiedje JM, Cole JR. 2007. Naive Bayesian classifier for rapid assignment of rRNA sequences into the new bacterial taxonomy. Appl Env Microbiol 73: 5261–5267.\n";
-} elsif ( $rdpjar ne "" || exists( $ENV{'RDP_JAR_PATH'} ) ) {
-    if ($extendedLogs) { systemL "cp $t/RDPotus.tax $extendedLogD/;"; }
-    if ( $RDPTAX > 0 ) {                #move confusing files
-        if ($extendedLogs) {
-            systemL "mv $outdir/hierachy_cnt.tax $outdir/cnadjusted_hierachy_cnt.tax $extendedLogD/;";
-        } else {
-            unlink "$outdir/hierachy_cnt.tax";
-            unlink "$outdir/cnadjusted_hierachy_cnt.tax"
-              if ( -e "$outdir/cnadjusted_hierachy_cnt.tax" );
-        }
-    }
-}
-#RDP finished 
+my $cmd="";
 
 #some warnings to throw
 if ( !$doBlasting && substr( $ampliconType, 0, 3 ) eq "ITS" ) {
@@ -1217,9 +918,14 @@ if ( !$doBlasting && substr( $ampliconType, 0, 3 ) eq "ITS" ) {
     $failedBlastITS .= "\nTherefore LotuS had to abort..\n";
     printL $failedBlastITS, 87;
 }
-if ($TaxOnly) {
-    assignTaxOnly( $input, $outdir );
-    printL "Taxonomy has been assigned to $input, output in $outdir\n", 0;
+if ($TaxOnly ne "0") {
+    my $hier = assignTaxOnly( $OTUfa, $outdir );
+	if ($rmOutDir){
+		systemL("rm -rf $outdir;"); #online in extreme cases, keep well defined & controlled
+		printL frame("Taxonomy for \n$TaxOnly\n has been assigned to \n$hier"),0;
+	} else {
+		printL frame("Taxonomy has been assigned to $input, output in \n$outdir\n"), 0;
+	}
     exit(0);
 }
 
@@ -1252,7 +958,7 @@ if ( $REFTAX || $RDPTAX ) {
 	my $taxRefHR;
     my $table_dir = "$outdir/Tables";
     if ($REFTAX) {
-        printL frame("Calculating Taxonomic Abundance Tables from @refDBname assignments\nelapsed time: $duration s"), 0;
+        printL frame("Calculating Taxonomic Abundance Tables from @refDBname assignments"), 0;
         $taxRefHR = calcHighTax( $OTUmatref, $SIM_hierFile, $failsR, 1, $OTUmRefFile );
         biomFmt( $OTUmatref, $SIM_hierFile, "$outdir/OTU.biom", 1, {} );
         if ($pseudoRefOTU) {
@@ -1262,7 +968,7 @@ if ( $REFTAX || $RDPTAX ) {
         }
 
     } elsif ($RDPTAX) {
-        printL(frame("Calculating Taxonomic Abundance Tables from RDP \nclassifier assignments, Confidence $RDPCONF \nelapsed time: $duration s"),0);
+        printL(frame("Calculating Taxonomic Abundance Tables from RDP \nclassifier assignments, Confidence $RDPCONF "),0);
         $taxRefHR = calcHighTax( $OTUmatref, $RDP_hierFile, $failsR, 0, "" );
         biomFmt( $OTUmatref, $RDP_hierFile, "$outdir/OTU.biom", 0, {} );
     }
@@ -1297,10 +1003,11 @@ my $phyloseqCreated=runPhyloObj();
 $duration = time - $start;
 
 systemL("rm -rf $t;") if ($exec == 0 && !$keepTmpFiles);  #printL "Delete temp dir $t\n", 0; }
+systemL("rm -rf $outdir;") if ($rmOutDir); #online in extreme cases, keep well defined & controlled
 printL(    frame("Finished after $duration s \nOutput files are in \n\n$outdir\n\- LotuSLogS/ contains run statistics (useful for describing data/amount of reads/quality\n- LotuSLogS/citations.txt: papers of programs used in this run\nNext steps: you can use the rtk program in this pipeline, to generate rarefaction curves and diversity estimates of your samples.\n"    ),0);
 my $phyloHlp="";
 $phyloHlp="- Phyloseq: $outdir/phyloseq.Rdata can be directly loaded in R\n" if ($phyloseqCreated);
-printL(frame("          Next steps:          \n- Rarefaction analysis: can be done with rtk (avaialble in R or use bin/rtk)\n$phyloHlp- Phylogeny: OTU phylogentic tree available in $outdir/tree.nwk\n- .biom: $outdir/OTU.biom contains biom formated output\n- tutorial: Visit lotus2.earlham.ac.uk for more tutorials in data anlysis\n"));
+printL(frame("          Next steps:          \n- Rarefaction analysis: can be done with rtk (avaialble in R or use bin/rtk)\n$phyloHlp- Phylogeny: $OTU_prefix phylogentic tree available in $outdir/tree.nwk\n- .biom: $outdir/OTU.biom contains biom formated output\n- tutorial: Visit lotus2.earlham.ac.uk for more tutorials in data anlysis\n"));
 printWarnings();
 
 close LOG; close cmdLOG;
@@ -1350,6 +1057,168 @@ close LOG; close cmdLOG;
 #--------------------------############################----------------------------------###########################
 
 
+
+sub sdmStep1{
+	my $sdmcmd       = "";
+	my $filterOut    = "$t/demulti.fna";
+	my $filterOutAdd = "$t/demulti.add.fna";
+	if ( $numInput > 1 ) {
+		$filterOut    = "$t/demulti.1.fna,$t/demulti.2.fna";
+		$filterOutAdd = "$t/demulti.1.add.fna,$t/demulti.2.add.fna";
+	}
+	my $filOutCmd = "-o_fna ";
+	if ($UPARSEfilter) {
+		$filterOut    = "$t/demulti.fastq";
+		$filOutCmd    = "-o_fastq ";
+		$filterOutAdd = "$t/demulti.add.fastq";
+		if ( $numInput > 1 ) {
+			$filterOut    = "$t/demulti.1.fastq,$t/demulti.2.fastq";
+			$filterOutAdd = "$t/demulti.1.add.fastq,$t/demulti.2.add.fastq";
+		}
+	}
+	my $qualOffset = "-o_qual_offset 33";       #33 for UPARSE
+	my $sdmOut     = $filOutCmd . $filterOut;
+	my $sdmIn      = "";
+	my $paired     = $numInput;
+
+	#for now: only use fwd pair
+	#if ($paired != 1){$paired.= " -onlyPair 1";}
+	if ( $barcodefile ne "" ) {
+		$sdmIn .= " -i_MID_fastq $barcodefile";
+	}
+	my $derepCmd    = "";
+	my $paired_sdm  = "";
+	my $derepOutHQ  = "";
+	my $derepOutHQ2 = "";
+	my $derepOutMap = "";
+
+	my $sdmDemultiDir = "";
+	my $sdmOptStr     = "-options $sdmOpt ";
+	if ( $saveDemulti == 2 || $saveDemulti == 1 || $ClusterPipe == 7 ) { #dada2 also requires filtered raw reads
+		$sdmDemultiDir = "$outdir/demultiplexed/";
+		if ( $saveDemulti == 1 ) {
+			printL "Demultiplexed input files into single samples, no quality filtering done\n";
+			$sdmOptStr = "";
+		}
+		if ($ClusterPipe == 7){ #dada2.. no rd pair info in head!
+			$sdmOptStr .= "-pairedRD_HD_out 0 ";
+		}
+	}
+
+	if ($sdmDerepDo) {
+		$derepCmd = "-o_dereplicate $t/derep.fas ";
+		if ( 0 && $ClusterPipe == 2 ) {
+			$derepCmd .= "-dere_size_fmt 1 ";
+		}
+		else { $derepCmd .= "-dere_size_fmt 0 "; }
+		$derepCmd .= " -min_derep_copies $dereplicate_minsize ";
+		$derepOutHQ  = "$t/derep.hq.fq";
+		$derepOutMap = "$t/derep.map";
+		$derepOutHQ2 = "$t/derep.2.hq.fq";
+		if ( $saveDemulti == 3 ) {   #temp deactivated, since I have  $sdmDemultiDir
+			$derepCmd .= " -suppressOutput 0";
+		}
+		else {
+			$derepCmd .= " -suppressOutput 1";
+		}
+	}
+	else {
+		if ( $paired != 1 ) { $paired_sdm .= " -onlyPair 1"; }
+	}
+	my $demultiSaveCmd = "";
+	if ( $sdmDemultiDir ne "" ) {
+		systemL "mkdir -p $sdmDemultiDir;" unless ( -d $sdmDemultiDir );
+		$demultiSaveCmd .= " -o_demultiplex $sdmDemultiDir";
+	}
+	my $dmgCmd = "";
+	if ($damagedFQ) { $dmgCmd = "-ignore_IO_errors 1"; }
+	my $mainSDMlog = "$logDir/demulti.log";
+	if ($TaxOnly ne "0"){
+		printL("Skipping Quality Filtering & demultiplexing & dereplication step\n",0);
+		return ($sdmIn,$derepOutHQ,$qualOffset,$filterOutAdd,$filterOut,$derepOutHQ2,$derepOutMap,$sdmDemultiDir);
+	}
+	
+	if ( -d $input ) {
+		$sdmIn = "-i_path $input ";
+	} elsif ( -f $inputArray[0] && $inq ne "" && -f $inqArray[0] ) {
+		if ( $paired == 1 ) {
+			$sdmIn = "-i_fna $inputArray[0] -i_qual $inqArray[0] ";
+		} elsif ( $paired == 2 ) {
+			$sdmIn = "-i_fna $inputArray[0],$inputArray[1] -i_qual $inqArray[0],$inqArray[1] ";
+		}
+	} else {
+		if ( $paired == 1 ) {
+			$sdmIn = "-i_fastq $inputArray[0]";
+		} elsif ( $paired == 2 ) {
+			$sdmIn = "-i_fastq $inputArray[0],$inputArray[1]";
+		}
+	}
+
+	$sdmcmd = "$sdmBin $sdmIn $sdmOut -sample_sep $sep_smplID  -log $mainSDMlog -map $map $sdmOptStr $demultiSaveCmd $derepCmd $dmgCmd $qualOffset -paired $paired $paired_sdm -maxReadsPerOutput $linesPerFile -oneLineFastaFormat 1";    #4000000
+	#die $sdmcmd."\n";
+
+
+	if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
+		$duration = time - $start;
+		printL( frame("Demultiplexing input files"),
+			0 );
+		systemL("cp $map $outdir/primary\n cp $sdmOpt $outdir/primary");
+		if ( systemL($sdmcmd) != 0 ) {
+			printL "FAILED sdm demultiplexing step: " . $sdmcmd . "\n";
+			exit(4);
+		}
+		my $fileNum = `ls -1 $mainSDMlog* | wc -l`;
+		if ( $fileNum > 0 ) {
+			systemL "mkdir -p $logDir/SDMperFile/; mv $mainSDMlog". "0* $logDir/SDMperFile/";
+		}
+		if ( $fileNum > 10 ) {
+			systemL "tar zcf $logDir/SDMperFile.tar.gz $logDir/SDMperFile/; rm -r $logDir/SDMperFile/;";
+		}
+		if ( `cat $mainSDMlog` =~ m/binomial est\. errors/ ) {
+			$citations .=
+	"Poisson binomial model based read filtering: Fernando Puente-Sánchez, Jacobo Aguirre, Víctor Parro (2015).A novel conceptual approach to read-filtering in high-throughput amplicon sequencing studies. Nucleic Acids Res.(2015).\n";
+		}
+
+		#postprocessing of output files
+		if ( $saveDemulti == 1 || $saveDemulti == 2 ) {    #gzip stuff
+			printL "Zipping demultiplex output..\n";
+			systemL "gzip $sdmDemultiDir/*.fq;";
+		}
+		if ( $saveDemulti == 1 ) {
+			printL "Demultiplexed intput files with not quality filtering to:\n$sdmDemultiDir\nFinished task, if you want to have a complete LotuS run, change option \"-saveDemultiplex\"\n";
+			exit(0);
+		}
+		if ( $saveDemulti == 3 && $exec == 0 )
+		{    #&& $onlyTaxRedo==0){#gzip demultiplexed fastas
+			systemL "mkdir -p $outdir/demultiplexed; ";
+			my @allOuts = split /,/, $filterOut;
+			foreach (@allOuts) {
+				$_ =~ m/\/([^\/]+$)/;
+				my $fn  = $1;
+				my $fns = $fn;
+				$fns =~ s/\.(f[^\.]+)$/\.singl\.$1/;
+
+	#			systemL "gzip -c $_*.singl > $outdir/demultiplexed/$fn.singl.gz; rm -f $_*.singl";
+	#			systemL "gzip -c $_* > $outdir/demultiplexed/$fn.gz; rm -f $_*";
+				die "DEBUG new singl filenames\n";
+				systemL "gzip -c $fns > $outdir/demultiplexed/$fn.singl.gz; rm -f $_*.singl;";
+				systemL "gzip -c $_* > $outdir/demultiplexed/$fn.gz; rm -f $_*;";
+			}
+			@allOuts = split /,/, $filterOutAdd;
+			foreach (@allOuts) {
+				$_ =~ m/\/([^\/]+$)/;
+				systemL "gzip -c $_* > $outdir/demultiplexed/$1.gz; rm -f $_*;";
+			}
+		}
+	} elsif ($onlyTaxRedo) {
+		printL("Skipping Quality Filtering & demultiplexing & dereplication step\n",0);
+	}
+	
+	return ($sdmIn,$derepOutHQ,$qualOffset,$filterOutAdd,$filterOut,$derepOutHQ2,$derepOutMap,$sdmDemultiDir);
+}
+
+
+
 sub runPhyloObj{
 	return 0 if (!-f $phyloLnk || !-f $Rscript);
 	die "Incorrect phyloLnk script defined $phyloLnk" unless (-f $phyloLnk);
@@ -1365,7 +1234,7 @@ sub runPhyloObj{
 
 sub printWarnings() {
     if ( $finalWarnings eq "" ) { return; }
-    printL "The following WARNINGS occured:\n", 0;
+    printL "\nThe following WARNINGS occured:\n", 0;
     printL $finalWarnings. "\n", 0;
 }
 
@@ -1445,10 +1314,10 @@ sub ITSxOTUs {
     my $orifa = `grep -c '^>' $otusFA`;
     chomp $orifa;    #chomp $ITSfa;
     if ( scalar( keys(%ITSo) ) == 0 ) {
-        printL "Could not find any valid ITS OTU's. Aborting run.\n Remaining OTUs can be found in $outBFile*\n", 923;
+        printL "Could not find any valid ITS $OTU_prefix's. Aborting run.\n Remaining OTUs can be found in $outBFile*\n", 923;
     }
 
-    printL "ITSx analysis: Kept " . scalar( keys(%ITSo) ) . " OTU's identified as $ITSxReg (of $orifa OTU's).\n";
+    printL "ITSx analysis: Kept " . scalar( keys(%ITSo) ) . " $OTU_prefix's identified as $ITSxReg (of $orifa $OTU_prefix's).\n";
 
     #systemL "cat $outBFile.full.fasta > $otusFA";
     open O, ">$otusFA" or die "Can't open output $otusFA\n";
@@ -1472,101 +1341,122 @@ sub ITSxOTUs {
 }
 
 sub contamination_rem($ $ $ ) {
-    my ( $otusFA, $refDB, $nameRDB ) = @_;
-    my $outContaminated = "$otusFA.$nameRDB.fna";
-    my $required        = 1;
-    if ( $refDB eq "" ) { $required = 0; }
-    systemL "rm -f $outContaminated;" if ( -e $outContaminated );
-    my $contRem = 0;
-	my $matchAlgo="";
+    my ( $otusFA, $refDB1, $nameRDB1 ) = @_;
+	my @refDBs = split /,/,$refDB1;
+	my $contRemStr="";
+	my $hr = readFasta($otusFA);
+	my %OTUs = %{$hr};
+	my %totHits;
 
-    #printL frame "Searching for contaminant OTUs with $nameRDB ref DB";
-    if ( $refDB ne "" && -f $refDB && -s $otusFA ) {
-        #die "hex seq to 50kb pieces\n";
-        my $hexDB = $refDB;
-        $hexDB .= ".lts.fna";
-        my $hitsFile = $otusFA . ".$nameRDB.cont_hit.uc";
-        my @hits;
-		
-		if ($nameRDB ne "PhiX"){ #minimap2, now default
-			$hitsFile= "$otusFA.$nameRDB.cont_hit.paf";
-			$cmd = "$mini2Bin  -G 0 -N 1 -t $uthreads -o $hitsFile $otusFA $refDB ;";
-			$matchAlgo = "minimap2";
-			#die "$cmd\n";
-        } elsif ( $VSused == 0 ) { #deprecated
-            $cmd = "$usBin -usearch_local $otusFA -db $refDB -uc $hitsFile  -query_cov .8 -log $logDir/$nameRDB"
-              . "_contami_align.log ";
-            $cmd .= "-id .9 -threads $uthreads -strand both ;";
-			$matchAlgo = "usearch";
-        }
-        else {
-            $cmd = "$VSBin -usearch_local $otusFA -db $refDB --maxseqlength 99999999999 -uc $hitsFile --query_cov .8 -log $logDir/$nameRDB" . "_contami_align.log ";
-            $cmd .= "-maxhits 1 -top_hits_only -strand both -id .9 -threads $uthreads --dbmask none --qmask none; ";    #.95
-			$matchAlgo = "vsearch";
-        }
+	foreach (my $i=0;$i<@refDBs;$i++){
+		my $refDB = $refDBs[$i];
+		my $nameRDB = $nameRDB1.$i;
 
-        #die $cmd."\n";
+		my $outContaminated = "$logDir/out.cont.$nameRDB.fna";
+		my $required        = 1;
+		if ( $refDB eq "" ) { $required = 0; }
+		systemL "rm -f $outContaminated;" if ( -e $outContaminated );
+		my $contRem = 0;
+		my $matchAlgo="";
 
-        if ( systemL($cmd) != 0 ) { printL( "Failed command:\n$cmd\n", 1 ); }
-
-        #create tmp
-		if ($hitsFile =~ m/\.paf/){
-			open I, "<", $hitsFile or die "Can't open search result file $hitsFile";
-			while (<I>) {my @spl = split(/\t/); 
-				#look for matches at 60% identity
-				if ( $spl[9] > $spl[6] * 0.6 ) { push( @hits, $spl[5] ); $contRem++; }
+		#printL frame "Searching for contaminant OTUs with $nameRDB ref DB";
+		if ( $refDB ne "" && -f $refDB && -s $otusFA ) {
+			#die "hex seq to 50kb pieces\n";
+			my $hexDB = $refDB;
+			$hexDB .= ".lts.fna";
+			my $hitsFile = $otusFA . ".$nameRDB.cont_hit.uc";
+			
+			if ($nameRDB ne "PhiX"){ #minimap2, now default
+				$hitsFile= "$otusFA.$nameRDB.cont_hit.paf";
+				$cmd = "$mini2Bin  -G 0 -N 1 -t $uthreads -o $hitsFile $otusFA $refDB ;";
+				$matchAlgo = "minimap2";
+				#die "$cmd\n";
+			} elsif ( $VSused == 0 ) { #deprecated
+				$cmd = "$usBin -usearch_local $otusFA -db $refDB -uc $hitsFile  -query_cov .8 -log $logDir/$nameRDB"
+				  . "_contami_align.log ";
+				$cmd .= "-id .9 -threads $uthreads -strand both ;";
+				$matchAlgo = "usearch";
 			}
-			close I;
-		} else {
-			open I, "<", $hitsFile or die "Can't open search result file $hitsFile";
-			while (<I>) {my @spl = split(/\t/);
-				if ( $spl[0] eq "H" ) { push( @hits, $spl[8] ); $contRem++; }
+			else {
+				$cmd = "$VSBin -usearch_local $otusFA -db $refDB --maxseqlength 99999999999 -uc $hitsFile --query_cov .8 -log $logDir/$nameRDB" . "_contami_align.log ";
+				$cmd .= "-maxhits 1 -top_hits_only -strand both -id .9 -threads $uthreads --dbmask none --qmask none; ";    #.95
+				$matchAlgo = "vsearch";
 			}
-			close I;
+
+			#die $cmd."\n";
+
+			if ( systemL($cmd) != 0 ) { printL( "Failed command:\n$cmd\n", 1 ); }
+
+			#create tmp
+			my %hits;
+			if ($hitsFile =~ m/\.paf/){
+				open I, "<", $hitsFile or die "Can't open search result file $hitsFile";
+				while (<I>) {my @spl = split(/\t/); 
+					#look for matches at 60% identity
+					if ( $spl[9] > $spl[6] * 0.6 ) { $hits{$spl[5]}=1; $contRem++; }
+				}
+				close I;
+			} else {
+				open I, "<", $hitsFile or die "Can't open search result file $hitsFile";
+				while (<I>) {my @spl = split(/\t/);
+					if ( $spl[0] eq "H" ) { $hits{$spl[8]}=1; $contRem++; }
+				}
+				close I;
+			}
+
+			
+			printL (frame( "Removed $contRem OTUs using $matchAlgo ($nameRDB:$refDB)."), 0);
+			#die ("@hits\n");
+			if (!$contRem) { return(0);}
+			my @hitA = keys %hits;
+			systemL ("gzip $hitsFile\nmv $hitsFile.gz $logDir;");
+			open LLOG,">$logDir/detected.$nameRDB.otus";
+			print LLOG "$nameRDB\t$refDB\n@hitA\n";
+			close LLOG;
+			#report
+
+			#(add - deleted before) contaminated Fastas to file
+			open Ox, ">$outContaminated" or printL "Can't open contaminated OTUs file $outContaminated\n", 39;
+			foreach my $hi (@hitA) {
+				print Ox ">" . $hi."_".$nameRDB . "\n" . $OTUs{$hi} . "\n";
+				#delete $OTUs{$hi};
+			}
+			close Ox;
+			systemL "gzip $outContaminated";
+			%totHits = (%totHits, %hits);
+			
+
+
+			#if (($nonChimRm-$emptyOTUcnt)==0){
+			#	printL "Empty OTU matrix.. aborting LotuS run!\n",87;
+			#}
+			#print "\n\n\n\n\n\nWARN DEBUG TODO .95 .45 $outContaminated\n";
+		} elsif ($required) {
+			my $warnStr = "Could not check for contaminated OTUs, because ";
+			unless ( $refDB ne "" && -f $refDB ) {
+				$warnStr .= "$nameRDB reference database \n\"$refDB\"\ndid not exist.\n";
+			} else {  $warnStr .= "$OTU_prefix fasta file was empty\n";
+			}
+			finWarn($warnStr);
+
+			#systemL("cp $otusFA $outfile");
+			#$outfile = "$t/uparse.fa";
 		}
-
-        
-		printL (frame( "Removed $contRem OTUs ($nameRDB ref DB) using $matchAlgo.\nelapsed time: $duration s"), 0);
-        #die ("@hits\n");
-        if (!$contRem) { return(0);}
-		systemL ("gzip $hitsFile\nmv $hitsFile.gz $logDir;");
-        #report
-        my $hr   = readFasta($otusFA);
-        my %OTUs = %{$hr};
-
-        #(add - deleted before) contaminated Fastas to file
-        open O, ">>$outContaminated" or printL "Can't open contaminated OTUs file $outContaminated\n", 39;
-        foreach my $hi (@hits) {
-            print O ">" . $hi."_".$nameRDB . "\n" . $OTUs{$hi} . "\n";
-            delete $OTUs{$hi};
-        }
-        close O;
-
-        #print remaining OTUs
-        open O, ">$otusFA" or printL "Can't open OTUs file $otusFA\n", 39;
-        foreach my $hi ( keys %OTUs ) {
-            print O ">" . $hi . "\n" . $OTUs{$hi} . "\n";
-        }
-        close O;
-		
-
-
-        #if (($nonChimRm-$emptyOTUcnt)==0){
-        #	printL "Empty OTU matrix.. aborting LotuS run!\n",87;
-        #}
-        #print "\n\n\n\n\n\nWARN DEBUG TODO .95 .45 $outContaminated\n";
-    } elsif ($required) {
-        my $warnStr = "Could not check for contaminated OTUs, because ";
-        unless ( $refDB ne "" && -f $refDB ) {
-            $warnStr .= "$nameRDB reference database \n\"$refDB\"\ndid not exist.\n";
-        } else {  $warnStr .= "OTU fasta file was empty\n";
-        }
-        finWarn($warnStr);
-
-        #systemL("cp $otusFA $outfile");
-        #$outfile = "$t/uparse.fa";
-    }
-    return $contRem;
+		$contRemStr += $contRem;
+	}
+	
+		#print remaining OTUs
+	open Oa, ">$otusFA" or printL "Can't open $OTU_prefix file $otusFA\n", 39;
+	my $cnt=0;
+	foreach my $hi ( keys %OTUs ) {
+		next if (exists($totHits{$hi}));
+		print Oa ">" . $hi . "\n" . $OTUs{$hi} . "\n";
+		$cnt++;
+	}
+	close Oa;
+	printL "Writing $cnt/" . scalar(keys(%OTUs)) ." $OTU_prefix seeds after off-target removal\n";
+	$contRemStr = scalar(keys(%totHits));
+    return $contRemStr;
 }
 
 sub chimera_rem($ $) {
@@ -1622,7 +1512,7 @@ sub checkXtalk($ $) {
         systemL "rm $otuM; mv $otuM1 $otuM;";
     }
     else {
-        $citations .= "CrossTalk OTU removal: UNCROSS2: identification of cross-talk in 16S rRNA OTU tables. Robert C. Edgar . Bioarxiv (https://www.biorxiv.org/content/biorxiv/early/2018/08/27/400762.full.pdf)\n";
+        $citations .= "CrossTalk $OTU_prefix removal: UNCROSS2: identification of cross-talk in 16S rRNA OTU tables. Robert C. Edgar . Bioarxiv (https://www.biorxiv.org/content/biorxiv/early/2018/08/27/400762.full.pdf)\n";
     }
 }
 
@@ -1731,7 +1621,7 @@ sub clean_otu_mat($ $ $ $ $) {
             #die ("new:".$ORDL2{$newOname}."  old: ".$ORDL{$ot}."\n");
         }
         else {
-            printL "Fatal error, cannot find OTU $ot\n", 87;
+            printL "Fatal error, cannot find $OTU_prefix $ot\n", 87;
         }
     }
     close O;
@@ -1757,13 +1647,13 @@ sub clean_otu_mat($ $ $ $ $) {
             "OTUs ($chimRdCnt read counts) from abundance matrix, \n"
           . $nonChimRm
           . " OTUs remaining.\n", 0;
-		  $strTmp .= "elapsed time: $duration s\n";
+		  #$strTmp .= "elapsed time: ". time - $start ." s\n";
         printL frame($strTmp), 0;
     }
     if ( ( $nonChimRm - $emptyOTUcnt ) == 0 ) {
 
         #print "$nonChimRm - $emptyOTUcnt\n";
-        printL "Empty OTU matrix.. aborting LotuS run!\n", 87;
+        printL "Empty $OTU_prefix matrix.. aborting LotuS run!\n", 87;
     }
     if ( $emptyOTUcnt > 0 ) {
         printL "Removed mismapped OTUs ($emptyOTUcnt)..\n", 0;
@@ -2399,7 +2289,7 @@ sub readPaths() {    #read tax databases and setup correct usage
         $UCHIME_REFDB = $UCHIME_REFits1;
     }
     if ( !-e $UCHIME_REFDB ) {
-        finWarn "Requested DB for uchime ref at\n$UCHIME_REFDB\ndoes not exist; LotuS will run without reference based OTU chimera checking.\n";
+        finWarn "Requested DB for uchime ref at\n$UCHIME_REFDB\ndoes not exist; LotuS will run without reference based $OTU_prefix chimera checking.\n";
     }
 
     if (   ( $refDBwanted !~ m/SLV/ && $refDBwanted !~ m/PR2/ )
@@ -2533,7 +2423,7 @@ sub readPaths() {    #read tax databases and setup correct usage
 
             }
             if ( @refDBname == 0 ) {
-                printL"Found no valid path to a ref database \"$subrdbw\" or could not identify term. No reference based OTU picking.Aborting LotuS\n",3;
+                printL"Found no valid path to a ref database \"$subrdbw\" or could not identify term. No reference based $OTU_prefix picking.Aborting LotuS\n",3;
             }
 
         }
@@ -2558,7 +2448,7 @@ sub readPaths() {    #read tax databases and setup correct usage
     }
     else {
         $citations .=
-"VSEARCH 1.13 (chimera de novo / ref; OTU alignments): Rognes T (2015) https://github.com/torognes/vsearch\n";
+"VSEARCH 1.13 (chimera de novo / ref; $OTU_prefix alignments): Rognes T (2015) https://github.com/torognes/vsearch\n";
     }
     if ( !-f $mjar && !-f $rdpjar && $doRDPing > 0 ) {
         printL "Could not find rdp jar at\n\"$mjar\"\nor\n\"$rdpjar\"\n.Aborting..\n", 3;
@@ -2687,17 +2577,46 @@ sub usage {
     exit(1);
 }
 
-sub frame($) {
-    my ($txt) = @_;
-    my @txtarr = split( /\n/, $txt );
-    my $repStr =
-"=========================================================================\n";
+sub parse_duration {
+  my $seconds = shift;
+  my $hours = int( $seconds / (60*60) );
+  my $mins = ( $seconds / 60 ) % 60;
+  my $secs = $seconds % 60;
+  return sprintf("00:00:%02d", $seconds) if $seconds < 60;
+  return sprintf("%02d:%02d:%02d", $hours,$mins,$secs);
+}
+sub frame {
+    my ($txt) = $_[0];
+	my $showT=1; $showT = $_[1] if (@_ > 1);
+	my $dur = " ". parse_duration(time - $start) . "";
+    my @txtarrT = split( /\n/, $txt );
+	my @txtarr; 
+	my $width = 60;
     my $numOfChar = 10;
-    my $ret       = $repStr;
+	my $txtSpac=  $width - $numOfChar;
+	foreach my $s (@txtarrT){
+		#last;
+		my $cnt=0;
+		while (length($s) > $txtSpac || $cnt > 20){
+			push (@txtarr, (substr $s,0,$txtSpac));
+			substr ($s,0,$txtSpac) = "";
+			$cnt++;
+		}
+		push (@txtarr, $s);
+	}
+    my $repStr = '-' x $width;#"=========================================================================\n";
+    my $ret = $repStr."\n";
+	
     for ( my $i = 0 ; $i < scalar(@txtarr) ; $i++ ) {
-        $ret .= ' ' x $numOfChar . $txtarr[$i] . "\n";
+		my $pre = "";
+		if ($i==0 && $showT){
+			$pre = $dur . ' ' x ($numOfChar - length($dur));
+		} else {
+			$pre = ' ' x $numOfChar;
+		}
+        $ret .= $pre . $txtarr[$i] . "\n";
     }
-    $ret .= $repStr;
+    $ret .= $repStr."\n";
 }
 
 sub firstXseqs($ $ $) {
@@ -2759,7 +2678,7 @@ sub get16Sstrand($ $) {    #
 
 sub calcHighTax($ $ $ $ $) {
     my ( $hr, $inT, $failsR, $LCAtax, $xtraOut ) = @_;
-    printL "Calculating higher abundance levels\n", 0;
+    printL "\nCalculating higher abundance levels\n", 0;
     my $getHit2DB = 0;
     $getHit2DB = 1 if ( $xtraOut ne "" );
     my ( $hr1, $ar1, $hr2, $tax4RefHR ) =
@@ -2784,7 +2703,7 @@ sub calcHighTax($ $ $ $ $) {
 
     #pseudo OTU ref hits
     if ( $xtraOut ne "" ) {
-        open O, ">$xtraOut" or die "Can't open ref OTU file $xtraOut\n";
+        open O, ">$xtraOut" or die "Can't open ref $OTU_prefix file $xtraOut\n";
         print O "RefOTUs" . $SEP . join( $SEP, @avSmps );
         my @avTax = sort( keys(%hit2db) );
 		my %matOTUsTT = %matOTUs; 
@@ -2931,10 +2850,9 @@ sub buildTree($ $) {
     my ( $OTUfa, $outdir ) = @_;
 
 	if ( -f $clustaloBin && -f $fasttreeBin ) {
-		$duration = time - $start;
-		printL( frame("Building tree and aligning OTUs\nelapsed time: $duration s"),0 );
+		printL( frame("Building tree and aligning OTUs"),0 );
 	} else {
-		printL(frame("Skipping tree building and multiple alignment: \nclustaloBin or fasttreeBin are not defined\nelapsed time: $duration s"),0);
+		printL(frame("Skipping tree building and multiple alignment: \nclustaloBin or fasttreeBin are not defined"),0);
 	}
 
 	
@@ -2951,7 +2869,7 @@ sub buildTree($ $) {
 
     if ( $exec == 0 && $onlyTaxRedo == 0 && -f $clustaloBin ) {
         if ( !-f $OTUfa ) {
-            printL "Could not find OTU sequence file:\n$OTUfa\n", 5;
+            printL "Could not find $OTU_prefix sequence file:\n$OTUfa\n", 5;
         }
         if ( systemL($cmd) != 0 ) {
             printL "Fallback to single core clustalomega\n", 0;
@@ -3497,7 +3415,7 @@ sub readFasta($) {
     my %Hseq;
     if ( -z $fil ) { return \%Hseq; }
     open( FAS, "<", "$fil" ) || printL( "Couldn't open FASTA file $fil\n", 88 );
-    my $temp;
+    my $temp="";
     my $line;
     my $trHe = <FAS>;
     chomp($trHe);
@@ -3506,20 +3424,18 @@ sub readFasta($) {
     $trHe =~ s/\s.*//;
 
     while ( $line = <FAS> ) {
-        if ( $line =~ m/^>/ ) {
-
-            #finish old fas`
-            $Hseq{$trHe} = $temp;
-
-            #prep new entry
-            chomp($line);
-            $trHe = substr( $line, 1 );
-            $trHe =~ s/;size=\d+;.*//;
-            $trHe =~ s/\s.*//;
-            $temp = "";
-            next;
-        }
-        $temp .= ($line);
+		chomp $line;
+		if ( $line =~ m/^>/ ) {
+			#finish old fas`
+			$Hseq{$trHe} = $temp;
+			#prep new entry
+			$trHe = substr( $line, 1 );
+			$trHe =~ s/;size=\d+;.*//;
+			$trHe =~ s/\s.*//;
+			$temp = "";
+		} else {
+			$temp .= $line;
+		}
     }
     $Hseq{$trHe} = $temp;
     close(FAS);
@@ -3746,7 +3662,7 @@ sub writeBlastHiera($ $ $) {
     my @avOTUs = @{$avOTUsR};
     my $cnt    = 0;
     open H, ">", $SIM_hierFile or die "Can't open $SIM_hierFile\n";
-    print H "OTU\tDomain\tPhylum\tClass\tOrder\tFamily\tGenus\tSpecies\n";
+    print H "$OTU_prefix\tDomain\tPhylum\tClass\tOrder\tFamily\tGenus\tSpecies\n";
     #
     foreach ( keys(%fails) ) {
         if (   exists( ${$taxr}{$_} )
@@ -3797,9 +3713,7 @@ sub checkLtsVer($) {
 
     # compare to server version
     unless ( $checkForUpdates == 1 ) { return $sdmVer; }
-    die
-"LWP:simple package not installed, but required for automatic update checker!\n deactivate \"CheckForUpdates 0\" in $lotusCfg to circumvent the update checks.\n"
-      if ( !$LWPsimple );
+    #die "LWP:simple package not installed, but required for automatic update checker!\n deactivate \"CheckForUpdates 0\" in $lotusCfg to circumvent the update checks.\n" if ( !$LWPsimple );
 
     printL "Checking for updates..  ";
     my $url = "http://psbweb05.psb.ugent.be/lotus/lotus/updates/Msg.txt";
@@ -4066,7 +3980,7 @@ sub readOTUmat($) {
     my ($file) = @_;
 
     #my @avSmps = sort(keys %OTUmat);
-    open I, "<", $file or die "Can't open expected OTU counts: $file\n";
+    open I, "<", $file or die "Can't open expected $OTU_prefix counts: $file\n";
     my $cnt = -1;
     my @samples;
     my @avOTUs;
@@ -4116,7 +4030,7 @@ sub utaxTaxAssign($ $) {
     #die $utaCmd."\n";
 
     if ( $exec == 0 ) {
-        printL frame("Assigning taxonomy against reference using UTAX with confidence $taxLconf bp\nelapsed time: $duration s");
+        printL frame("Assigning taxonomy against reference using UTAX with confidence $taxLconf bp");
 
         #print $cmd."\n";
         if ( systemL($cmd) ) { printL "UTAX failed:\n$cmd\n", 3; }
@@ -4145,8 +4059,7 @@ sub doDBblasting($ $ $) {
         my $strand = "both";
 
 #if ($exec==0){$strand = get16Sstrand($query,$DB);} #deactivated as speed gain is too moderate for gain
-        $cmd =
-"$blastBin -query $query -db $DB -out $taxblastf -outfmt 6 -max_target_seqs 200 -perc_identity 75 -num_threads $BlastCores -strand $strand ;"
+        $cmd = "$blastBin -query $query -db $DB -out $taxblastf -outfmt 6 -max_target_seqs 200 -perc_identity 75 -num_threads $BlastCores -strand $strand ;"
           ;    #-strand plus both minus
         if ( !-s $query ) { $cmd = "touch $taxblastf;"; }
         else {
@@ -4244,7 +4157,7 @@ sub doDBblasting($ $ $) {
     #die($cmd."\n");
     $duration = time - $start;
 	if ( $exec == 0 ) {
-		printL frame("Assigning taxonomy against reference using $simMethod\nelapsed time: $duration s");
+		printL frame("Assigning taxonomy against reference using $simMethod");
 		#print $cmd."\n";
 		if ( systemL($cmd) ) {
 			printL "$simMethod against ref database failed:\n$cmd\n", 3;
@@ -4309,6 +4222,50 @@ sub findUnassigned($ $ $ ) {
     return ( $outF, \%BT, $dcn, \%Fas );
 }
 
+sub runRDP{
+	my $cmd="";
+	my $rdpGene = "16srrna";
+	$rdpGene = "fungallsu" if ( $organism eq "fungi" || $organism eq "eukaryote" );
+	my $msg = "";
+	if ( $doRDPing > 0 && $mjar ne "" && -f $mjar ) {
+		$msg = "Assigning taxonomy with multiRDP";
+
+		#ampliconType
+		$cmd = "java -Xmx1g -jar $mjar --gene=$rdpGene --format=fixrank --hier_outfile=$outdir/hierachy_cnt.tax --conf=0.1 --assign_outfile=$t/RDPotus.tax $OTUfa;";
+		$RDPTAX = 2;
+	} elsif ( $doRDPing > 0 && ( $rdpjar ne "" || exists( $ENV{'RDP_JAR_PATH'} ) ) ) {
+		$msg = "Assigning taxonomy with RDP";
+		my $toRDP = $ENV{'RDP_JAR_PATH'};
+		if ( $rdpjar ne "" ) { $toRDP = $rdpjar; }
+		my $subcmd = "classify";
+		$cmd =        "java -Xmx1g -jar " . $toRDP  . " $subcmd -f fixrank -g $rdpGene -h $outdir/hierachy_cnt.tax -q $OTUfa -o $t/RDPotus.tax -c 0.1;";
+		$RDPTAX = 1;
+	}    
+	$msg .= "";
+	if ( $doRDPing > 0 && $exec == 0 ) {    #ITS can't be classified by RDP
+		printL frame($msg), 0;
+
+		#die "XXX  $cmd\n";
+		if ( systemL($cmd) ) {
+			printL "FAILED RDP classifier execution:\n$cmd\n", 2;
+		}
+		$citations .= "RDP $OTU_prefix taxonomy: Wang Q, Garrity GM, Tiedje JM, Cole JR. 2007. Naive Bayesian classifier for rapid assignment of rRNA sequences into the new bacterial taxonomy. Appl Env Microbiol 73: 5261–5267.\n";
+	} elsif ( $rdpjar ne "" || exists( $ENV{'RDP_JAR_PATH'} ) ) {
+		if ($extendedLogs) { systemL "cp $t/RDPotus.tax $extendedLogD/;"; }
+		if ( $RDPTAX > 0 ) {                #move confusing files
+			if ($extendedLogs) {
+				systemL "mv $outdir/hierachy_cnt.tax $outdir/cnadjusted_hierachy_cnt.tax $extendedLogD/;";
+			} else {
+				unlink "$outdir/hierachy_cnt.tax";
+				unlink "$outdir/cnadjusted_hierachy_cnt.tax"
+				  if ( -e "$outdir/cnadjusted_hierachy_cnt.tax" );
+			}
+		}
+	}
+	#RDP finished 
+}
+
+
 sub assignTaxOnly($ $) {
     my ( $taxf, $output ) = @_;    #,$avSmpsARef
                                    #printL $outmat."\n";
@@ -4342,12 +4299,14 @@ sub assignTaxOnly($ $) {
         }
         my $LCxtr = "";
         if ($pseudoRefOTU) { $LCxtr = "-showHitRead -reportBestHit"; }
+		if (-f $TaxOnly) {$SIM_hierFile = $TaxOnly.".hier";}
         my $cmd =  "$LCABin  -i " . join( ",", @blOuts ) . " -r ". join( ",", @TAX_RANKS ) . " -o $SIM_hierFile $LCxtr -LCAfrac $LCAfraction -cover $LCAcover -id ". join( ",", @idThr ) . ";";
 
         #die $cmd;
         if ( systemL $cmd) { printL "LCA command $cmd failed\n", 44; }
         systemL "cp @blOuts $output\n";
     }
+	return $SIM_hierFile;
 }
 
 sub makeAbundTable2($ $) {
@@ -4436,7 +4395,7 @@ sub makeAbundTable2($ $) {
                 $fullBlastTaxR = { %$fullBlastTaxR, %$BlastTaxR };
                 last if ( $leftOver == 0 );
             }
-            printL "Assigned @refDBname Taxonomy to OTU's\n", 0;
+            printL "Assigned @refDBname Taxonomy to $OTU_prefix's\n", 0;
             systemL "rm $OTUfa" . "__U*;" if ( $DBi > 0 );
         }
 
@@ -4660,24 +4619,136 @@ sub systemL {
     # return $ENV{'PIPESTATUS[0]'};
 }
 
+sub announce_options{
+	if ( !$onlyTaxRedo && !$TaxOnly ) {
+		
+		if ( $ClusterPipe == 0 ) {
+			printL( "Running otupipe $clustMode sequence clustering..\n", 0 );
+		}
+		elsif ( $ClusterPipe == 1 ) {
+			printL( "Running UPARSE $clustMode sequence clustering..\n", 0 );
+		}
+		elsif ( $ClusterPipe == 7 ) {
+			printL( "Running DADA2 $clustMode sequence clustering..\n", 0 );
+			die "Incorrect dada2 script defined $dada2Scr" unless (-f $dada2Scr);
+			die "Incorrect R installation (can't find Rscript)" unless (-f $Rscript);
+			
+		}
+		elsif ( $ClusterPipe == 6 ) {
+			printL( "Running UNOISE $clustMode sequence clustering..\n", 0 );
+		}
+		elsif ( $ClusterPipe == 2 ) {
+			printL( "Running SWARM $clustMode sequence clustering..\n", 0 );
+		}
+		elsif ( $ClusterPipe == 3 ) {
+			printL( "Running CD-HIT $clustMode sequence clustering..\n", 0 );
+		}
+		elsif ( $ClusterPipe == 4 ) {
+			printL( "Running DNACLUST $clustMode sequence clustering..\n", 0 );
+		}
+		if   ($sdmDerepDo) { printL ("Running fast LotuS mode..\n",0); 
+		}else{ printL ("Running low-mem LotuS mode..\n",0); }
+	}
+	else {    #prep for redoing tax, save previous tax somehwere
+		printL "Re-Running only tax assignments, no de novo clustering\n", 0;
+		my $k       = 0;
+		my $newLDir = "$outdir/prevLtsTax_$k";
+		while ( -d $newLDir ) { $k++; $newLDir = "$outdir/prevLtsTax_$k"; }
+		printL frame("Saving previous Tax to $newLDir"), "w";
+		systemL "mkdir -p $newLDir/LotuSLogS/;";
+		systemL "mv $highLvlDir $FunctOutDir $RDP_hierFile $SIM_hierFile $outdir/hierachy_cnt.tax $outdir/cnadjusted_hierachy_cnt.tax $newLDir/;";
+		systemL "mv $outdir/LotuSLogS/* $newLDir/LotuSLogS/;";
+		systemL("mkdir -p $logDir;") unless ( -d $logDir );
+
+		if ($extendedLogs) {
+			systemL("mkdir -p $extendedLogD;") unless ( -d $extendedLogs );
+		}
+
+	}
+	printL "------------ I/O configuration --------------\n", 0;
+	printL( "Input=   $input\nOutput=  $outdir\n", 0 );    #InputFileNum=$numInput\n
+	if ( $barcodefile ne "" ) {
+		printL("Barcodes= $barcodefile\n",0);
+	}
+	printL "TempDir= $t\n",                                     0;
+	printL "------------ Configuration LotuS --------------\n", 0;
+	printL( "Sequencing platform=$platform\nAmpliconType=$ampliconType\n", 0 );
+	if ( $ClusterPipe == 2 ) {
+		printL "Swarm inter-cluster distance=$swarmClus_d\n", 0;
+	}
+	else {
+		printL "OTU id=$id_OTU\n", 0;
+	}
+	printL "min unique read abundance=" . ($dereplicate_minsize) . "\n", 0;
+	if ( $noChimChk == 1 || $noChimChk == 3 ) {
+		printL "No RefDB based Chimera checking\n", 0;
+	}
+	elsif ( $noChimChk == 0 || $noChimChk == 2 ) {
+		printL "UCHIME_REFDB, ABSKEW=$UCHIME_REFDB, $chimera_absskew\nOTU, Chimera prefix=$OTU_prefix, $chimera_prefix\n",
+		  0;
+	}
+	if ( $noChimChk == 1 || $noChimChk == 2 ) {
+		printL "No deNovo Chimera checking\n", 0;
+	}
+	if ( $doBlasting == 1 ) {
+		printL "Similarity search with Blast\n", 0;
+		if ( !-e $blastBin ) {
+			printL "Can't find blast binary at $blastBin\n", 97;
+		}
+	} elsif ( $doBlasting == 2 ) {
+		printL "Similarity search with Lambda\n", 0;
+		if ( !-e $lambdaBin ) {
+			printL "Can't find LAMBDA binary at $lambdaBin\n", 96;
+		}
+		if ( !-e $lambdaIdxBin ) {
+			printL "Can't find valid labmda indexer executable at $lambdaIdxBin\n",  98;
+		}
+	}elsif ( $doBlasting == 4 ) {
+		printL "Similarity search with VSEARCH\n", 0;
+		if ( !-e $VSBinOri ) {
+			printL "Can't find VSEARCH binary at $VSBinOri\n", 96;
+		}
+	}elsif ( $doBlasting == 5 ) {
+		printL "Similarity search with USEARCH\n", 0;
+		if ( !-e $usBin ) {
+			printL "Can't find VSEARCH binary at $usBin\n", 96;
+		}
+	}
+	unless ( $doBlasting < 1 ) {
+		printL "ReferenceDatabase=@refDBname\nRefDB location=@TAX_REFDB\n", 0;
+		if ( !-e $TAX_REFDB[0] ) {
+			printL "RefDB does not exist at loction. Aborting..\n", 103;
+		}
+	}
+
+	printL "TaxonomicGroup=$organism\n", 0;
+	if ( $ClusterPipe == 0 ) {
+		printL("PCTID_ERR=$id_OTU_noise\n",0);
+	}
+	if ( $custContamCheckDB ne "" ) {
+		printL "Custom DB for off-targets: $custContamCheckDB\n", 0;
+	}
+	printL "--------------------------------------------\n", 0;
+}
+
 sub announceClusterAlgo{
 	return;
 	   if ( $ClusterPipe == 0 ) {
-		printL "\n\n--------- OTUPIPE ----------- \nelapsed time: $duration s\n\n",0;
+		printL "\n\n--------- OTUPIPE ----------- \n\n",0;
 	} elsif ( $ClusterPipe == 1 ) {
-        printL"\n\n--------- UPARSE clustering ----------- \nelapsed time: $duration s\n\n", 0;
+        printL"\n\n--------- UPARSE clustering ----------- \n\n", 0;
 	} elsif ( $ClusterPipe == 6 ) {
-        printL"\n\n--------- UNOISE clustering ----------- \nelapsed time: $duration s\n\n", 0;
+        printL"\n\n--------- UNOISE clustering ----------- \n\n", 0;
     }
     elsif ( $ClusterPipe == 2 ) {
-        printL"\n\n--------- SWARM clustering ----------- \nelapsed time: $duration s\n\n",0;
+        printL"\n\n--------- SWARM clustering ----------- \n\n",0;
     }
-    elsif ( $ClusterPipe == 3 ) {printL"\n\n--------- CD-HIT clustering ----------- \nelapsed time: $duration s\n\n",0;
+    elsif ( $ClusterPipe == 3 ) {printL"\n\n--------- CD-HIT clustering ----------- \n\n",0;
     }
     elsif ( $ClusterPipe == 4 ) {
-        printL"\n\n--------- DNACLUST clustering ----------- \nelapsed time: $duration s\n\n",0;
+        printL"\n\n--------- DNACLUST clustering ----------- \n\n",0;
     }  elsif ( $ClusterPipe == 7 ) {
-        printL"\n\n--------- DADA2 OTU clustering ----------- \nelapsed time: $duration s\n\n",0;
+        printL"\n\n--------- DADA2 $OTU_prefix clustering ----------- \n\n",0;
     }
 
 }
@@ -5010,7 +5081,7 @@ sub buildOTUs($) {
             $idLabel  = "";
             $id_OTUup = "";
             if ( $id_OTU != 0.97 ) {
-                printL "UPARSE 10 does only support 97% id OTU clusters\n", "w";
+                printL "UPARSE 10 does only support 97% id $OTU_prefix clusters\n", "w";
             }
         }
         elsif ( $usearchVer >= 8 ) {
@@ -5031,11 +5102,11 @@ sub buildOTUs($) {
         if ( $noChimChk == 1 || $noChimChk == 2 ) {  #deactivate chimera de novo
             $xtraOptions .= " -uparse_break -999 ";
         }
-        printL(frame("UPARSE core routine\n Cluster at ". 100 * $id_OTU),0);
+        printL(frame("UPARSE core routine\nCluster at ". 100 * $id_OTU),0);
 		#"\n =========================================================================\n UPARSE core routine\n Cluster at ". 100 * $id_OTU. "%\n=========================================================================\n",0);
 
         $cmd = "$usBin -cluster_otus $derepl -otus $OTUfastaTmp $idLabel $id_OTUup -log $logDir/UPARSE.log $xtraOptions;";    # -threads $uthreads"; # -uc ".$UCguide[2]."
-        $citations .= "UPARSE OTU clustering - Edgar RC. 2013. UPARSE: highly accurate OTU sequences from microbial amplicon reads. Nat Methods.\n";
+        $citations .= "UPARSE $OTU_prefix clustering - Edgar RC. 2013. UPARSE: highly accurate OTU sequences from microbial amplicon reads. Nat Methods.\n";
 		#die $cmd."\n";
     }
     elsif ( $ClusterPipe == 7 ) { #dada2
@@ -5063,15 +5134,15 @@ sub buildOTUs($) {
 #$cmd="$usBin -uchime_denovo  $derepl -chimeras $t/chimeras_denovo.fa -nonchimeras $t/tmp1.fa -abskew $chimera_absskew -log $logDir/uchime_dn.log";
 #if (systemL($cmd) != 0){exit(1);}	systemL("ls -lh $t/tmp1.fa");
         if ( !-e $swarmBin ) {printL "No valid swarm binary found at $swarmBin\n", 88;}
-		printL(frame("SWARM OTU clustering\n Cluster with d = ". $swarmClus_d ),0);
-        #printL("\n =========================================================================\n SWARM OTU clustering\n Cluster with d = ". $swarmClus_d. "\n=========================================================================\n",0);
+		printL(frame("SWARM $OTU_prefix clustering\n Cluster with d = ". $swarmClus_d ),0);
+        #printL("\n =========================================================================\n SWARM $OTU_prefix clustering\n Cluster with d = ". $swarmClus_d. "\n=========================================================================\n",0);
 
         #-z: unsearch size output. -u uclust result file
         my $uclustFile = "$t/clusters.uc";
         my $dofasti    = "-f ";
         if ( $swarmClus_d > 1 ) { $dofasti = ""; }
         $cmd = "$swarmBin -z $dofasti -u $uclustFile -t $uthreads -w $OTUfastaTmp --ceiling 4024 -s $logDir/SWARMstats.log -l $logDir/SWARM.log -o $t/otus.swarm -d $swarmClus_d < $derepl;";
-        $citations .= "swarm v2 OTU clustering - Mahé F, Rognes T, Quince C, de Vargas C, Dunthorn M. 2015. Swarm v2: highly-scalable and high-resolution amplicon clustering. PeerJ. DOI: 10.7717/peerj.1420\n";
+        $citations .= "swarm v2 $OTU_prefix clustering - Mahé F, Rognes T, Quince C, de Vargas C, Dunthorn M. 2015. Swarm v2: highly-scalable and high-resolution amplicon clustering. PeerJ. DOI: 10.7717/peerj.1420\n";
 
 #perl script to replace swarm size with usearch size
 #print $cmd."\n";
@@ -5081,8 +5152,8 @@ sub buildOTUs($) {
     }
     elsif ( $ClusterPipe == 3 ) {
         if ( !-e $cdhitBin ) {printL "No valid CD-Hit binary found at $cdhitBin\n", 88;}
-		printL(frame("CD-HIT OTU clustering\n Cluster at ". 100 * $id_OTU ),0);
-        printL("\n =========================================================================\n CD-HIT OTU clustering\n Cluster at ". 100 * $id_OTU . "%\n=========================================================================\n", 0 );
+		printL(frame("CD-HIT $OTU_prefix clustering\n Cluster at ". 100 * $id_OTU ),0);
+        #printL("\n =========================================================================\n CD-HIT $OTU_prefix clustering\n Cluster at ". 100 * $id_OTU . "%\n=========================================================================\n", 0 );
         if ($REFflag) {  #$otuRefDB eq "ref_closed" || $otuRefDB eq "ref_open"){
             printL "CD-HIT ref DB clustering not supported!\n", 55;
             #die();
@@ -5096,7 +5167,7 @@ sub buildOTUs($) {
         else {           #de novo
             $cmd = "$cdhitBin -T $uthreads -o $OTUfastaTmp -c $id_OTU -G 0 -M 0 -i $derepl -n 9 -g 0 -r 0 -aL 0.0 -aS 0.9;";          #-aL 0.77 -aS 0.98
         }
-		$citations .= "CD-HIT OTU clustering - Fu L, Niu B, Zhu Z, Wu S, Li W. 2012. CD-HIT: Accelerated for clustering the next-generation sequencing data. Bioinformatics 28: 3150–3152.\n";
+		$citations .= "CD-HIT $OTU_prefix clustering - Fu L, Niu B, Zhu Z, Wu S, Li W. 2012. CD-HIT: Accelerated for clustering the next-generation sequencing data. Bioinformatics 28: 3150–3152.\n";
     }
     elsif ( $ClusterPipe == 4 ) {    #dnaclust-ref
         my $dnaClOpt = "";
@@ -5124,7 +5195,7 @@ sub buildOTUs($) {
 	#actual excecution
     if ( $exec == 0 ) {
         if ( systemL($cmd) != 0 ) {
-            printL( "Failed core OTU clustering command:\n$cmd\n", 1 );
+            printL( "Failed core $OTU_prefix clustering command:\n$cmd\n", 1 );
         }
     }
 	
