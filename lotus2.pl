@@ -150,7 +150,7 @@ my $sdmOpt     = "";    #default sdm (simple demultiplexer) options
 my $damagedFQ  = 0;
 my $BlastCores = 12;    #number of cores to use for BLASTn
 my $clQue      = "";    #"all.q";#"highmem";
-my $OTU_prefix = "OTU_";    # Prefix for OTU label, default is OTU_ giving OTU_1, OTU_2 ...
+my ${OTU_prefix} = "OTU";    # Prefix for OTU label, default is OTU_ giving OTU_1, OTU_2 ...
 my $chimera_prefix = "CHIMERA_"
   ;    # Prefix for chimera label, default is CHIM_ giving CHIM_1, OTU_2 ...
 my $sep_smplID = "___";    #separator of smpID & ori fasta id
@@ -495,10 +495,10 @@ if ( $ClusterPipe_pre eq "CD-HIT" || $ClusterPipe_pre eq "CDHIT" || $ClusterPipe
     $ClusterPipe = 1;
 }elsif ( $ClusterPipe_pre eq "UNOISE" || $ClusterPipe_pre eq "UNOISE3" || $ClusterPipe_pre eq "6" ) {
     $ClusterPipe = 6;
-	$OTU_prefix = "Zotu";
+	${OTU_prefix} = "Zotu";
 }elsif ( $ClusterPipe_pre eq "DADA2" || $ClusterPipe_pre eq "7" ) {
     $ClusterPipe = 7;
-	$OTU_prefix = "ASV";
+	${OTU_prefix} = "ASV";
 }elsif ( $ClusterPipe_pre eq "SWARM" || $ClusterPipe_pre eq "2" ) {
     $ClusterPipe = 2;
     if ( !-e $swarmBin ) {
@@ -537,8 +537,7 @@ if ($REFflag) {
         );
     }
     if ( $refDBwanted eq "" ) {
-        printL
-"You selected ref based $OTU_prefix building, please set -refDB to \"SLV\", \"GG\", \"HITdb\", \"PR2\" or a custom fasta file.\n",
+        printL "You selected ref based ${OTU_prefix} building, please set -refDB to \"SLV\", \"GG\", \"HITdb\", \"PR2\" or a custom fasta file.\n",
           22;
     }
 
@@ -767,7 +766,7 @@ my $status = 0;
 #die $sdmcmd."\n";
 #systemL "$sdmcmd";
 if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
-    printL (frame("Extending $OTU_prefix Seeds"), 0);
+    printL (frame("Extending ${OTU_prefix} Seeds"), 0);
 	#die "$sdmcmd\n";
     $status = systemL($sdmcmd);
 
@@ -776,7 +775,7 @@ if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 elsif ($onlyTaxRedo) { printL "Skipping Seed extension step\n", 0; }
 if ($status) {
     printL "Failed $sdmcmd\n",                    0;
-    printL "Fallback to $OTU_prefix median sequences.\n", 0;
+    printL "Fallback to ${OTU_prefix} median sequences.\n", 0;
     $seedExtDone = 0;
 	$OTUSEED = $tmpOTU;
     #exit(11);
@@ -830,7 +829,7 @@ if ( $numInput == 2){
 		if ( $exec == 0 ) {
 
 			#die $mergCmd."\n".$flashCustom."\n";
-			printL (frame("Merging $OTU_prefix seed paired reads"), 0);
+			printL (frame("Merging ${OTU_prefix} seed paired reads"), 0);
 			if ( !systemL($mergCmd) == 0 ) {
 				printL( "Merge command failed: \n$mergCmd\n", 3 );
 			}
@@ -858,7 +857,7 @@ if ($TaxOnly ne "0" && -f $TaxOnly){
 #at this point $tmpOTU (== $OTUSEED) contains the OTU ref seqs
 
 #add additional sequences to unfinal file
-#my $lnkHref = numberOTUs($tmpOTU,$OTUfa,$OTU_prefix);
+#my $lnkHref = numberOTUs($tmpOTU,$OTUfa,${OTU_prefix});
 #new algo 0.97: don't need to rename reads any longer (and keep track of this), done by sdm - but no backlinging to uparse any longer
 #/////////////////////////////////////////  check for contaminants /////////////////////
 my $OTUrefDBlnk;
@@ -1007,7 +1006,7 @@ systemL("rm -rf $outdir;") if ($rmOutDir); #online in extreme cases, keep well d
 printL(    frame("Finished after $duration s \nOutput files are in \n\n$outdir\n\- LotuSLogS/ contains run statistics (useful for describing data/amount of reads/quality\n- LotuSLogS/citations.txt: papers of programs used in this run\nNext steps: you can use the rtk program in this pipeline, to generate rarefaction curves and diversity estimates of your samples.\n"    ),0);
 my $phyloHlp="";
 $phyloHlp="- Phyloseq: $outdir/phyloseq.Rdata can be directly loaded in R\n" if ($phyloseqCreated);
-printL(frame("          Next steps:          \n- Rarefaction analysis: can be done with rtk (avaialble in R or use bin/rtk)\n$phyloHlp- Phylogeny: $OTU_prefix phylogentic tree available in $outdir/tree.nwk\n- .biom: $outdir/OTU.biom contains biom formated output\n- tutorial: Visit lotus2.earlham.ac.uk for more tutorials in data anlysis\n"));
+printL(frame("          Next steps:          \n- Rarefaction analysis: can be done with rtk (avaialble in R or use bin/rtk)\n$phyloHlp- Phylogeny: ${OTU_prefix} phylogentic tree available in $outdir/tree.nwk\n- .biom: $outdir/OTU.biom contains biom formated output\n- tutorial: Visit lotus2.earlham.ac.uk for more tutorials in data anlysis\n"));
 printWarnings();
 
 close LOG; close cmdLOG;
@@ -1297,6 +1296,8 @@ sub ITSxOTUs {
     my %ITSo;
 	
 	if ($ampliconType eq "ITS"){
+		#printL "cat $outBFile.ITS1.fasta $outBFile.ITS2.fasta >> $outBFile.full.fasta\n\n",0;
+		systemL "cat $outBFile.ITS1.fasta $outBFile.ITS2.fasta >> $outBFile.full.fasta";
         $hr   = readFasta("$outBFile.full.fasta");
         %ITSo = %{$hr};
     } else{
@@ -1314,28 +1315,23 @@ sub ITSxOTUs {
     my $orifa = `grep -c '^>' $otusFA`;
     chomp $orifa;    #chomp $ITSfa;
     if ( scalar( keys(%ITSo) ) == 0 ) {
-        printL "Could not find any valid ITS $OTU_prefix's. Aborting run.\n Remaining OTUs can be found in $outBFile*\n", 923;
+        printL "Could not find any valid ITS ${OTU_prefix}'s. Aborting run.\n Remaining OTUs can be found in $outBFile*\n", 923;
     }
 
-    printL "ITSx analysis: Kept " . scalar( keys(%ITSo) ) . " $OTU_prefix's identified as $ITSxReg (of $orifa $OTU_prefix's).\n";
+    printL "ITSx analysis: Kept " . scalar( keys(%ITSo) ) . " ${OTU_prefix}'s identified as $ITSxReg (of $orifa ${OTU_prefix}'s).\n";
 
     #systemL "cat $outBFile.full.fasta > $otusFA";
     open O, ">$otusFA" or die "Can't open output $otusFA\n";
     foreach my $k ( keys %ITSo ) {
-        my $hdde = "OUTx_1";
+        my $hdde = "${OTU_prefix}x_1";
 		if ($k =~ m/^([z]?OTU_\d+)\|/){
 			$hdde = $1;
 		}
-
-        #my @tspl = split/\|/,$k;
-        #my $hdde = $tspl[0];
-        #print "$hdde $k\n";
         print O ">$hdde\n$ITSo{$k}\n";
     }
     close O;
     systemL "rm -f $outBFile*;";
-    $citations .=
-"ITSx removal of non ITS OTUs: ITSx: Johan Bengtsson-Palm et al. (2013) Improved software detection and extraction of ITS1 and ITS2 from ribosomal ITS sequences of fungi and other eukaryotes for use in environmental sequencing. Methods in Ecology and Evolution, 4: 914-919, 2013\n";
+    $citations .= "ITSx removal of non ITS OTUs: ITSx: Johan Bengtsson-Palm et al. (2013) Improved software detection and extraction of ITS1 and ITS2 from ribosomal ITS sequences of fungi and other eukaryotes for use in environmental sequencing. Methods in Ecology and Evolution, 4: 914-919, 2013\n";
 
     #die $cmd."\n";
 }
@@ -1424,9 +1420,6 @@ sub contamination_rem($ $ $ ) {
 			close Ox;
 			systemL "gzip $outContaminated";
 			%totHits = (%totHits, %hits);
-			
-
-
 			#if (($nonChimRm-$emptyOTUcnt)==0){
 			#	printL "Empty OTU matrix.. aborting LotuS run!\n",87;
 			#}
@@ -1435,7 +1428,7 @@ sub contamination_rem($ $ $ ) {
 			my $warnStr = "Could not check for contaminated OTUs, because ";
 			unless ( $refDB ne "" && -f $refDB ) {
 				$warnStr .= "$nameRDB reference database \n\"$refDB\"\ndid not exist.\n";
-			} else {  $warnStr .= "$OTU_prefix fasta file was empty\n";
+			} else {  $warnStr .= "${OTU_prefix} fasta file was empty\n";
 			}
 			finWarn($warnStr);
 
@@ -1446,7 +1439,7 @@ sub contamination_rem($ $ $ ) {
 	}
 	
 		#print remaining OTUs
-	open Oa, ">$otusFA" or printL "Can't open $OTU_prefix file $otusFA\n", 39;
+	open Oa, ">$otusFA" or printL "Can't open ${OTU_prefix} file $otusFA\n", 39;
 	my $cnt=0;
 	foreach my $hi ( keys %OTUs ) {
 		next if (exists($totHits{$hi}));
@@ -1454,7 +1447,7 @@ sub contamination_rem($ $ $ ) {
 		$cnt++;
 	}
 	close Oa;
-	printL "Writing $cnt/" . scalar(keys(%OTUs)) ." $OTU_prefix seeds after off-target removal\n";
+	printL "Writing $cnt/" . scalar(keys(%OTUs)) ." ${OTU_prefix} seeds after off-target removal\n";
 	$contRemStr = scalar(keys(%totHits));
     return $contRemStr;
 }
@@ -1512,7 +1505,7 @@ sub checkXtalk($ $) {
         systemL "rm $otuM; mv $otuM1 $otuM;";
     }
     else {
-        $citations .= "CrossTalk $OTU_prefix removal: UNCROSS2: identification of cross-talk in 16S rRNA OTU tables. Robert C. Edgar . Bioarxiv (https://www.biorxiv.org/content/biorxiv/early/2018/08/27/400762.full.pdf)\n";
+        $citations .= "CrossTalk ${OTU_prefix} removal: UNCROSS2: identification of cross-talk in 16S rRNA OTU tables. Robert C. Edgar . Bioarxiv (https://www.biorxiv.org/content/biorxiv/early/2018/08/27/400762.full.pdf)\n";
     }
 }
 
@@ -1606,22 +1599,22 @@ sub clean_otu_mat($ $ $ $ $) {
     foreach my $ot (@sorted_otus) {
 
         #$newOname = sprintf("%08d", $OTUcnt);
-        my $newOname = $OTU_prefix . $OTUcntd;
+        my $newOname = ${OTU_prefix} . $OTUcntd;
         $OTUcntd++;
         print O $newOname . "\t" . $OTUmat{$ot} . "\n";
         if ( exists( $hds{$ot} ) ) {
-            print OF ">" . $newOname . "\n" . $hds{$ot};
+            print OF ">" . $newOname . "\n$hds{$ot}\n";
 
             #$newOTUs{$newOname} = $hds{$ot}
         }
         elsif ( exists( $refHds{$ot} ) ) {
-            print OFR ">" . $newOname . "\n" . $refHds{$ot};
+            print OFR ">" . $newOname . "\n$refHds{$ot}\n";
             $ORDL2{$newOname} = $ORDL{$ot};
 
             #die ("new:".$ORDL2{$newOname}."  old: ".$ORDL{$ot}."\n");
         }
         else {
-            printL "Fatal error, cannot find $OTU_prefix $ot\n", 87;
+            printL "Fatal error, cannot find ${OTU_prefix} $ot\n", 87;
         }
     }
     close O;
@@ -1653,7 +1646,7 @@ sub clean_otu_mat($ $ $ $ $) {
     if ( ( $nonChimRm - $emptyOTUcnt ) == 0 ) {
 
         #print "$nonChimRm - $emptyOTUcnt\n";
-        printL "Empty $OTU_prefix matrix.. aborting LotuS run!\n", 87;
+        printL "Empty ${OTU_prefix} matrix.. aborting LotuS run!\n", 87;
     }
     if ( $emptyOTUcnt > 0 ) {
         printL "Removed mismapped OTUs ($emptyOTUcnt)..\n", 0;
@@ -2289,7 +2282,7 @@ sub readPaths() {    #read tax databases and setup correct usage
         $UCHIME_REFDB = $UCHIME_REFits1;
     }
     if ( !-e $UCHIME_REFDB ) {
-        finWarn "Requested DB for uchime ref at\n$UCHIME_REFDB\ndoes not exist; LotuS will run without reference based $OTU_prefix chimera checking.\n";
+        finWarn "Requested DB for uchime ref at\n$UCHIME_REFDB\ndoes not exist; LotuS will run without reference based ${OTU_prefix} chimera checking.\n";
     }
 
     if (   ( $refDBwanted !~ m/SLV/ && $refDBwanted !~ m/PR2/ )
@@ -2423,7 +2416,7 @@ sub readPaths() {    #read tax databases and setup correct usage
 
             }
             if ( @refDBname == 0 ) {
-                printL"Found no valid path to a ref database \"$subrdbw\" or could not identify term. No reference based $OTU_prefix picking.Aborting LotuS\n",3;
+                printL"Found no valid path to a ref database \"$subrdbw\" or could not identify term. No reference based ${OTU_prefix} picking.Aborting LotuS\n",3;
             }
 
         }
@@ -2448,7 +2441,7 @@ sub readPaths() {    #read tax databases and setup correct usage
     }
     else {
         $citations .=
-"VSEARCH 1.13 (chimera de novo / ref; $OTU_prefix alignments): Rognes T (2015) https://github.com/torognes/vsearch\n";
+"VSEARCH 1.13 (chimera de novo / ref; ${OTU_prefix} alignments): Rognes T (2015) https://github.com/torognes/vsearch\n";
     }
     if ( !-f $mjar && !-f $rdpjar && $doRDPing > 0 ) {
         printL "Could not find rdp jar at\n\"$mjar\"\nor\n\"$rdpjar\"\n.Aborting..\n", 3;
@@ -2703,7 +2696,7 @@ sub calcHighTax($ $ $ $ $) {
 
     #pseudo OTU ref hits
     if ( $xtraOut ne "" ) {
-        open O, ">$xtraOut" or die "Can't open ref $OTU_prefix file $xtraOut\n";
+        open O, ">$xtraOut" or die "Can't open ref ${OTU_prefix} file $xtraOut\n";
         print O "RefOTUs" . $SEP . join( $SEP, @avSmps );
         my @avTax = sort( keys(%hit2db) );
 		my %matOTUsTT = %matOTUs; 
@@ -2869,7 +2862,7 @@ sub buildTree($ $) {
 
     if ( $exec == 0 && $onlyTaxRedo == 0 && -f $clustaloBin ) {
         if ( !-f $OTUfa ) {
-            printL "Could not find $OTU_prefix sequence file:\n$OTUfa\n", 5;
+            printL "Could not find ${OTU_prefix} sequence file:\n$OTUfa\n", 5;
         }
         if ( systemL($cmd) != 0 ) {
             printL "Fallback to single core clustalomega\n", 0;
@@ -3536,7 +3529,7 @@ sub readRDPtax($) {
         #print $line."\n";
         $line =~ s/"//g;
         my @spl = split( "\t", $line );
-        next unless ( $spl[0] =~ m/^$OTU_prefix/ && @spl > 3 );
+        next unless ( $spl[0] =~ m/^${OTU_prefix}/ && @spl > 3 );
 
         #print $spl[0]."\n";
         if ( $rankN == -1 ) {
@@ -3662,7 +3655,7 @@ sub writeBlastHiera($ $ $) {
     my @avOTUs = @{$avOTUsR};
     my $cnt    = 0;
     open H, ">", $SIM_hierFile or die "Can't open $SIM_hierFile\n";
-    print H "$OTU_prefix\tDomain\tPhylum\tClass\tOrder\tFamily\tGenus\tSpecies\n";
+    print H "${OTU_prefix}\tDomain\tPhylum\tClass\tOrder\tFamily\tGenus\tSpecies\n";
     #
     foreach ( keys(%fails) ) {
         if (   exists( ${$taxr}{$_} )
@@ -3980,7 +3973,7 @@ sub readOTUmat($) {
     my ($file) = @_;
 
     #my @avSmps = sort(keys %OTUmat);
-    open I, "<", $file or die "Can't open expected $OTU_prefix counts: $file\n";
+    open I, "<", $file or die "Can't open expected ${OTU_prefix} counts: $file\n";
     my $cnt = -1;
     my @samples;
     my @avOTUs;
@@ -4249,7 +4242,7 @@ sub runRDP{
 		if ( systemL($cmd) ) {
 			printL "FAILED RDP classifier execution:\n$cmd\n", 2;
 		}
-		$citations .= "RDP $OTU_prefix taxonomy: Wang Q, Garrity GM, Tiedje JM, Cole JR. 2007. Naive Bayesian classifier for rapid assignment of rRNA sequences into the new bacterial taxonomy. Appl Env Microbiol 73: 5261–5267.\n";
+		$citations .= "RDP ${OTU_prefix} taxonomy: Wang Q, Garrity GM, Tiedje JM, Cole JR. 2007. Naive Bayesian classifier for rapid assignment of rRNA sequences into the new bacterial taxonomy. Appl Env Microbiol 73: 5261–5267.\n";
 	} elsif ( $rdpjar ne "" || exists( $ENV{'RDP_JAR_PATH'} ) ) {
 		if ($extendedLogs) { systemL "cp $t/RDPotus.tax $extendedLogD/;"; }
 		if ( $RDPTAX > 0 ) {                #move confusing files
@@ -4386,16 +4379,14 @@ sub makeAbundTable2($ $) {
                 $GGloaded  = 1;
                 $BlastTaxR = getTaxForOTUfromRefBlast( $blastout, \%GG, 0 );
                 if ( $DBi < ( @TAX_REFDB - 1 ) ) {
-                    ( $curQuery, $BlastTaxR, $leftOver, $fasrA ) =
-                      findUnassigned( $BlastTaxR, $fasrA,
-                        $OTUfa . "__U" . $DBi . ".fna" );
+                    ( $curQuery, $BlastTaxR, $leftOver, $fasrA ) = findUnassigned( $BlastTaxR, $fasrA,$OTUfa . "__U" . $DBi . ".fna" );
                     $taxblastf = "$t/tax.blast_rem_$DBi";
                 }
                 else { findUnassigned( $BlastTaxR, $fasrA, "" ); }
                 $fullBlastTaxR = { %$fullBlastTaxR, %$BlastTaxR };
                 last if ( $leftOver == 0 );
             }
-            printL "Assigned @refDBname Taxonomy to $OTU_prefix's\n", 0;
+            printL "Assigned @refDBname Taxonomy to ${OTU_prefix}'s\n", 0;
             systemL "rm $OTUfa" . "__U*;" if ( $DBi > 0 );
         }
 
@@ -4684,7 +4675,7 @@ sub announce_options{
 		printL "No RefDB based Chimera checking\n", 0;
 	}
 	elsif ( $noChimChk == 0 || $noChimChk == 2 ) {
-		printL "UCHIME_REFDB, ABSKEW=$UCHIME_REFDB, $chimera_absskew\nOTU, Chimera prefix=$OTU_prefix, $chimera_prefix\n",
+		printL "UCHIME_REFDB, ABSKEW=$UCHIME_REFDB, $chimera_absskew\nOTU, Chimera prefix=${OTU_prefix}, $chimera_prefix\n",
 		  0;
 	}
 	if ( $noChimChk == 1 || $noChimChk == 2 ) {
@@ -4748,7 +4739,7 @@ sub announceClusterAlgo{
     elsif ( $ClusterPipe == 4 ) {
         printL"\n\n--------- DNACLUST clustering ----------- \n\n",0;
     }  elsif ( $ClusterPipe == 7 ) {
-        printL"\n\n--------- DADA2 $OTU_prefix clustering ----------- \n\n",0;
+        printL"\n\n--------- DADA2 ${OTU_prefix} clustering ----------- \n\n",0;
     }
 
 }
@@ -5081,7 +5072,7 @@ sub buildOTUs($) {
             $idLabel  = "";
             $id_OTUup = "";
             if ( $id_OTU != 0.97 ) {
-                printL "UPARSE 10 does only support 97% id $OTU_prefix clusters\n", "w";
+                printL "UPARSE 10 does only support 97% id ${OTU_prefix} clusters\n", "w";
             }
         }
         elsif ( $usearchVer >= 8 ) {
@@ -5106,7 +5097,7 @@ sub buildOTUs($) {
 		#"\n =========================================================================\n UPARSE core routine\n Cluster at ". 100 * $id_OTU. "%\n=========================================================================\n",0);
 
         $cmd = "$usBin -cluster_otus $derepl -otus $OTUfastaTmp $idLabel $id_OTUup -log $logDir/UPARSE.log $xtraOptions;";    # -threads $uthreads"; # -uc ".$UCguide[2]."
-        $citations .= "UPARSE $OTU_prefix clustering - Edgar RC. 2013. UPARSE: highly accurate OTU sequences from microbial amplicon reads. Nat Methods.\n";
+        $citations .= "UPARSE ${OTU_prefix} clustering - Edgar RC. 2013. UPARSE: highly accurate OTU sequences from microbial amplicon reads. Nat Methods.\n";
 		#die $cmd."\n";
     }
     elsif ( $ClusterPipe == 7 ) { #dada2
@@ -5134,15 +5125,15 @@ sub buildOTUs($) {
 #$cmd="$usBin -uchime_denovo  $derepl -chimeras $t/chimeras_denovo.fa -nonchimeras $t/tmp1.fa -abskew $chimera_absskew -log $logDir/uchime_dn.log";
 #if (systemL($cmd) != 0){exit(1);}	systemL("ls -lh $t/tmp1.fa");
         if ( !-e $swarmBin ) {printL "No valid swarm binary found at $swarmBin\n", 88;}
-		printL(frame("SWARM $OTU_prefix clustering\n Cluster with d = ". $swarmClus_d ),0);
-        #printL("\n =========================================================================\n SWARM $OTU_prefix clustering\n Cluster with d = ". $swarmClus_d. "\n=========================================================================\n",0);
+		printL(frame("SWARM ${OTU_prefix} clustering\n Cluster with d = ". $swarmClus_d ),0);
+        #printL("\n =========================================================================\n SWARM ${OTU_prefix} clustering\n Cluster with d = ". $swarmClus_d. "\n=========================================================================\n",0);
 
         #-z: unsearch size output. -u uclust result file
         my $uclustFile = "$t/clusters.uc";
         my $dofasti    = "-f ";
         if ( $swarmClus_d > 1 ) { $dofasti = ""; }
         $cmd = "$swarmBin -z $dofasti -u $uclustFile -t $uthreads -w $OTUfastaTmp --ceiling 4024 -s $logDir/SWARMstats.log -l $logDir/SWARM.log -o $t/otus.swarm -d $swarmClus_d < $derepl;";
-        $citations .= "swarm v2 $OTU_prefix clustering - Mahé F, Rognes T, Quince C, de Vargas C, Dunthorn M. 2015. Swarm v2: highly-scalable and high-resolution amplicon clustering. PeerJ. DOI: 10.7717/peerj.1420\n";
+        $citations .= "swarm v2 ${OTU_prefix} clustering - Mahé F, Rognes T, Quince C, de Vargas C, Dunthorn M. 2015. Swarm v2: highly-scalable and high-resolution amplicon clustering. PeerJ. DOI: 10.7717/peerj.1420\n";
 
 #perl script to replace swarm size with usearch size
 #print $cmd."\n";
@@ -5152,8 +5143,8 @@ sub buildOTUs($) {
     }
     elsif ( $ClusterPipe == 3 ) {
         if ( !-e $cdhitBin ) {printL "No valid CD-Hit binary found at $cdhitBin\n", 88;}
-		printL(frame("CD-HIT $OTU_prefix clustering\n Cluster at ". 100 * $id_OTU ),0);
-        #printL("\n =========================================================================\n CD-HIT $OTU_prefix clustering\n Cluster at ". 100 * $id_OTU . "%\n=========================================================================\n", 0 );
+		printL(frame("CD-HIT ${OTU_prefix} clustering\n Cluster at ". 100 * $id_OTU ),0);
+        #printL("\n =========================================================================\n CD-HIT ${OTU_prefix} clustering\n Cluster at ". 100 * $id_OTU . "%\n=========================================================================\n", 0 );
         if ($REFflag) {  #$otuRefDB eq "ref_closed" || $otuRefDB eq "ref_open"){
             printL "CD-HIT ref DB clustering not supported!\n", 55;
             #die();
@@ -5167,7 +5158,7 @@ sub buildOTUs($) {
         else {           #de novo
             $cmd = "$cdhitBin -T $uthreads -o $OTUfastaTmp -c $id_OTU -G 0 -M 0 -i $derepl -n 9 -g 0 -r 0 -aL 0.0 -aS 0.9;";          #-aL 0.77 -aS 0.98
         }
-		$citations .= "CD-HIT $OTU_prefix clustering - Fu L, Niu B, Zhu Z, Wu S, Li W. 2012. CD-HIT: Accelerated for clustering the next-generation sequencing data. Bioinformatics 28: 3150–3152.\n";
+		$citations .= "CD-HIT ${OTU_prefix} clustering - Fu L, Niu B, Zhu Z, Wu S, Li W. 2012. CD-HIT: Accelerated for clustering the next-generation sequencing data. Bioinformatics 28: 3150–3152.\n";
     }
     elsif ( $ClusterPipe == 4 ) {    #dnaclust-ref
         my $dnaClOpt = "";
@@ -5195,7 +5186,7 @@ sub buildOTUs($) {
 	#actual excecution
     if ( $exec == 0 ) {
         if ( systemL($cmd) != 0 ) {
-            printL( "Failed core $OTU_prefix clustering command:\n$cmd\n", 1 );
+            printL( "Failed core ${OTU_prefix} clustering command:\n$cmd\n", 1 );
         }
     }
 	
