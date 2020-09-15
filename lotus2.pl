@@ -177,7 +177,7 @@ my $dada2Seed        = 0; #seed for dada2 to produce reproducible results
 
 
 #my $combineSamples = 0; #controls if samples are combined
-my $chimCnt = "F";    #should chimeric OTU counts be split up among parents?
+my $chimCnt = 0;    #should chimeric OTU counts be split up among parents?
 
 #flow controls
 my $onlyTaxRedo = 0;    #assumes that outdir already contains finished lotus run
@@ -243,23 +243,23 @@ if ( !@ARGV ) {
     exit 1;
 }
 GetOptions(
-    "help|?"                => \&help,
+    "help|?"                => \&help(1),
     "i=s"                   => \$input,
     "o=s"                   => \$outdir,
-    "barcode=s"             => \$barcodefile,
+    "barcode|MID=s"             => \$barcodefile,
     "m|map=s"               => \$map,
     "taxOnly|TaxOnly=s"     => \$TaxOnly,
     "redoTaxOnly=i"         => \$onlyTaxRedo,
     "check_map=s"           => \$check_map,
     "q|qual=s"              => \$inq,
     "s|sdmopt=s"            => \$sdmOpt,
-    "t|tmpDir=s"            => \$lotus_tempDir,
+    "tmp|tmpDir=s"            => \$lotus_tempDir,
     "c|config=s"                => \$lotusCfg,
     "exe|executionMode=i"       => \$exec,
     "keepTmpFiles=i"        => \$keepTmpFiles,
     "extendedLogs=i"        => \$extendedLogs,
     "CL|clustering|UP|UPARSE=s" => \$ClusterPipe_pre,
-    "thr|threads=i"         => \$uthreads,
+    "t|thr|threads=i"         => \$uthreads,
 	"v"                     => \$versionOut,
 	"verbosity=i"           => \$verbosity,
     "highmem=i"             => \$sdmDerepDo,
@@ -274,6 +274,7 @@ GetOptions(
     "itsx_partial=i"        => \$ITSpartial,
     "utax_thr=f"            => \$utaxConf,
     "LCA_frac=f"            => \$LCAfraction,
+	"LCA_cover=f"           => \$LCAcover,
     "chim_skew=f"           => \$chimera_absskew,		#miSeq,hiSeq,pacbio
     "p|platform=s"          => \$platform,
     "tolerateCorruptFq=i"   => \$damagedFQ,
@@ -289,7 +290,7 @@ GetOptions(
     "swarm_distance=i"      => \$swarmClus_d,
 	"dada2seed=i"           => \$dada2Seed,
     "OTUbuild=s"            => \$otuRefDB,
-    "count_chimeras=s"      => \$chimCnt,            #T or F
+    "count_chimeras"        => \$chimCnt,            #T or F
     "offtargetDB=s"         => \$custContamCheckDB,
     "flash_param=s"         => \$flashCustom,
     "deactivateChimeraCheck=i" => \$noChimChk,
@@ -303,6 +304,11 @@ GetOptions(
 if ($versionOut){
 	print "$selfID\n";
 	exit(0);
+}
+if ($chimCnt){
+	$chimCnt = "T";
+} else {
+	$chimCnt = "F";
 }
 
 #still undocumented options: VsearchChimera removePhiX
@@ -677,7 +683,8 @@ systemL("mkdir -p $outdir/primary/;") unless ( -d "$outdir/primary" );
 
 # ////////////////////////// sdm 1st time (demult,qual etc) /////////////////////////////////////////////
 #  cmdArgs["-i_MID_fastq"]
-my ($sdmIn,$derepOutHQ,$qualOffset,$filterOutAdd,$filterOut,$derepOutHQ2,$derepOutMap,$sdmDemultiDir)=sdmStep1();
+my ($sdmIn,$derepOutHQ,$qualOffset,$filterOutAdd,$filterOut,
+		$derepOutHQ2,$derepOutMap,$sdmDemultiDir)=sdmStep1();
 
 #die();
 #exit;
@@ -2480,67 +2487,51 @@ sub checkBlastAvaila() {
 }
 
 sub help {
+	my $ver = 1;
+	($ver) = @_ if (@_ > 0);
+#HELPSTART
     print "\nPlease provide at least 3 arguments:\n(1) -i [input fasta / fastq / dir]\n";
     print "(2) -o [output dir]\n(3) -m/-map [mapping file]\nOptional options are:\n";
-    print "############### Basic pipeline options ###############\n";
+	if ($ver == 0){print "To see further arguments, use \"./lotus2.pl -help\"\n";return;}
+    print "############### other functions ###############\n";
+	print "  -v print LotuS2 version\n";
     print "  -check_map [mapping file] only checks mapping file and exists\n";
+    print "############### Basic pipeline options ###############\n";
+	print "  -verbosity [0-3] level of verbosity from printing all program calls and program output [3] to not even printing errors [0]\n";
     print "  -q [input qual file (empty in case of fastq or directory)]\n";
-    print
-"  -barcode [file path to fastq formated file with barcodes (this is a processed mi/hiSeq format)]\n";
-    print
-"  -s [sdm option file, defaults to \"sdm_options.txt\" in current dir]\n";
+    print "  -barcode|MID [file path to fastq formated file with barcodes, e.g. MID (this is a processed mi/hiSeq format)]\n";
+    print "  -s [sdm option file, defaults to \"sdm_options.txt\" in current dir]\n";
     print
 "  -c [lOTUs.cfg config file with program paths]\n  -p [sequencing platform:454,miSeq,hiSeq,PacBio]\n";
-    print "  -t [temporary directory]\n";
-    print
-"  -threads [number of threads to be used, default 1]\n  -UP [(1) use UPARSE, (0) use otupipe, default 1]\n";
-    print
-"  -tolerateCorruptFq [1: continue reading fastq files, even if single entries are incomplete (e.g. half of qual values missing). 0: Abort lotus run, if fastq file is corrupt. Default 1]\n";
-    print
-"  -custContamCheckDB [Default: empty. This option checks in analogy to the phiX filter step in a custom DB (e.g. mouse genome, needs to be fasta format), for contaminant OTUs that are more likely to derrive from this genome than e.g. bacteria. Example: -custContamCheckDB /YY/mouse.fna,/YY/human.fna]\n";
-    print
-"  -amplicon_type [LSU: large subunit (23S/28S) or SSU: small subunit (16S/18S). Default SSU]\n";
-    print
-"  -keepTmpFiles [1: save extra tmp files like chimeric OTUs or the raw blast output in extra dir; 0: don't save these, default 0]\n";
-    print
-"  -saveDemultiplex [1: Saves all demultiplexed & filtered reads in gzip format in the output directory (can require quite a lot of diskspace). 2: Only saves quality filtered demultiplexed reads and continues LotuS run subsequently. 3: Saves demultiplexed file into a single fq, saving sample ID in fastq/a header. 0: No demultiplexed reads are saved. Default: 0]\n";
-    print
-"  -highmem [1 : highmem mode which has much faster excecution speed but can require substantial amounts of ram (e.g. hiSeq: ~40GB). 0 deactivates this, reducing memory requirements to < 4 GB, default=1]\n";
+    print "  -tmp|tmpDir [temporary directory]. Default [-o]/tmp/\n";
+    print "  -t|threads [number of threads to be used, default 1]\n  -UP [(1) use UPARSE, (0) use otupipe, default 1]\n";
+    print "  -offtargetDB [Default: empty. This option checks in analogy to the phiX filter step in a custom DB (e.g. mouse genome, needs to be fasta format), for contaminant OTUs that are more likely to derrive from this genome than e.g. bacteria. Example: -offtargetDB /YY/mouse.fna,/YY/human.fna]\n";
+    print "  -keepTmpFiles [1: save extra tmp files like chimeric OTUs or the raw blast output in extra dir; 0: don't save these, default 0]\n";
+    print "  -saveDemultiplex [1: Saves all demultiplexed & filtered reads in gzip format in the output directory (can require quite a lot of diskspace). 2: Only saves quality filtered demultiplexed reads and continues LotuS run subsequently. 3: Saves demultiplexed file into a single fq, saving sample ID in fastq/a header. 0: No demultiplexed reads are saved. Default: 0]\n";
+    print "  -tolerateCorruptFq [1: continue reading fastq files, even if single entries are incomplete (e.g. half of qual values missing). 0: Abort lotus run, if fastq file is corrupt. Default 1]\n";
+    #print "  -highmem [1 : highmem mode which has much faster excecution speed but can require substantial amounts of ram (e.g. hiSeq: ~40GB). 0 deactivates this, reducing memory requirements to < 4 GB, default=1]\n";
+	print "  -taxOnly [fasta file]. Skip most of the lotus pipeline and only run a taxonomic classification on a fasta file. E.g. ./lotus2.pl -taxOnly some16S.fna -refDB SLV\n";
+    print "  -redoTaxOnly [1: only redo the taxonomic assignments (useful for replacing a DB used on a finished lotus run), 0: normal lotus run, default]\n";
 
-    print "\n############### Taxonmomy related options ###############\n";
-    print
-"  -taxOnly skip most of the lotus pipeline and only run a taxonomic classification on a fasta file (provided via \"-i\" (could be an OTU fasta).\n";
-    print
-"  -redoTaxOnly [1: only redo the taxonomic assignments (useful for replacing a DB used on a finished lotus run), 0: normal lotus run, default]\n";
-    print
-"  -rdp_thr [Confidence thresshold for RDP, default 0.8]\n  -utax_thr [Confidence thresshold for UTAX, default 0.8]\n  -LCA_frac [min fraction of reads with identical taxonomy, default 0.9]\n";
-    print
-"  -keepUnclassified [1: includes unclassified OTUs (i.e. no match in RDP/Blast database) in OTU and taxa abundance matrix calculations; 0 does not take these OTU's into account, default 0]\n";
-    print
-"  -taxAligner [(previously doBlast) 0: deavtivated (just use RDP); [1 or \"blast\"]: use Blast; [2 or \"lambda\"]: use LAMBDA to search against a 16S reference database for taxonomic profiling of OTUs; [3 or \"utax\"]: use UTAX with custom databases; [4 or \"vsearch \"]: use VSEARCH to align OTUs to custom databases; [5 or \"usearch\"]: use USEARCH to align OTUs to custom databases. Default 0]\n";
-    print
-"  -useBestBlastHitOnly [1: don't use LCA (last common ancestor) to determine most likely taxnomic level (not recommended), instead just use the best blast hit. 0: (default) LCA algorithm]\n";
-    print
-"  -refDB [\"SLV\" Silva LSU (23/28S) or SSU (16/18S), \"GG\" greengenes (only SSU available), \"HITdb\" (SSU, human gut specific), \"PR2\" (LSU spezialized on Ocean environmentas), \"UNITE\" (ITS fungi specific), \"beetax\" (bee gut specific database and tax names). Decide which reference DB will be used for a similarity based taxonomy annotation, default \"GG\"\n";
-    print
-"Databases can be combined, with the first having the highest prioirty. E.g. \"PR2,SLV\" would first use PR2 to assign OTUs and all unaasigned OTUs would be searched for with SILVA, given that \"-amplicon_type LSU\" was set.\n";
-    print
-"  -tax4refDB [in conjunction with a custom fasta file provided to argument -refDB, this file contains for each fasta entry in the reference DB a taxonomic annotation string, with the same number of taxonomic levels for each, tab separated.]";
-    print
-"  -greengenesSpecies [1: Create greengenes output labels instead of OTU (to be used with greengenes specific programs such as BugBase). Default: 0]\n";
-    print
-"  -tax_group [\"bacteria\": bacterial 16S rDNA annnotation, \"fungi\": fungal 18S/23S/ITS annotation. Default \"bacteria\"]\n";
-    print
-"  -itsextraction [1: use ITSx to only retain OTUs fitting to ITS1/ITS2 hmm models; 0: deactivate; Default=1]\n";
-    print
-"  -itsx_partial [0-100: parameters for ITSx to extract partial (%) ITS regions as well; 0: deactivate; Default=0]\n";
+    print "\n############### Taxonomy related options ###############\n";
+    print "  -amplicon_type [LSU: large subunit (23S/28S) or SSU: small subunit (16S/18S). Default SSU]\n";
+    print "  -tax_group [\"bacteria\": bacterial 16S rDNA annnotation, \"fungi\": fungal 18S/23S/ITS annotation. Default \"bacteria\"]\n";
+    print "  -rdp_thr [Confidence thresshold for RDP, default 0.8]\n  -utax_thr [Confidence thresshold for UTAX, default 0.8]\n  -LCA_frac [min fraction of reads with identical taxonomy, default 0.9]\n";
+    print "  -keepUnclassified [1: includes unclassified OTUs (i.e. no match in RDP/Blast database) in OTU and taxa abundance matrix calculations; 0 does not take these OTU's into account, default 0]\n";
+    print "  -taxAligner [(previously doBlast) 0: deavtivated (just use RDP); [1 or \"blast\"]: use Blast; [2 or \"lambda\"]: use LAMBDA to search against a 16S reference database for taxonomic profiling of OTUs; [3 or \"utax\"]: use UTAX with custom databases; [4 or \"vsearch \"]: use VSEARCH to align OTUs to custom databases; [5 or \"usearch\"]: use USEARCH to align OTUs to custom databases. Default 0]\n";
+    print "  -useBestBlastHitOnly [1: don't use LCA (last common ancestor) to determine most likely taxnomic level (not recommended), instead just use the best blast hit. 0: (default) LCA algorithm]\n";
+	print "  -LCA_cover [0-1] min horizontal coverage of an OTU sequence against ref DB. Default 0.5\n";
+	print "  -LCA_frac [0-1] fraction of hits that have to cover the same taxon at each taxonomic level for the hit to be accepted. Default 0.8\n";
+    print "  -refDB [\"SLV\" Silva LSU (23/28S) or SSU (16/18S), \"GG\" greengenes (only SSU available), \"HITdb\" (SSU, human gut specific), \"PR2\" (LSU spezialized on Ocean environmentas), \"UNITE\" (ITS fungi specific), \"beetax\" (bee gut specific database and tax names). Decide which reference DB will be used for a similarity based taxonomy annotation, default \"GG\"\nDatabases can be combined, with the first having the highest prioirty. E.g. \"PR2,SLV\" would first use PR2 to assign OTUs and all unaasigned OTUs would be searched for with SILVA, given that \"-amplicon_type LSU\" was set.\n";
+    print "  -tax4refDB [in conjunction with a custom fasta file provided to argument -refDB, this file contains for each fasta entry in the reference DB a taxonomic annotation string, with the same number of taxonomic levels for each, tab separated.]";
+    print "  -greengenesSpecies [1: Create greengenes output labels instead of OTU (to be used with greengenes specific programs such as BugBase). Default: 0]\n";
+    print "  -itsextraction [1: use ITSx to only retain OTUs fitting to ITS1/ITS2 hmm models; 0: deactivate; Default=1]\n";
+    print"  -itsx_partial [0-100: parameters for ITSx to extract partial (%) ITS regions as well; 0: deactivate; Default=0]\n";
 
     print "\n############### OTU clustering options ###############\n";
-    print
-"  -CL/-clustering [(1) use UPARSE, (0) use otupipe (deprecated), (2) use swarm and (3) use cd-hit, default 1]\n";
+    print "  -CL/-clustering [(1) use UPARSE, (0) use otupipe (deprecated), (2) use swarm and (3) use cd-hit, default 1]\n";
     print "  -id [clustering threshold for OTU's, default 0.97]\n";
-    print
-"  -swarm_distance [clustering threshold for OTU's when using swarm clustering, default 1]\n";
+    print "  -swarm_distance [clustering threshold for OTU's when using swarm clustering, default 1]\n";
     print
 "  -chim_skew [skew in chimeric fragment abundance (uchime option), default 2]\n";
     print
@@ -2548,7 +2539,7 @@ sub help {
     print
 "Can also be a custom fasta formatted database: in this case provide the path to the fasta file as well as the path to the taxonomy for the sequences using -tax4refDB. See also online help on how to create a custom DB.]\n";
     print
-"  -count_chimeras [T: count chimeric reads into their estimated original OTUs, F: do nothing. Default F]\n";
+"  -count_chimeras if set, will count chimeric reads into their estimated original OTUs\n";
     print
 "  -deactivateChimeraCheck [0: do OTU chimera checks. 1: no chimera Check at all. 2: Deactivate deNovo chimera check. 3: Deactivate ref based chimera check.Default = 0]\n";
 
@@ -2561,12 +2552,13 @@ sub help {
     print
 "  -endRem [DNA sequence, usually reverse primer or reverse adaptor; all sequence beyond this point will be removed from OTUs. This is redundant with the \"ReversePrimer\" option from the mapping file, but gives more control (e.g. there is a probelm with adaptors in the OTU output), default \"\"]\n";
     print "  -xtalk [(1) check for crosstalk; note that this requires in most cases 64bit usearch, default 0]\n";
+#HELPEND
     exit(0);
 }
 
 sub usage {
     print STDERR @_ if @_;
-    help();
+    help(0);
     exit(1);
 }
 
@@ -2801,7 +2793,7 @@ sub calcHighTax($ $ $ $ $) {
 				}
 			}
 			$lvlSmplCnt  += $smplTaxCnt;
-			print O $SEP . $smplTaxCnt;
+			print O  $smplTaxCnt;
 			}
 		}
 		close O;
@@ -4217,6 +4209,7 @@ sub findUnassigned($ $ $ ) {
 
 sub runRDP{
 	my $cmd="";
+
 	my $rdpGene = "16srrna";
 	$rdpGene = "fungallsu" if ( $organism eq "fungi" || $organism eq "eukaryote" );
 	my $msg = "";
@@ -4234,13 +4227,16 @@ sub runRDP{
 		$cmd =        "java -Xmx1g -jar " . $toRDP  . " $subcmd -f fixrank -g $rdpGene -h $outdir/hierachy_cnt.tax -q $OTUfa -o $t/RDPotus.tax -c 0.1;";
 		$RDPTAX = 1;
 	}    
-	$msg .= "";
+	
 	if ( $doRDPing > 0 && $exec == 0 ) {    #ITS can't be classified by RDP
 		printL frame($msg), 0;
 
 		#die "XXX  $cmd\n";
 		if ( systemL($cmd) ) {
 			printL "FAILED RDP classifier execution:\n$cmd\n", 2;
+		}
+		if ($TaxOnly ne "0" && -f $TaxOnly){
+			systemL "cp $t/RDPotus.tax $TaxOnly.rdp";
 		}
 		$citations .= "RDP ${OTU_prefix} taxonomy: Wang Q, Garrity GM, Tiedje JM, Cole JR. 2007. Naive Bayesian classifier for rapid assignment of rRNA sequences into the new bacterial taxonomy. Appl Env Microbiol 73: 5261–5267.\n";
 	} elsif ( $rdpjar ne "" || exists( $ENV{'RDP_JAR_PATH'} ) ) {
