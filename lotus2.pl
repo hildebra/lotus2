@@ -242,8 +242,9 @@ if ( !@ARGV ) {
     usage();
     exit 1;
 }
+
 GetOptions(
-    "help|?"                => \&help(1),
+    "help|?"                => \&help,
     "i=s"                   => \$input,
     "o=s"                   => \$outdir,
     "barcode|MID=s"             => \$barcodefile,
@@ -300,6 +301,7 @@ GetOptions(
     # "flashAvgLength" => \$flashLength,
     #"flashAvgLengthSD" => \$flashSD,
 ) or usage("Unknown options");
+
 
 if ($versionOut){
 	print "$selfID\n";
@@ -2487,12 +2489,12 @@ sub checkBlastAvaila() {
 }
 
 sub help {
-	my $ver = 1;
-	($ver) = @_ if (@_ > 0);
+	my $ver = 0;
+	($ver) = @_ if (@_ > 1);
 #HELPSTART
     print "\nPlease provide at least 3 arguments:\n(1) -i [input fasta / fastq / dir]\n";
     print "(2) -o [output dir]\n(3) -m/-map [mapping file]\nOptional options are:\n";
-	if ($ver == 0){print "To see further arguments, use \"./lotus2.pl -help\"\n";return;}
+	if ($ver == 1){print "To see further arguments, use \"./lotus2.pl -help\"\n";return;}
     print "############### other functions ###############\n";
 	print "  -v print LotuS2 version\n";
     print "  -check_map [mapping file] only checks mapping file and exists\n";
@@ -2558,7 +2560,7 @@ sub help {
 
 sub usage {
     print STDERR @_ if @_;
-    help(0);
+    help(1);
     exit(1);
 }
 
@@ -4052,22 +4054,9 @@ sub doDBblasting($ $ $) {
 "Blast taxonomic similarity search: Altschul SF, Gish W, Miller W, Myers EW, Lipman DJ. 1990. Basic local alignment search tool. J Mol Biol 215: 403–10.\n";
         }
         $simMethod = "BLAST";
-    } elsif (0) {    #doesn't work with greengenes, too much mem
-        my $udbDB = $DB . ".udb";
-        print "\n\nDEBUG\n$udbDB\n";
-        if ( !-f $udbDB ) {
-            print "Building UDB database\n";
-            if (systemL("$usBin -makeudb_ublast $DB -wordlength 14 -output $udbDB;")!= 0)
-            {
-                die("make udb command failed\n");
-            }
-        }
-        print "Starting ublast.. ";
-        $cmd = "$usBin -ublast $query -db $udbDB -evalue 1e-9 -accel 0.8 -id 0.75 -query_cov 0.9 -blast6out $taxblastf -strand both -threads $BlastCores;";
-        print "Done.\n";
-        if ( !-s $query ) { $cmd = "touch $taxblastf;"; }
-        $simMethod = "usearch";
+    
 	} elsif ($doBlasting == 4 || $doBlasting == 5){#new default: vsearch 
+			my $outCols="query+target+id+alnlen+mism+opens+qlo+qhi+tlo+thi+ql";
         my $udbDB = $DB . ".vudb";
         $udbDB = $DB . ".udb" if ($doBlasting == 5 );
         if ( !-f $udbDB ) { 
@@ -4088,7 +4077,8 @@ sub doDBblasting($ $ $) {
 			$simMethod = "USEARCH";
 			$citations .= "USEARCH taxonomic database search: \n" unless ( $citations =~ m/USEARCH taxonomic database search/ );
 		}
-		$cmd .= "--usearch_global $query --db $udbDB  --id 0.75 --query_cov 0.5 --blast6out $taxblastf --maxaccepts 200 --maxrejects 100 -strand both --threads $BlastCores;";
+		$cmd .= "--usearch_global $query --db $udbDB  --id 0.75 --query_cov 0.5 -userfields $outCols -userout $taxblastf --maxaccepts 200 --maxrejects 100 -strand both --threads $BlastCores;";
+		#--blast6out $taxblastf
 		#die "$cmd\n";
     } elsif ( $doBlasting == 2 ) {    #lambda
         printL "Could not find lambda executable.\n$lambdaBin\n", 33   unless ( -f $lambdaBin );
@@ -4123,7 +4113,8 @@ sub doDBblasting($ $ $) {
 
         #TMPDIR env var.. TODO
         my $tmptaxblastf = "$t/tax.m8";
-        $cmd = "$lambdaBin -t $BlastCores -id 75 -nm 200 -p blastn -e 1e-8 -so 7 -sl 16 -sd 1 -b 5 -pd on -q $query -d $DB -o $tmptaxblastf;";
+		my $outcols = "'qseqid sseqid pident length mismatch gapopen qstart qend sstart send qlen'";
+        $cmd = "$lambdaBin -t $BlastCores -id 75 -nm 200 -p blastn -e 1e-8 -so 7 -sl 16 -sd 1 -b 5 -pd on -q $query -d $DB -o $tmptaxblastf -oc $outcols;";
         $cmd .= "mv $tmptaxblastf $taxblastf;";
 
         #lambda is not guranteed to return sorted list <- apparently it does
