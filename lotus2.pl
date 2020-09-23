@@ -5091,7 +5091,7 @@ sub buildOTUs($) {
 		printL(frame("DADA2 ASV clustering\nDereplication of reads"),0);
         #printL("\n =========================================================================\n DADA2 ASV clustering\n Dereplication of reads\n=========================================================================\n",0);
 		die "incorrect dada2 script defined" unless (-f $dada2Scr);
-		$cmd = "$Rscript $dada2Scr $sdmDemultiDir $sdmDemultiDir $dada2Seed $uthreads;";
+		$cmd = "$Rscript $dada2Scr $sdmDemultiDir $sdmDemultiDir $dada2Seed $uthreads $map;";
 		#cleanup of important dada2 files
 		$cmd .= "mv -f $sdmDemultiDir/*.pdf $logDir;";
 		$cmd .= "cp $sdmDemultiDir/uniqueSeqs.fna $OTUfastaTmp;";
