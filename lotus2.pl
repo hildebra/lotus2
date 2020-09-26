@@ -164,6 +164,7 @@ my $pseudoRefOTU     = 0;            #replace OTU ids with best hit (LCA)
 my $numInput         = 1;
 my $saveDemulti      = 0;            #save a copy of demultiplexed reads??
 my $check_map        = "";
+my $create_map       = "";
 my $lotusCfg         = "$RealBin/lOTUs.cfg";
 my $curSdmV          = 1.30;
 my $platform         = "miSeq";        #454, miSeq, hiSeq, PacBio
@@ -252,6 +253,7 @@ GetOptions(
     "taxOnly|TaxOnly=s"     => \$TaxOnly,
     "redoTaxOnly=i"         => \$onlyTaxRedo,
     "check_map=s"           => \$check_map,
+	"create_map=s"          => \$create_map,
     "q|qual=s"              => \$inq,
     "s|sdmopt=s"            => \$sdmOpt,
     "tmp|tmpDir=s"            => \$lotus_tempDir,
@@ -318,19 +320,16 @@ if ($chimCnt){
 #uc/lc some vars
 $platform = lc($platform);
 if ($greengAnno) {
-    $pseudoRefOTU   = 1;
-    $refDBwanted    = "GG";
-    $doBlasting_pre = "4";
-    print
-"Greengenes ID as species ID requested (for integration with software that requires greengenes ID).\nUsing Lambda OTU similarity search and greengenes ref DB\n";
+	$pseudoRefOTU   = 1;
+	$refDBwanted    = "GG";
+	$doBlasting_pre = "4";
+	print "Greengenes ID as species ID requested (for integration with software that requires greengenes ID).\nUsing Lambda OTU similarity search and greengenes ref DB\n";
 }    #
 if ( -f $refDBwanted ) {
 }
 elsif ( $refDBwanted =~ m/^GG|SLV|UNITE|HITDB|PR2|BEETAX$/i ) {
-
     #$refDBwanted = uc($refDBwanted);
-}
-elsif ( $refDBwanted ne "" ) {
+}elsif ( $refDBwanted ne "" ) {
     print "$refDBwanted not recognized. Aborting..\n";
     exit(5);
 }
@@ -348,11 +347,17 @@ $ClusterPipe_pre = uc($ClusterPipe_pre);
 $otuRefDB        = lc $otuRefDB;
 
 if ( $check_map ne "" ) {
-    $map = $check_map;
-    my ( $x11, $x22, $x33 ) = readMap();
-    print "\n\nmapping file seems correct\n";
-    exit(0);
+	$map = $check_map;
+	my ( $x11, $x22, $x33 ) = readMap();
+	print "\n\nmapping file seems correct\n";
+	exit(0);
 }
+
+if ($create_map ne ""){
+	autoMap($input, $map);
+	exit(0);
+}
+
 
 getSimBasedTax();
 
@@ -2490,11 +2495,19 @@ sub checkBlastAvaila() {
 
 sub help {
 	my $ver = 0;
-	($ver) = @_ if (@_ > 1);
+	($ver) = @_ if (@_ > 0);
 #HELPSTART
-    print "\nPlease provide at least 3 arguments:\n(1) -i [input fasta / fastq / dir]\n";
-    print "(2) -o [output dir]\n(3) -m/-map [mapping file]\nOptional options are:\n";
-	if ($ver == 1){print "To see further arguments, use \"./lotus2.pl -help\"\n";return;}
+    print "LotuS usage:\n./lotus2.pl -i [input fasta / fastq / dir]";
+    print " -o [output dir] -m/-map [mapping file]\n";
+	
+	if ($ver == 1){
+		print "            === or ===   \n";
+		print "Create map: ./lotus2.pl -i [dir with demultiplexed fastqs] -create_map [map out]\n";
+		print "Check map for errors: ./lotus2.pl -check_map [mapfile]\n";
+		print "To see further arguments, use \"./lotus2.pl -help\"\n";
+		return;
+	}
+	print "Optional options are:\n";
     print "############### other functions ###############\n";
 	print "  -v print LotuS2 version\n";
     print "  -check_map [mapping file] only checks mapping file and exists\n";
@@ -4798,6 +4811,109 @@ sub combine($ $) {
         systemL("cat $fadd >> $freal");
     }
     unlink("$fadd");
+}
+
+
+
+sub prefix_find($){
+	my ($ar) = @_;
+	my @rds = @{$ar}; my @newRds = @rds;
+	my $first = $rds[0]; 
+	for (my $i=0;$i<@rds; $i++){
+		my $second = $rds[$i];
+		"$first\0$second" =~ m/^(.*\/).*\0\1/s;
+		$first = $1;
+	}
+	
+	print "$first common prefix\n";
+	for (my $i=0; $i<@newRds; $i++){
+		$newRds[$i] =~ s/^$first//;
+		$newRds[$i] .= "/" if ($newRds[$i] !~ m/\/$/ && length($newRds[$i] ) != 0 );
+	}
+	return (\@newRds,$first);
+}
+
+
+sub autoMap{
+	my ($refDirs, $ofile) = @_;
+	my $prefix = "SMPL";
+	my $smpCnt = 0;
+	my $pairedP = "2";#just set default
+	my @paired = split /,/,$pairedP;
+
+	if (@paired > 1 ){
+		print "Looking for mix of paired and single input files\n";
+	}elsif ($paired[0]==2){
+		print "Looking for paired input files\n";
+	} elsif ($paired[0]==1){
+		print "Looking for single read input files\n";
+	} else {
+		die "Arg 2 has to be supplied and be either \"1\" or \"2\" (single / paired read input in dirs)\n";
+	}
+	#### regex search string
+	my $rawFileSrchStr1 = '(R1_00\d|\.1|_1|\.R1)\.f[^\.]*[aq][\.gz]*$';
+	my $rawFileSrchStr2 = '(R2_00\d|\.2|_2|\.R2)\.f[^\.]*[aq][\.gz]*$';
+	my $rawSingSrchStr = '.f[^\.]*[aq][\.gz]*$';
+
+	my $map = "#SampleID	fastqFile\n";
+	my @preRDs = split(/,/,$refDirs);
+	if (@preRDs > 1 && @paired == 1){ #extend to full length
+		for (my $i=1;$i<@preRDs;$i++){
+			$paired[$i] = $paired[0];
+		}
+	}
+	my ($arRDs,$pathPre) = prefix_find(\@preRDs);
+	my @RDs = @{$arRDs};
+	my $cnt=0;
+	my $paired=2;
+	foreach my $RD ( @RDs ){
+		#print "DIR: $RD\n";
+		opendir(DIR, "$pathPre/$RD") or die $!;
+		my @pa2 =(); 
+		my @pa1 = ();
+		if ($paired == 2){
+			@pa2 = sort ( grep { /$rawFileSrchStr2/ && -e "$pathPre/$RD/$_" } readdir(DIR) );	rewinddir DIR;
+			@pa1 = sort ( grep { /$rawFileSrchStr1/  && -e "$pathPre/$RD/$_"} readdir(DIR) );	close(DIR);
+			#fix reads double assigned, always assume 2nd is correct
+			if (@pa1 != @pa2){
+				my %h;
+				@h{(@pa2)} = undef;
+				@pa1 = grep {not exists $h{$_}} @pa1;
+			}
+			if (@pa1 != @pa2){
+				$paired=1;
+			}
+		}
+		
+		#in case things are not matching up.. go for single reads
+		if ($paired == 1){
+			@pa1 = sort ( grep { /$rawSingSrchStr/  && -e "$pathPre/$RD/$_"} readdir(DIR) );	close(DIR);
+		}
+				
+		die "unequal read pairs!: ".@pa1 .",". @pa2."\n" if (@pa1 != @pa2 && $paired == 2);
+		print "Found ".@pa1." samples in dir $RD\n";
+		print "Assuming unpaired reads, as can not find signature for pair 2 files\n" if (@pa2 == 0 && @pa1 >0 && $paired == 2);
+		#add to map
+		foreach (my $i=0; $i< @pa1; $i++){
+			if (@pa2 > 0){
+				$map .= $prefix.$smpCnt."\t".$RD."".$pa1[$i].",".$RD."".$pa2[$i]."\n";
+			} else {
+				$map .= $prefix.$smpCnt."\t".$RD."".$pa1[$i]."\n";
+			}
+			$smpCnt ++;
+		}
+		$cnt++;
+		
+	}
+	open O,">$ofile" or die "Can't open $ofile\n";
+	print O $map;
+	close O;
+
+	print "Map is $ofile\n";
+	print "Please check that all files required are present in map $ofile.\n";
+	print "==========================\nTo start analysis:\n./lotus.pl -m $ofile -i $pathPre/ -o [outdir] [further parameters if desired]\n==========================\n";
+	exit(0);
+
 }
 
 sub usearchDerepSort($ ) {

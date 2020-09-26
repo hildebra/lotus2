@@ -7,7 +7,8 @@ sub prefix_find;
 
 
 if (@ARGV<3){
-	print "Usage:\n./automap.pl [input dirs] [output mapping file] [paired 1/2]\n -input dirs can be one dir or several, seperated by \",\"\n";
+	print "automap.pl is now part of lotus2.pl, just call \"./lotus2.pl -create_map\"\n\n";
+	print "Deprecated: Usage:\n./automap.pl [input dirs] [output mapping file] [paired 1/2]\n -input dirs can be one dir or several, seperated by \",\"\n";
 	print " -output mapping file is relative path and name of mapping file\n -paired is the expected paired (2) or single (1) input in dirs\n\n";
 	print "Example: ./automap.pl /home/singlRds1,/home/pairedRds/,home/singlRds2/ myMap.txt 1,2,1 \n\n";
 	exit(0);
