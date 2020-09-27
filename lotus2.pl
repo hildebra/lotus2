@@ -112,11 +112,12 @@ my $mkBldbBin    = "";
 my $lambdaBin    = "";  #lambda ref DB search
 my $lambdaIdxBin = "";
 my $clustaloBin  = ""; #clustalo multiple alignment binary (e.g. /YY/clustaloBin-1.2.0-OS-x86_64)
-my $fasttreeBin = ""
-  ; #FastTree binary - for speed improvements /YY/FastTReeMP recommended -- requires clastalo
-my $flashBin   = "";    #flash for merging paired reads
-my $itsxBin    = "";    #identifies ITS regions
-my $hmmsrchBin = "";    #hmm required for itsx
+my $mafftBin     = ""; #different aligner than clustalo, better performance
+my $fasttreeBin  = ""; #FastTree binary - for speed improvements /YY/FastTReeMP recommended -- requires clastalo
+my $iqTreeBin    = ""; #iqTree, better choice instead of fasttree
+my $flashBin     = "";    #flash for merging paired reads
+my $itsxBin      = "";    #identifies ITS regions
+my $hmmsrchBin   = "";    #hmm required for itsx
 
 # --------------------
 #   databases
@@ -146,17 +147,16 @@ my $versionOut=0;
 my $ClusterPipe_pre = "1";
 my $ClusterPipe     = 1; #use UPARSE (1) or otupipe(0) or SWARM (2) or cd-hit(3), dnaclust (4), micca (5)
 my $lotus_tempDir;
-my $sdmOpt     = "";    #default sdm (simple demultiplexer) options
-my $damagedFQ  = 0;
-my $BlastCores = 12;    #number of cores to use for BLASTn
-my $clQue      = "";    #"all.q";#"highmem";
-my ${OTU_prefix} = "OTU";    # Prefix for OTU label, default is OTU_ giving OTU_1, OTU_2 ...
-my $chimera_prefix = "CHIMERA_"
-  ;    # Prefix for chimera label, default is CHIM_ giving CHIM_1, OTU_2 ...
-my $sep_smplID = "___";    #separator of smpID & ori fasta id
-my $extendedLogs    = 1; #write chimeric OTUs, exact blast/RDP hits to extra dir
-my $keepTmpFiles    = 0; #more of a debugging option
-my $checkForUpdates = 1; #check online if a new lotus version is avaialble
+my $sdmOpt           = "";    #default sdm (simple demultiplexer) options
+my $damagedFQ        = 0;
+my $BlastCores       = 12;    #number of cores to use for BLASTn
+my $clQue            = "";    #"all.q";#"highmem";
+my ${OTU_prefix}     = "OTU";    # Prefix for OTU label, default is OTU_ giving OTU_1, OTU_2 ...
+my $chimera_prefix   = "CHIMERA_";# Prefix for chimera label, default is CHIM_ giving CHIM_1, OTU_2 ...
+my $sep_smplID       = "___";    #separator of smpID & ori fasta id
+my $extendedLogs     = 1; #write chimeric OTUs, exact blast/RDP hits to extra dir
+my $keepTmpFiles     = 0; #more of a debugging option
+my $checkForUpdates  = 1; #check online if a new lotus version is avaialble
 my $maxReadOverlap   = 250;          #flash parameter
 my $maxHitOnly       = 0;
 my $greengAnno       = 0;            #if 1, annotate OTUs to best greengenes hit
@@ -166,7 +166,7 @@ my $saveDemulti      = 0;            #save a copy of demultiplexed reads??
 my $check_map        = "";
 my $create_map       = "";
 my $lotusCfg         = "$RealBin/lOTUs.cfg";
-my $curSdmV          = 1.30;
+my $curSdmV          = 1.46;
 my $platform         = "miSeq";        #454, miSeq, hiSeq, PacBio
 my $keepUnclassified = 1;
 my $doITSx           = 1;            #run itsx in its mode?
@@ -175,6 +175,7 @@ my $finalWarnings    = "";
 my $remFromEnd       = ""; #fix for strange behavior of flash, where overlaps of too short amplicons can include rev primer / adaptor
 my $doPhiX			 = 1;
 my $dada2Seed        = 0; #seed for dada2 to produce reproducible results
+my $buildPhylo       = 0; #iqtree(1), fastree (0)
 
 
 #my $combineSamples = 0; #controls if samples are combined
@@ -248,7 +249,7 @@ GetOptions(
     "help|?"                => \&help,
     "i=s"                   => \$input,
     "o=s"                   => \$outdir,
-    "barcode|MID=s"             => \$barcodefile,
+    "barcode|MID=s"         => \$barcodefile,
     "m|map=s"               => \$map,
     "taxOnly|TaxOnly=s"     => \$TaxOnly,
     "redoTaxOnly=i"         => \$onlyTaxRedo,
@@ -256,13 +257,13 @@ GetOptions(
 	"create_map=s"          => \$create_map,
     "q|qual=s"              => \$inq,
     "s|sdmopt=s"            => \$sdmOpt,
-    "tmp|tmpDir=s"            => \$lotus_tempDir,
-    "c|config=s"                => \$lotusCfg,
-    "exe|executionMode=i"       => \$exec,
+    "tmp|tmpDir=s"          => \$lotus_tempDir,
+    "c|config=s"            => \$lotusCfg,
+    "exe|executionMode=i"   => \$exec,
     "keepTmpFiles=i"        => \$keepTmpFiles,
     "extendedLogs=i"        => \$extendedLogs,
     "CL|clustering|UP|UPARSE=s" => \$ClusterPipe_pre,
-    "t|thr|threads=i"         => \$uthreads,
+    "t|thr|threads=i"       => \$uthreads,
 	"v"                     => \$versionOut,
 	"verbosity=i"           => \$verbosity,
     "highmem=i"             => \$sdmDerepDo,
@@ -299,6 +300,7 @@ GetOptions(
     "deactivateChimeraCheck=i" => \$noChimChk,
 	"VsearchChimera=i"		=> \$useVsearch,
 	"removePhiX=i"			=> \$doPhiX,
+	"buildPhylo=i"          => \$buildPhylo,
 
     # "flashAvgLength" => \$flashLength,
     #"flashAvgLengthSD" => \$flashSD,
@@ -2050,74 +2052,80 @@ sub readPaths_aligners() {
 	$Rscript = truePath("Rscript");
     open I, "<", $inF;
     while ( my $line = <I> ) {
-        chomp $line;
-        next if ( $line =~ m/^#/ );
-        next if ( length($line) < 5 );    #skip empty lines
-        $line =~ s/\"//g;
-        if ( $line =~ m/^usearch\s(\S+)/ ) {
-            $usBin = truePath($1);
-        } elsif ( $line =~ m/^dada2R\s+(\S+)/ ) {
-            $dada2Scr = $1;
-        } elsif ( $line =~ m/^phyloLnk\s+(\S+)/ ) {
-            $phyloLnk = $1;
-        } elsif ( $line =~ m/^vsearch\s+(\S+)/ ) {
-            $VSBin = truePath($1);
-            $VSBinOri = truePath($1);  #deactivate default vsearch again.. prob with chimera finder.
-        }
-        elsif ( $line =~ m/^LCA\s+(\S+)/ ) {
-            $LCABin = truePath($1);
-        }
-        elsif ( $line =~ m/^multiRDPjar\s+(\S+)/ ) {
-            $mjar = truePath($1);
-        }
-        elsif ( $line =~ m/^RDPjar\s+(\S+)/ ) {
-            $rdpjar = truePath($1);
-        }
-        elsif ( $line =~ m/^blastn\s+(\S+)/ ) {
-            $blastBin = truePath($1);
-        }
-        elsif ( $line =~ m/^makeBlastDB\s+(\S+)/ ) {
-            $mkBldbBin = truePath($1);
-        }
-        elsif ( $line =~ m/^clustalo\s+(\S+)/ ) {
-            $clustaloBin = truePath($1);
-        }
-        elsif ( $line =~ m/^fasttree\s+(\S+)/ ) {
-            $fasttreeBin = truePath($1);
-        }
-        elsif ( $line =~ m/^sdm\s+(\S+)/ ) {
-            $sdmBin = truePath($1);
-        }
-        elsif ( $line =~ m/^flashBin\s+(\S+)/ ) {
-            $flashBin = truePath($1);
-        }
-        elsif ( $line =~ m/^swarm\s+(\S+)/ ) {
-            $swarmBin = truePath($1);
-        }
-        elsif ( $line =~ m/^cd-hit\s+(\S+)/ ) {
-            $cdhitBin = truePath($1);
-        }
-        elsif ( $line =~ m/^dnaclust\s+(\S+)/ ) {
-            $dnaclustBin = truePath($1);
-        }
-        elsif ( $line =~ m/^minimap2\s+(\S+)/ ) {
-            $mini2Bin = truePath($1);
-        }
-        elsif ( $line =~ m/^lambda\s+(\S+)/ ) {
-            $lambdaBin = truePath($1);
-        }
-        elsif ( $line =~ m/^lambda_index\s+(\S+)/ ) {
-            $lambdaIdxBin = truePath($1);
-        }
-        elsif ( $line =~ m/^itsx\s+(\S+)/ ) {
-            $itsxBin = truePath($1);
-        }
-        elsif ( $line =~ m/^hmmsearch\s+(\S+)/ ) {
-            $hmmsrchBin = truePath($1);
-        }
-        elsif ( $line =~ m/^CheckForUpdates\s+(\S+)/ ) {
-            $checkForUpdates = $1;
-        }
+		chomp $line;
+		next if ( $line =~ m/^#/ );
+		next if ( length($line) < 5 );    #skip empty lines
+		$line =~ s/\"//g;
+		if ( $line =~ m/^usearch\s(\S+)/ ) {
+			$usBin = truePath($1);
+		} elsif ( $line =~ m/^dada2R\s+(\S+)/ ) {
+			$dada2Scr = $1;
+		} elsif ( $line =~ m/^phyloLnk\s+(\S+)/ ) {
+			$phyloLnk = $1;
+		} elsif ( $line =~ m/^vsearch\s+(\S+)/ ) {
+			$VSBin = truePath($1);
+			$VSBinOri = truePath($1);  #deactivate default vsearch again.. prob with chimera finder.
+		}
+		elsif ( $line =~ m/^LCA\s+(\S+)/ ) {
+			$LCABin = truePath($1);
+		}
+		elsif ( $line =~ m/^multiRDPjar\s+(\S+)/ ) {
+			$mjar = truePath($1);
+		}
+		elsif ( $line =~ m/^RDPjar\s+(\S+)/ ) {
+			$rdpjar = truePath($1);
+		}
+		elsif ( $line =~ m/^blastn\s+(\S+)/ ) {
+			$blastBin = truePath($1);
+		}
+		elsif ( $line =~ m/^makeBlastDB\s+(\S+)/ ) {
+			$mkBldbBin = truePath($1);
+		}
+		elsif ( $line =~ m/^mafft\s+(\S+)/ ) {
+			$mafftBin = truePath($1);
+		}
+		elsif ( $line =~ m/^clustalo\s+(\S+)/ ) {
+			$clustaloBin = truePath($1);
+		}
+		elsif ( $line =~ m/^iqtree\s+(\S+)/ ) {
+			$iqTreeBin = truePath($1);
+		}
+		elsif ( $line =~ m/^fasttree\s+(\S+)/ ) {
+			$fasttreeBin = truePath($1);
+		}
+		elsif ( $line =~ m/^sdm\s+(\S+)/ ) {
+			$sdmBin = truePath($1);
+		}
+		elsif ( $line =~ m/^flashBin\s+(\S+)/ ) {
+			$flashBin = truePath($1);
+		}
+		elsif ( $line =~ m/^swarm\s+(\S+)/ ) {
+			$swarmBin = truePath($1);
+		}
+		elsif ( $line =~ m/^cd-hit\s+(\S+)/ ) {
+			$cdhitBin = truePath($1);
+		}
+		elsif ( $line =~ m/^dnaclust\s+(\S+)/ ) {
+			$dnaclustBin = truePath($1);
+		}
+		elsif ( $line =~ m/^minimap2\s+(\S+)/ ) {
+			$mini2Bin = truePath($1);
+		}
+		elsif ( $line =~ m/^lambda\s+(\S+)/ ) {
+			$lambdaBin = truePath($1);
+		}
+		elsif ( $line =~ m/^lambda_index\s+(\S+)/ ) {
+			$lambdaIdxBin = truePath($1);
+		}
+		elsif ( $line =~ m/^itsx\s+(\S+)/ ) {
+			$itsxBin = truePath($1);
+		}
+		elsif ( $line =~ m/^hmmsearch\s+(\S+)/ ) {
+			$hmmsrchBin = truePath($1);
+		}
+		elsif ( $line =~ m/^CheckForUpdates\s+(\S+)/ ) {
+			$checkForUpdates = $1;
+		}
     }
 
     #check that usearch is execuatble
@@ -2839,8 +2847,7 @@ sub calcHighTax($ $ $ $ $) {
         my $assPerc2 = 0;
 		my $lsum=( $assTax{$l} + $unassTax{$l} );
         $assPerc2 = $assTax{$l} / $lsum if ( $lsum > 0 );
-        printL "$l\t" . ( 100 * $assPerc ) . "\t" . ( 100 * $assPerc2 ) . "\n",
-          0;
+        printL "$l\t" . int( 100 * $assPerc ) . "\t" . int( 100 * $assPerc2 ) . "\n", 0;
     }
     printL "\n", 0;
     return $tax4RefHR;
@@ -2848,53 +2855,51 @@ sub calcHighTax($ $ $ $ $) {
 
 sub buildTree($ $) {
     my ( $OTUfa, $outdir ) = @_;
-
-	if ( -f $clustaloBin && -f $fasttreeBin ) {
+	return if ($buildPhylo==0);
+	if ( -f $mafftBin && (-f $fasttreeBin || -f $iqTreeBin) ) {
 		printL( frame("Building tree and aligning OTUs"),0 );
 	} else {
-		printL(frame("Skipping tree building and multiple alignment: \nclustaloBin or fasttreeBin are not defined"),0);
+		printL(frame("Skipping tree building and multiple alignment: \mafftBin or fasttreeBin/iqTreeBin are not defined"),0);
 	}
 
 	
     my $multAli  = $outdir . "/otuMultAlign.fna";
     my $outTree  = $outdir . "/Tree.tre";
+	my $treePrefix = "$lotus_tempDir/IQ";
     my $tthreads = $uthreads;
 
-    my $cmd = $clustaloBin . " -i $OTUfa -o $multAli --outfmt=fasta --threads=$tthreads --force;";
+    #my $cmd = $clustaloBin . " -i $OTUfa -o $multAli --outfmt=fasta --threads=$tthreads --force;";
+	my $cmd = "$mafftBin --thread $tthreads --quiet $OTUfa > $multAli";
+	#die "$cmd\n";
 
-    if (   ( $exec == 0 && $onlyTaxRedo == 0 && -f $clustaloBin )
-        || ( $exec == 0 && $onlyTaxRedo == 0 && -f $fasttreeBin ) ) {
-        $citations .= "======== Phylogenetic tree building ========\n";
-    }
-
-    if ( $exec == 0 && $onlyTaxRedo == 0 && -f $clustaloBin ) {
+    if ( $exec == 0 && $onlyTaxRedo == 0 && -f $mafftBin ) {
         if ( !-f $OTUfa ) {
             printL "Could not find ${OTU_prefix} sequence file:\n$OTUfa\n", 5;
         }
-        if ( systemL($cmd) != 0 ) {
-            printL "Fallback to single core clustalomega\n", 0;
-            $cmd = $clustaloBin . " -i $OTUfa -o $multAli --outfmt=fasta --threads=1 --force;";
-			if ( systemL($cmd) != 0 ) {
-				printL "FAILED multiple alignment command: " . $cmd . "\n", 5;
-			}
-        }
-        $citations .= "Clustalo multiple sequence alignments: Sievers F, Wilm A, Dineen D, Gibson TJ, Karplus K, Li W, Lopez R, McWilliam H, Remmert M, Söding J, et al. 2011. Fast, scalable generation of high-quality protein multiple sequence alignments using Clustal Omega. Mol Syst Biol 7: 539.\n";
-    }
-    elsif ($onlyTaxRedo) { printL "Skipping Multiple Alignment step\n", 0; }
-    if ( $exec == 0 && $onlyTaxRedo == 0 && -f $fasttreeBin ) {
-        if ( !-f $multAli ) {
-            printL "Could not find multiple alignment file:\n$multAli\n", 5;
-        }
-        $cmd = $fasttreeBin . " -nt -gtr -no2nd -spr 4 -log $logDir/fasttree.log -quiet -out $outTree $multAli;";
-
+		systemL $cmd;
+        
+        #$citations .= "Clustalo multiple sequence alignments: Sievers F, Wilm A, Dineen D, Gibson TJ, Karplus K, Li W, Lopez R, McWilliam H, Remmert M, Söding J, et al. 2011. Fast, scalable generation of high-quality protein multiple sequence alignments using Clustal Omega. Mol Syst Biol 7: 539.\n";
+		$citations .= "======== Phylogenetic tree building ========\nKatoh K, Misawa K, Kuma K, Miyata T. MAFFT: a novel method for rapid multiple sequence alignment based on fast Fourier transform. Nucleic Acids Res. 2002;30(14):3059-3066. doi:10.1093/nar/gkf436";
+    } elsif ($onlyTaxRedo) { printL "Skipping Multiple Alignment step\n", 0; }
+    if ( $exec == 0 && $onlyTaxRedo == 0 ) {
+		if ( !-f $multAli ) {
+			printL "Could not find multiple alignment file:\n$multAli\n", 5;
+		}
+		if ($buildPhylo==2){
+			$cmd = $fasttreeBin . " -nt -gtr -no2nd -spr 4 -log $logDir/fasttree.log -quiet -out $outTree $multAli;";
+		} else if ($buildPhylo==1){
+			$cmd = "$iqTreeBin -s $multAli -ntmax $tthreads -pre $treePrefix -seed 678 ";
+			$cmd .= "--quiet --fast -m GTR+R10 --alrt 1000\n";#GTR+F+I+G4
+			$cmd .= "cp ${treePrefix}.treefile $outTree\n";#cp final good tree over 
+		}
         #die($cmd."\n");
         if ( $exec == 0 ) {
             printL "Building tree..\n";
             if ( systemL($cmd) != 0 ) {
                 printL "FAILED tree building command: " . $cmd . "\n", 5;
             }
-            $citations .=
-"FastTree2 phylogenetic tree construction for OTUs: Price MN, Dehal PS, Arkin AP. 2010. FastTree 2--approximately maximum-likelihood trees for large alignments. ed. A.F.Y. Poon. PLoS One 5: e9490.\n";
+            #$citations .="FastTree2 phylogenetic tree construction for OTUs: Price MN, Dehal PS, Arkin AP. 2010. FastTree 2--approximately maximum-likelihood trees for large alignments. ed. A.F.Y. Poon. PLoS One 5: e9490.\n";
+			$citations .= "Nguyen, L.-T., Schmidt, H. A., von Haeseler, A. & Minh, B. Q. IQ-TREE: A Fast and Effective Stochastic Algorithm for Estimating Maximum-Likelihood Phylogenies. Mol. Biol. Evol. 32, 268–274 (2015)."
         }
     }
     elsif ($onlyTaxRedo) { printL "Skipping Tree building step\n", 0; }
