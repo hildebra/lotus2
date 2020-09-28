@@ -1666,7 +1666,7 @@ sub clean_otu_mat($ $ $ $ $) {
         printL "Empty ${OTU_prefix} matrix.. aborting LotuS run!\n", 87;
     }
     if ( $emptyOTUcnt > 0 ) {
-        printL "Removed mismapped OTUs ($emptyOTUcnt)..\n", 0;
+        printL "Removed mismapped OTUs ($emptyOTUcnt) with 0 counts..\n", 0;
     }
     return \%ORDL2;
 }
