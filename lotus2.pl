@@ -175,7 +175,7 @@ my $finalWarnings    = "";
 my $remFromEnd       = ""; #fix for strange behavior of flash, where overlaps of too short amplicons can include rev primer / adaptor
 my $doPhiX			 = 1;
 my $dada2Seed        = 0; #seed for dada2 to produce reproducible results
-my $buildPhylo       = 0; #iqtree(1), fastree (0)
+my $buildPhylo       = 1; #iqtree(1), fastree (0)
 
 
 #my $combineSamples = 0; #controls if samples are combined
@@ -1003,14 +1003,15 @@ if ($REFflag) {
 }
 
 #building tree & MSA
-buildTree( $OTUfa, $outdir );
+my $treeF = "";
+$treeF = buildTree( $OTUfa, $outdir );
 
 #citations file
 open O, ">$logDir/citations.txt";
 print O $citations;
 close O;
 
-my $phyloseqCreated=runPhyloObj();
+my $phyloseqCreated=runPhyloObj($treeF);
 
 
 #print"\n".$repStr;
@@ -1234,10 +1235,11 @@ sub sdmStep1{
 
 
 sub runPhyloObj{
+	my ($treeF) = @_;
 	return 0 if (!-f $phyloLnk || !-f $Rscript);
 	die "Incorrect phyloLnk script defined $phyloLnk" unless (-f $phyloLnk);
 	die "Incorrect R installation (can't find Rscript)" unless (-f $Rscript);
-	my $cmd = "$Rscript $phyloLnk $OTUmFile $SIM_hierFile $map;";
+	my $cmd = "$Rscript $phyloLnk $OTUmFile $SIM_hierFile $map $treeF;";
 	#die "$cmd\n";
 	if (!(systemL $cmd)){
 		printL "Could not create phyloseq object\n","w";
@@ -1379,7 +1381,7 @@ sub contamination_rem($ $ $ ) {
 			
 			if ($nameRDB ne "PhiX"){ #minimap2, now default
 				$hitsFile= "$otusFA.$nameRDB.cont_hit.paf";
-				$cmd = "$mini2Bin  -G 0 -N 1 -t $uthreads -o $hitsFile $otusFA $refDB ;";
+				$cmd = "$mini2Bin  -N 1 -t $uthreads -o $hitsFile $otusFA $refDB ;";
 				$matchAlgo = "minimap2";
 				#die "$cmd\n";
 			} elsif ( $VSused == 0 ) { #deprecated
@@ -1403,8 +1405,8 @@ sub contamination_rem($ $ $ ) {
 			if ($hitsFile =~ m/\.paf/){
 				open I, "<", $hitsFile or die "Can't open search result file $hitsFile";
 				while (<I>) {my @spl = split(/\t/); 
-					#look for matches at 60% identity
-					if ( $spl[9] > $spl[6] * 0.6 ) { $hits{$spl[5]}=1; $contRem++; }
+					#look for matches at 60% overlap
+					if ( $spl[9] > $spl[6] * 0.5 || (($spl[9] / $spl[10]) > 0.9) ) { $hits{$spl[5]}=1; $contRem++; }
 				}
 				close I;
 			} else {
@@ -2857,7 +2859,7 @@ sub calcHighTax($ $ $ $ $) {
 
 sub buildTree($ $) {
     my ( $OTUfa, $outdir ) = @_;
-	return if ($buildPhylo==0);
+	return "" if ($buildPhylo==0);
 	if ( -f $mafftBin && (-f $fasttreeBin || -f $iqTreeBin) ) {
 		printL( frame("Building tree and aligning OTUs"),0 );
 	} else {
@@ -2903,7 +2905,10 @@ sub buildTree($ $) {
             #$citations .="FastTree2 phylogenetic tree construction for OTUs: Price MN, Dehal PS, Arkin AP. 2010. FastTree 2--approximately maximum-likelihood trees for large alignments. ed. A.F.Y. Poon. PLoS One 5: e9490.\n";
 			$citations .= "Nguyen, L.-T., Schmidt, H. A., von Haeseler, A. & Minh, B. Q. IQ-TREE: A Fast and Effective Stochastic Algorithm for Estimating Maximum-Likelihood Phylogenies. Mol. Biol. Evol. 32, 268–274 (2015)."
         }
-    } elsif ($onlyTaxRedo) { printL "Skipping Tree building step\n", 0; }
+    } elsif ($onlyTaxRedo) { 
+		printL "Skipping Tree building step\n", 0; 
+	}
+	return $outTree;
 }
 
 sub getGGtaxo($ $) {
