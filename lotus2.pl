@@ -306,7 +306,6 @@ GetOptions(
     #"flashAvgLengthSD" => \$flashSD,
 ) or usage("Unknown options");
 
-
 if ($versionOut){
 	print "$selfID\n";
 	exit(0);
@@ -356,7 +355,7 @@ if ( $check_map ne "" ) {
 }
 
 if ($create_map ne ""){
-	autoMap($input, $map);
+	autoMap($input, $create_map);
 	exit(0);
 }
 
@@ -4918,7 +4917,7 @@ sub autoMap{
 
 	print "Map is $ofile\n";
 	print "Please check that all files required are present in map $ofile.\n";
-	print "==========================\nTo start analysis:\n./lotus.pl -m $ofile -i $pathPre/ -o [outdir] [further parameters if desired]\n==========================\n";
+	print "==========================\nTo start analysis:\n./lotus2.pl -m $ofile -i $pathPre/ -o [outdir] [further parameters if desired]\n==========================\n";
 	exit(0);
 
 }
