@@ -1022,7 +1022,7 @@ systemL("rm -rf $outdir;") if ($rmOutDir); #online in extreme cases, keep well d
 printL(    frame("Finished after $duration s \nOutput files are in \n\n$outdir\n\- LotuSLogS/ contains run statistics (useful for describing data/amount of reads/quality\n- LotuSLogS/citations.txt: papers of programs used in this run\nNext steps: you can use the rtk program in this pipeline, to generate rarefaction curves and diversity estimates of your samples.\n"    ),0);
 my $phyloHlp="";
 $phyloHlp="- Phyloseq: $outdir/phyloseq.Rdata can be directly loaded in R\n" if ($phyloseqCreated);
-printL(frame("          Next steps:          \n- Rarefaction analysis: can be done with rtk (avaialble in R or use bin/rtk)\n$phyloHlp- Phylogeny: ${OTU_prefix} phylogentic tree available in $outdir/tree.nwk\n- .biom: $outdir/OTU.biom contains biom formated output\n- tutorial: Visit lotus2.earlham.ac.uk for more tutorials in data anlysis\n"));
+printL(frame("          Next steps:          \n- Rarefaction analysis: can be done with rtk (avaialble in R or use bin/rtk)\n$phyloHlp- Phylogeny: ${OTU_prefix} phylogentic tree available in $outdir/tree.nwk\n- .biom: $outdir/OTU.biom contains biom formated output\n- tutorial: Visit http://lotus2.earlham.ac.uk for more tutorials in data analysis\n"));
 printWarnings();
 
 close LOG; close cmdLOG;
@@ -2136,8 +2136,11 @@ sub readPaths_aligners() {
         printL "It seems like your usearch binary is not executable, attempting to change this (needs sufficient user rights)\n",0;
         printL "Failed \"chmod +x $usBin\"\n"  if ( systemL "chmod +x $usBin;" ), 33;
     }
-	if ($LCABin eq "" || $sdmBin eq ""){
-		printL "Essential sdm/LCA programs are not found, please check that these are in the locations given in lOTUs.cfg\n",28;
+	if ($LCABin eq ""){
+		printL "Essential LCA program not found, please check that it is in the locations given in lOTUs.cfg\n",28;
+	}
+	if ($sdmBin eq ""){
+		printL "Essential sdm program not found, please check that it is in the locations given in lOTUs.cfg\n",28;
 	}
 	#die;
 }
@@ -2859,7 +2862,7 @@ sub buildTree($ $) {
 	if ( -f $mafftBin && (-f $fasttreeBin || -f $iqTreeBin) ) {
 		printL( frame("Building tree and aligning OTUs"),0 );
 	} else {
-		printL(frame("Skipping tree building and multiple alignment: \mafftBin or fasttreeBin/iqTreeBin are not defined"),0);
+		printL(frame("Skipping tree building and multiple alignment: \nafftBin or fasttreeBin/iqTreeBin are not defined"),0);
 	}
 
 	

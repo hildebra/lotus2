@@ -128,7 +128,7 @@ if ( ($UID ne "??" && -f $uspath) || $forceUpdate || $usearchInstall ne ""){#set
 	my $rerun = 0;
 	if ($inp eq "1" || $forceUpdate){
 		my ($lsv,$msgEnd) = checkLtsVer($lver);
-		#higher version? reinstall lotus.pl, autoinstall.pl, sdm
+		#higher version? reinstall lotus2.pl, autoinstall.pl, sdm
 		if ($lsv ne $lver || $forceUpdate){
 			print "New LotuS version available: updating from $lver to $lsv\n";
 			getS2("http://psbweb05.psb.ugent.be/lotus/lotus/updates/$lsv/files.tar.gz","files.tar.gz");
@@ -141,7 +141,7 @@ if ( ($UID ne "??" && -f $uspath) || $forceUpdate || $usearchInstall ne ""){#set
 					exit(0);
 				} else {print "Failed to rerun autoinstall.pl, please rerun manually after install\n";}
 			}
-			system("rm autoInstall.pl\ncp updates/autoInstall.pl . \nrm lotus.pl\ncp updates/lotus.pl .;rm -rf sdm_src;mv updates/sdm_src . ;rm -rf LCA_src;mv updates/LCA_src . ;rm -rf rtk_src;mv updates/rtk_src ."); 
+			system("rm autoInstall.pl\ncp updates/autoInstall.pl . \nrm lotus2.pl\ncp updates/lotus2.pl .;rm -rf sdm_src;mv updates/sdm_src . ;rm -rf LCA_src;mv updates/LCA_src . ;rm -rf rtk_src;mv updates/rtk_src ."); 
 			my $nsdmp = compile_sdm("sdm_src"); 
 			@txt = addInfoLtS("sdm",$nsdmp,\@txt,1);
 			$nsdmp = compile_LCA("LCA_src");
@@ -179,7 +179,7 @@ if ( ($UID ne "??" && -f $uspath) || $forceUpdate || $usearchInstall ne ""){#set
 if ($onlyDbinstall){
 	print "Installing LotuS tax databases anew.. \nplease choose which databases to install in the following dialogs\n\n";
 }else{
-	print "Total space required will be 0.3 - 2.3 Gb. \nSome programs require a recent version of the C++ compiler gcc. Please update (esp. Mac users) your gcc if there are compilation problems.\nWARNING: removes all files in $bdir and $ddir, rewrittes the local lotus.cfg file.\n Continue (y/n)?\n Answer: ";
+	print "Total space required will be 0.3 - 5.0 Gb. \nSome programs require a recent version of the C++ compiler gcc. Please update (esp. Mac users) your gcc if there are compilation problems.\nWARNING: removes all files in $bdir and $ddir, rewrites the local lotus.cfg file.\n Continue (y/n)?\n Answer: ";
 	while (<>){
 		chomp($_);
 		if ($_ eq "y" || $_ eq "Y" || $_ eq "yes"){
@@ -206,7 +206,7 @@ if ($onlyDbinstall){
 mkdir $bdir unless (-d $bdir);
 #system("rm -rf $ddir");
 mkdir $ddir unless (-d $ddir);
-($lver,$sver) = getInstallVer("$ldir/sdm_src");
+($lver,$sver) = getInstallVer("$ldir/configs/sdm_src");
 
 #if (length(`ldconfig -p | grep zlib`) < 3){
 
@@ -630,7 +630,7 @@ system("chmod +x $exe");
 @txt = addInfoLtS("clustalo",$exe,\@txt,1);
 
 
-print "\n\nInstallation script finished. Please read the readme on the software used in this pipeline. Excecute autoinstall.pl again, to upgrade LotuS to a newer version (if available).\n";
+print "\n\nInstallation script finished. Please read the readme on the software used in this pipeline. Execute autoInstall.pl again, to upgrade LotuS to a newer version (if available).\n";
 
 finishAI("");
 
@@ -655,7 +655,7 @@ sub finishAI($){
 sub getInstallVer($){
 	my ($sdmsrc) = @_;
 	my $lver=0.1;
-	open Q,"<","$ldir/lotus.pl" or die("Can't find LotuS main script file (lotus.pl)\n");
+	open Q,"<","$ldir/lotus2.pl" or die("Can't find LotuS main script file (lotus2.pl)\n");
 	while(<Q>){if (m/my.*selfID\s*=\s*\"LotuS\s(.*)\".*/){$lver=$1;last;}}
 	close Q;
 	my $sver=0.1;
