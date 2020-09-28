@@ -2887,7 +2887,7 @@ sub buildTree($ $) {
 		}
 		if ($buildPhylo==2){
 			$cmd = $fasttreeBin . " -nt -gtr -no2nd -spr 4 -log $logDir/fasttree.log -quiet -out $outTree $multAli;";
-		} else if ($buildPhylo==1){
+		} elsif ($buildPhylo==1){
 			$cmd = "$iqTreeBin -s $multAli -ntmax $tthreads -pre $treePrefix -seed 678 ";
 			$cmd .= "--quiet --fast -m GTR+R10 --alrt 1000\n";#GTR+F+I+G4
 			$cmd .= "cp ${treePrefix}.treefile $outTree\n";#cp final good tree over 
@@ -2901,8 +2901,7 @@ sub buildTree($ $) {
             #$citations .="FastTree2 phylogenetic tree construction for OTUs: Price MN, Dehal PS, Arkin AP. 2010. FastTree 2--approximately maximum-likelihood trees for large alignments. ed. A.F.Y. Poon. PLoS One 5: e9490.\n";
 			$citations .= "Nguyen, L.-T., Schmidt, H. A., von Haeseler, A. & Minh, B. Q. IQ-TREE: A Fast and Effective Stochastic Algorithm for Estimating Maximum-Likelihood Phylogenies. Mol. Biol. Evol. 32, 268–274 (2015)."
         }
-    }
-    elsif ($onlyTaxRedo) { printL "Skipping Tree building step\n", 0; }
+    } elsif ($onlyTaxRedo) { printL "Skipping Tree building step\n", 0; }
 }
 
 sub getGGtaxo($ $) {
