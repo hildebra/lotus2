@@ -32,7 +32,7 @@ sub usage;
 sub help;
 sub frame;sub printL;
 sub announce_options;
-sub announceClusterAlgo;  sub buildOTUs;
+sub buildOTUs;
 sub mergeUCs;sub delineateUCs;sub cutUCstring;sub uniq;
 sub cdhitOTUs;
 sub prepLtsOptions;
@@ -165,7 +165,7 @@ my $maxReadOverlap   = 250;          #flash parameter
 my $maxHitOnly       = 0;
 my $greengAnno       = 0;            #if 1, annotate OTUs to best greengenes hit
 my $pseudoRefOTU     = 0;            #replace OTU ids with best hit (LCA)
-my $numInput         = 1;
+my $numInput         = 2;
 my $saveDemulti      = 0;            #save a copy of demultiplexed reads??
 my $check_map        = "";
 my $create_map       = "";
@@ -265,7 +265,7 @@ GetOptions(
     "tmp|tmpDir=s"          => \$lotus_tempDir,
     "c|config=s"            => \$lotusCfg,
     "exe|executionMode=i"   => \$exec,
-    "keepTmpFiles"          => \$keepTmpFiles,
+    "keepTmpFiles=i"          => \$keepTmpFiles,
     "extendedLogs=i"        => \$extendedLogs,
     "CL|clustering|UP|UPARSE=s" => \$ClusterPipe_pre,
     "t|thr|threads=i"       => \$uthreads,
@@ -312,6 +312,7 @@ GetOptions(
     #"flashAvgLengthSD" => \$flashSD,
 ) or usage("Unknown options");
 
+
 if ($versionOut){
 	print "$selfID\n";
 	exit(0);
@@ -336,21 +337,16 @@ $lotus_tempDir = $outdir . "/tmpFiles/" if (!defined($lotus_tempDir) || $lotus_t
 system("rm -f -r $outdir") if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" );
 system("mkdir -p $outdir") unless ( -d $outdir );
 if ( !-d $outdir ) {  die( "Failed to make outputdir or doesn't exist: " . $outdir . "\n" );}
-
 my $existing_otus = "";
-
 $BlastCores = $uthreads;
 my $logDir       = $outdir . "/LotuSLogS/";
 my $extendedLogD = $outdir . "/ExtraFiles/";
 system("mkdir -p $logDir") unless ( -d $logDir );#$3
-
 $mainLogFile = $logDir . "LotuS_run.log";
 my $cmdLogFile = $logDir . "LotuS_cmds.log";
 my $progOutPut = $logDir . "LotuS_progout.log";
 system "rm -f $progOutPut\n";
-
 die "TaxOnly option specified, but not an output dir: $outdir\n" unless (-d $outdir && -d $logDir);
-
 #reset logfile
 open LOG, ">", $mainLogFile or die "Can't open Logfile $mainLogFile\n";
 open cmdLOG , ">$cmdLogFile" or die "Can't open cmd log $cmdLogFile\n";
@@ -360,12 +356,9 @@ open cmdLOG , ">$cmdLogFile" or die "Can't open cmd log $cmdLogFile\n";
 if ($extendedLogs) {
     systemL("mkdir -p $extendedLogD;") unless ( -d $extendedLogs );
 }
-
-#die "$sdmDerepDo \n";
 #-----------------
 #all parameters set; pipeline starts from here
 printL( frame( $selfID . "\n". $cmdCall ), 0 );
-
 
 my @inputArray = split( /,/, $input );
 my @inqArray   = split( /,/, $inq );
@@ -392,8 +385,7 @@ if ( $TaxOnly eq "0" ) {
 
 #die $exec."\n";
 if ( $ClusterPipe == 0 ) {
-    printL( "Warning: otupipe sequence clustering mode is depreceated.\n\n",
-        0 );
+    printL( "Warning: otupipe sequence clustering mode is depreceated.\n\n",0 );
 }
 if ( $ClusterPipe == 0 && $id_OTU_noise < $id_OTU ) {
     printL( "id_OTU must be bigger-or-equal than id_OTU_noise\n", 2 );
@@ -447,7 +439,6 @@ my $ucFinalFile = "";
 $duration = time - $start;
 if ( $ClusterPipe != 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 	#$ClusterPipe == 0 
-	announceClusterAlgo();
 	($A_UCfil) = buildOTUs($tmpOTU);
 	my @tmp = @$A_UCfil;
 	#die "@tmp\n";
@@ -574,22 +565,16 @@ if ( $numInput == 2){
 			$mergCmd = "$flashBin $flOvOption -o $key -d $lotus_tempDir -t $BlastCores "
 			  . $mergeSeedsFiles[0] . " " . $mergeSeedsFiles[1];
 			$mergCmd .= "cp $lotus_tempDir/$key.hist $logDir/FlashPairedSeedsMerges.hist";
-			
 			$citations .="Flash read pair merging: Magoc T, Salzberg SL. 2011. FLASH: fast length adjustment of short reads to improve genome assemblies. Bioinformatics 27: 2957-63\n";
 		} 
 
 		#print $mergCmd."\n";
 		if ( $exec == 0 ) {
-
 			#die $mergCmd."\n".$flashCustom."\n";
 			printL (frame("Merging ${OTU_prefix} seed paired reads"), 0);
 			if ( !systemL($mergCmd) == 0 ) {
 				printL( "Merge command failed: \n$mergCmd\n", 3 );
 			}
-		}
-		die "XX";
-		if ( $single1 ne "" ){    
-			
 		}
 		$didMerge = 1;
 	} elsif ( $onlyTaxRedo && $numInput == 2 ) {
@@ -2214,6 +2199,108 @@ sub readPaths {    #read tax databases and setup correct usage
 }
 
 
+sub announce_options{
+	if ( !$onlyTaxRedo && !$TaxOnly ) {
+	printL "$clustMode sequence clustering with $clusteringNameStr into ${OTU_prefix}'s\n",0;
+		if ( $ClusterPipe == 7 ) {
+			die "Incorrect dada2 script defined $dada2Scr" unless (-f $dada2Scr);
+			die "Incorrect R installation (can't find Rscript)" unless (-f $Rscript);
+		}
+		#if   ($sdmDerepDo) { printL ("Running fast LotuS mode..\n",0); }else{ printL ("Running low-mem LotuS mode..\n",0); }
+	} else {    #prep for redoing tax, save previous tax somehwere
+		printL "Re-Running only tax assignments, no de novo clustering\n", 0;
+		my $k       = 0;
+		my $newLDir = "$outdir/prevLtsTax_$k";
+		while ( -d $newLDir ) { $k++; $newLDir = "$outdir/prevLtsTax_$k"; }
+		printL frame("Saving previous Tax to $newLDir"), "w";
+		systemL "mkdir -p $newLDir/LotuSLogS/;";
+		systemL "mv $highLvlDir $FunctOutDir $RDP_hierFile $SIM_hierFile $outdir/hierachy_cnt.tax $outdir/cnadjusted_hierachy_cnt.tax $newLDir/;";
+		systemL "mv $outdir/LotuSLogS/* $newLDir/LotuSLogS/;";
+		systemL("mkdir -p $logDir;") unless ( -d $logDir );
+
+		if ($extendedLogs) {
+			systemL("mkdir -p $extendedLogD;") unless ( -d $extendedLogs );
+		}
+
+	}
+	printL "------------ I/O configuration --------------\n", 0;
+	printL( "Input=   $input\nOutput=  $outdir\n", 0 );    #InputFileNum=$numInput\n
+	if ( $barcodefile ne "" ) {
+		printL("Barcodes= $barcodefile\n",0);
+	}
+	printL "TempDir= $lotus_tempDir\n",                                     0;
+	printL "------------ Configuration LotuS --------------\n", 0;
+	printL( "Sequencing platform=$platform\nAmpliconType=$ampliconType\n", 0 );
+	if ( $ClusterPipe == 2 ) {
+		printL "Swarm inter-cluster distance=$swarmClus_d\n", 0;
+	}
+	else {
+		printL "OTU id=$id_OTU\n", 0;
+	}
+	printL "min unique read abundance=" . ($dereplicate_minsize) . "\n", 0;
+	if ( $noChimChk == 1 || $noChimChk == 3 ) {
+		printL "No RefDB based Chimera checking\n", 0;
+	}
+	elsif ( $noChimChk == 0 || $noChimChk == 2 ) {
+		printL "UCHIME_REFDB, ABSKEW=$UCHIME_REFDB, $chimera_absskew\nOTU, Chimera prefix=${OTU_prefix}, $chimera_prefix\n",
+		  0;
+	}
+	if ( $noChimChk == 1 || $noChimChk == 2 ) {
+		printL "No deNovo Chimera checking\n", 0;
+	}
+	if ( $doBlasting == 1 ) {
+		printL "Similarity search with Blast\n", 0;
+		if ( !-e $blastBin ) {
+			printL "Can't find blast binary at $blastBin\n", 97;
+		}
+	} elsif ( $doBlasting == 2 ) {
+		printL "Similarity search with Lambda\n", 0;
+		if ( !-e $lambdaBin ) {
+			printL "Can't find LAMBDA binary at $lambdaBin\n", 96;
+		}
+		if ( !-e $lambdaIdxBin ) {
+			printL "Can't find valid labmda indexer executable at $lambdaIdxBin\n",  98;
+		}
+	}elsif ( $doBlasting == 4 ) {
+		printL "Similarity search with VSEARCH\n", 0;
+		if ( !-e $VSBinOri ) {
+			printL "Can't find VSEARCH binary at $VSBinOri\n", 96;
+		}
+	}elsif ( $doBlasting == 5 ) {
+		printL "Similarity search with USEARCH\n", 0;
+		if ( !-e $usBin ) {
+			printL "Can't find VSEARCH binary at $usBin\n", 96;
+		}
+	}
+	unless ( $doBlasting < 1 ) {
+		printL "ReferenceDatabase=@refDBname\nRefDB location=@TAX_REFDB\n", 0;
+		if ( !-e $TAX_REFDB[0] ) {
+			printL "RefDB does not exist at loction. Aborting..\n", 103;
+		}
+	}
+
+	printL "TaxonomicGroup=$organism\n", 0;
+	if ( $ClusterPipe == 0 ) {
+		printL("PCTID_ERR=$id_OTU_noise\n",0);
+	}
+	if ($keepUnclassified){
+	printL "keeping taxonomic unclassified ${OTU_prefix}'s in matrix\n" ,0;
+	} else {
+		printL "removing taxonomic unclassified ${OTU_prefix}'s from matrix\n",0 ;
+	}
+
+	if ( $custContamCheckDB ne "" ) {
+		printL "Custom DB for off-targets: $custContamCheckDB\n", 0;
+		if ($keepOfftargets){
+			printL "keeping off-target ${OTU_prefix}'s in matrix\n",0;
+		} else {
+			printL "removing off-target ${OTU_prefix}'s from matrix\n" ,0;
+		}
+	}
+	printL "--------------------------------------------\n", 0;
+}
+
+
 sub getSimBasedTax{
 	$doBlasting_pre = lc $doBlasting_pre;
 	if ( $doBlasting_pre eq "1" || $doBlasting_pre eq "blast" ) {
@@ -3793,7 +3880,7 @@ sub readMap() {
 
     #find number of samples
     #my @avSMPs = ();
-    printL( frame("Reading mapping file"), 0 );
+	my $Ltxt = "Reading mapping file\n";
     my %mapH;
     my %combH;
     unless ( open M, "<", $map ) {
@@ -3825,9 +3912,7 @@ sub readMap() {
         my @spl = split( "\t", $line );
         if ( @spl == 0 ) {
             $warnTrig = 1;
-            finWarn(
-"Mapping file contains lines that cannot be split by tab seperator (line $cnt):\"$line\"\n"
-            );
+            finWarn("Mapping file contains lines that cannot be split by tab seperator (line $cnt):\"$line\"\n");
             next;
         }
         if ( $colCnt != -1 && @spl != $colCnt ) {
@@ -3842,14 +3927,11 @@ sub readMap() {
         my $smplNms = $spl[0];
         if ( $fileCol != -1 ) {
             if ( $spl[$fileCol] =~ m/,/ ) {
-                printL "Switching to paired end read mode\n", 0
-                  if ( $numInput != 2 );
+                printL "Switching to paired end read mode\n", 0 if ( $numInput != 2 );
                 $numInput = 2;
             }
             elsif ( $numInput == 2 ) {
-                printL
-"Inconsistent file number in mapping. See row with ID $smplNms.\n",
-                  55;
+                printL "Inconsistent file number in mapping. See row with ID $smplNms.\n", 55;
             }
         }
         if ( $CombineCol != -1 && $spl[$CombineCol] ne "" ) {
@@ -3860,23 +3942,20 @@ sub readMap() {
         }
         if ( $cnt == 1 ) {
             if ( $line !~ m/^#/ ) {
-                printL
-"First line does not start with \"#\". Please check mapping file for compatibility (http://psbweb05.psb.ugent.be/lotus/documentation.html#MapFile)\n",
-                  0;
+                printL "First line does not start with \"#\". Please check mapping file for compatibility (http://psbweb05.psb.ugent.be/lotus/documentation.html#MapFile)\n",93;
             }
             my $ccn = 0;
             $colCnt = @spl;
             foreach (@spl) {
                 if ( $_ eq "fastqFile" || $_ eq "fnaFile" ) {
-                    printL "Sequence files are indicated in mapping file.\n", 0;
+                    $Ltxt .= "Sequence files are indicated in mapping file.\n";
                     if ( $fileCol != -1 ) {
-                        printL
-"both fastqFile and fnaFile are given in mapping file, is this intended?\n";
+                        $Ltxt .= "both fastqFile and fnaFile are given in mapping file, is this intended?\n";
                     }
                     $fileCol = $ccn;
                 }
                 if ( $_ eq "CombineSamples" ) {
-                    printL "Samples will be combined.\n", 0;
+                    $Ltxt .= "Samples will be combined.\n";
                     $CombineCol   = $ccn;
                     $hasCombiSmpl = 1;
                 }
@@ -3886,38 +3965,26 @@ sub readMap() {
         }
         if ( $line =~ m/\"/ ) {
             $warnTrig = 1;
-            finWarn(
-"Possible biom incompatibility: Mapping file contains \" for sample $smplNms. Lotus is removing this."
-            );
+            finWarn("Possible biom incompatibility: Mapping file contains \" for sample $smplNms. Lotus is removing this.");
         }
         if ( $line =~ m/ / ) {
             $warnTrig = 1;
-            finWarn(
-"Possible biom incompatibility: Mapping file contains spaces for sample $smplNms"
-            );
+            finWarn("Possible biom incompatibility: Mapping file contains spaces for sample $smplNms");
         }
         if ( $line =~ m/[^\x00-\x7F]/ ) {
             $warnTrig = 1;
-            finWarn(
-"Possible biom incompatibility: Mapping file contains non-ASCII character for sample $smplNms"
-            );
+            finWarn("Possible biom incompatibility: Mapping file contains non-ASCII character for sample $smplNms");
         }
         $line =~ s/\s+/\t/g;
         if ( $smplNms =~ m/^\s/ || $smplNms =~ m/\s$/ ) {
-            printL
-"SampleID $smplNms contains spaces. Aborting LotuS as this will lead to errors, please fix.\n",
-              5;
+            printL"SampleID $smplNms contains spaces. Aborting LotuS as this will lead to errors, please fix.\n",5;
         }
         if ( $cnt == 1 ) {    #col names
             if ( $line =~ m/\t\t/ ) {
-                printL
-"Empty column header in mapping file:\n check for double tab chars in line 1:\n$map\n",
-                  4;
+                printL"Empty column header in mapping file:\n check for double tab chars in line 1:\n$map\n",4;
             }
             if ( $smplNms ne '#SampleID' ) {
-                printL
-"Missing \'#SampleID\' in first line of file $map\n Aborting..\n",
-                  65;
+                printL"Missing \'#SampleID\' in first line of file $map\n Aborting..\n",65;
             }
 
             #if ($line =~/\tCombineSamples\t/){$combineSamples=1;} #deprecated
@@ -3925,15 +3992,11 @@ sub readMap() {
             foreach (@spl) {
                 $hcnt++;
                 if (m/^\s*$/) {
-                    printL
-"Empty column header in mapping file (column $hcnt)\n$map\n",
-                      4;
+                    printL"Empty column header in mapping file (column $hcnt)\n$map\n",4;
                 }
             }
             if ( $line =~ m/\t\t/ ) {
-                printL
-"Empty header in mapping file:\n check for double tab chars in line 1:\n$map\n",
-                  4;
+                printL"Empty header in mapping file:\n check for double tab chars in line 1:\n$map\n",4;
             }
         }
         splice( @spl, 0, 1 );
@@ -3950,17 +4013,15 @@ sub readMap() {
 
     #print keys %mapH."\n";
     if ( scalar( keys %mapH ) == 0 ) {
-        printL(
-"Could not find sample names in mapping file (*nix/win file ending problem?\n",
-            9
-        );
+        printL("Could not find sample names in mapping file (*nix/win file ending problem?\n",9);
     }
+    printL( frame($Ltxt), 0 );
 
     if ( $warnTrig == 1 ) {
-        print
-"*********\nWarnings for mapping file \n$map \nAbort by pressing Ctrl+c (10 sec wait)\n*********\n";
+        print "*********\nWarnings for mapping file \n$map \nAbort by pressing Ctrl+c (10 sec wait)\n*********\n";
         sleep(10);
     }
+	
     return ( \%mapH, \%combH, $hasCombiSmpl );
 }
 
@@ -4602,140 +4663,6 @@ sub systemL {
 	}
     return $retStat;
     # return $ENV{'PIPESTATUS[0]'};
-}
-
-sub announce_options{
-	if ( !$onlyTaxRedo && !$TaxOnly ) {
-		
-		if ( $ClusterPipe == 0 ) {
-			printL( "Running otupipe $clustMode sequence clustering..\n", 0 );
-		}
-		elsif ( $ClusterPipe == 1 ) {
-			printL( "Running UPARSE $clustMode sequence clustering..\n", 0 );
-		}
-		elsif ( $ClusterPipe == 7 ) {
-			printL( "Running DADA2 $clustMode sequence clustering..\n", 0 );
-			die "Incorrect dada2 script defined $dada2Scr" unless (-f $dada2Scr);
-			die "Incorrect R installation (can't find Rscript)" unless (-f $Rscript);
-			
-		}
-		elsif ( $ClusterPipe == 6 ) {
-			printL( "Running UNOISE $clustMode sequence clustering..\n", 0 );
-		}
-		elsif ( $ClusterPipe == 2 ) {
-			printL( "Running SWARM $clustMode sequence clustering..\n", 0 );
-		}
-		elsif ( $ClusterPipe == 3 ) {
-			printL( "Running CD-HIT $clustMode sequence clustering..\n", 0 );
-		}
-		elsif ( $ClusterPipe == 4 ) {
-			printL( "Running DNACLUST $clustMode sequence clustering..\n", 0 );
-		}
-		if   ($sdmDerepDo) { printL ("Running fast LotuS mode..\n",0); 
-		}else{ printL ("Running low-mem LotuS mode..\n",0); }
-	}
-	else {    #prep for redoing tax, save previous tax somehwere
-		printL "Re-Running only tax assignments, no de novo clustering\n", 0;
-		my $k       = 0;
-		my $newLDir = "$outdir/prevLtsTax_$k";
-		while ( -d $newLDir ) { $k++; $newLDir = "$outdir/prevLtsTax_$k"; }
-		printL frame("Saving previous Tax to $newLDir"), "w";
-		systemL "mkdir -p $newLDir/LotuSLogS/;";
-		systemL "mv $highLvlDir $FunctOutDir $RDP_hierFile $SIM_hierFile $outdir/hierachy_cnt.tax $outdir/cnadjusted_hierachy_cnt.tax $newLDir/;";
-		systemL "mv $outdir/LotuSLogS/* $newLDir/LotuSLogS/;";
-		systemL("mkdir -p $logDir;") unless ( -d $logDir );
-
-		if ($extendedLogs) {
-			systemL("mkdir -p $extendedLogD;") unless ( -d $extendedLogs );
-		}
-
-	}
-	printL "------------ I/O configuration --------------\n", 0;
-	printL( "Input=   $input\nOutput=  $outdir\n", 0 );    #InputFileNum=$numInput\n
-	if ( $barcodefile ne "" ) {
-		printL("Barcodes= $barcodefile\n",0);
-	}
-	printL "TempDir= $lotus_tempDir\n",                                     0;
-	printL "------------ Configuration LotuS --------------\n", 0;
-	printL( "Sequencing platform=$platform\nAmpliconType=$ampliconType\n", 0 );
-	if ( $ClusterPipe == 2 ) {
-		printL "Swarm inter-cluster distance=$swarmClus_d\n", 0;
-	}
-	else {
-		printL "OTU id=$id_OTU\n", 0;
-	}
-	printL "min unique read abundance=" . ($dereplicate_minsize) . "\n", 0;
-	if ( $noChimChk == 1 || $noChimChk == 3 ) {
-		printL "No RefDB based Chimera checking\n", 0;
-	}
-	elsif ( $noChimChk == 0 || $noChimChk == 2 ) {
-		printL "UCHIME_REFDB, ABSKEW=$UCHIME_REFDB, $chimera_absskew\nOTU, Chimera prefix=${OTU_prefix}, $chimera_prefix\n",
-		  0;
-	}
-	if ( $noChimChk == 1 || $noChimChk == 2 ) {
-		printL "No deNovo Chimera checking\n", 0;
-	}
-	if ( $doBlasting == 1 ) {
-		printL "Similarity search with Blast\n", 0;
-		if ( !-e $blastBin ) {
-			printL "Can't find blast binary at $blastBin\n", 97;
-		}
-	} elsif ( $doBlasting == 2 ) {
-		printL "Similarity search with Lambda\n", 0;
-		if ( !-e $lambdaBin ) {
-			printL "Can't find LAMBDA binary at $lambdaBin\n", 96;
-		}
-		if ( !-e $lambdaIdxBin ) {
-			printL "Can't find valid labmda indexer executable at $lambdaIdxBin\n",  98;
-		}
-	}elsif ( $doBlasting == 4 ) {
-		printL "Similarity search with VSEARCH\n", 0;
-		if ( !-e $VSBinOri ) {
-			printL "Can't find VSEARCH binary at $VSBinOri\n", 96;
-		}
-	}elsif ( $doBlasting == 5 ) {
-		printL "Similarity search with USEARCH\n", 0;
-		if ( !-e $usBin ) {
-			printL "Can't find VSEARCH binary at $usBin\n", 96;
-		}
-	}
-	unless ( $doBlasting < 1 ) {
-		printL "ReferenceDatabase=@refDBname\nRefDB location=@TAX_REFDB\n", 0;
-		if ( !-e $TAX_REFDB[0] ) {
-			printL "RefDB does not exist at loction. Aborting..\n", 103;
-		}
-	}
-
-	printL "TaxonomicGroup=$organism\n", 0;
-	if ( $ClusterPipe == 0 ) {
-		printL("PCTID_ERR=$id_OTU_noise\n",0);
-	}
-	if ( $custContamCheckDB ne "" ) {
-		printL "Custom DB for off-targets: $custContamCheckDB\n", 0;
-	}
-	printL "--------------------------------------------\n", 0;
-}
-
-sub announceClusterAlgo{
-	return;
-	   if ( $ClusterPipe == 0 ) {
-		printL "\n\n--------- OTUPIPE ----------- \n\n",0;
-	} elsif ( $ClusterPipe == 1 ) {
-        printL"\n\n--------- UPARSE clustering ----------- \n\n", 0;
-	} elsif ( $ClusterPipe == 6 ) {
-        printL"\n\n--------- UNOISE clustering ----------- \n\n", 0;
-    }
-    elsif ( $ClusterPipe == 2 ) {
-        printL"\n\n--------- SWARM clustering ----------- \n\n",0;
-    }
-    elsif ( $ClusterPipe == 3 ) {printL"\n\n--------- CD-HIT clustering ----------- \n\n",0;
-    }
-    elsif ( $ClusterPipe == 4 ) {
-        printL"\n\n--------- DNACLUST clustering ----------- \n\n",0;
-    }  elsif ( $ClusterPipe == 7 ) {
-        printL"\n\n--------- DADA2 ${OTU_prefix} clustering ----------- \n\n",0;
-    }
-
 }
 
 
