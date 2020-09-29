@@ -332,7 +332,7 @@ if ($create_map ne ""){
 prepLtsOptions();
 
 
-defined($lotus_tempDir) or $lotus_tempDir = $outdir . "/tmpFiles/";
+$lotus_tempDir = $outdir . "/tmpFiles/" if (!defined($lotus_tempDir) || $lotus_tempDir == "");
 system("rm -f -r $outdir") if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" );
 system("mkdir -p $outdir") unless ( -d $outdir );
 if ( !-d $outdir ) {  die( "Failed to make outputdir or doesn't exist: " . $outdir . "\n" );}
@@ -364,7 +364,7 @@ if ($extendedLogs) {
 #die "$sdmDerepDo \n";
 #-----------------
 #all parameters set; pipeline starts from here
-printL( frame( "\n" . $selfID . "\n" ) . $cmdCall . "\n", 0 );
+printL( frame( $selfID . "\n". $cmdCall ), 0 );
 
 
 my @inputArray = split( /,/, $input );
@@ -402,11 +402,10 @@ if ( $id_OTU > 1 || $id_OTU < 0 ) {
     printL( "\"-id\" set to value <0 or >1: $id_OTU\nHas to be between 0 and 1\n", 2 );
 }
 
-my $t = $lotus_tempDir;
-systemL("rm -f -r $t;") if ( $exec == 0 );
-systemL("mkdir -p $t;") unless ( -d $t );
-if ( !-d $t ) {
-    die( "Failed to make tmp dir or doesn't exist: " . $t . "\n" );
+systemL("rm -f -r $lotus_tempDir;") if ( $exec == 0 );
+systemL("mkdir -p $lotus_tempDir;") unless ( -d $lotus_tempDir );
+if ( !-d $lotus_tempDir ) {
+    die( "Failed to make tmp dir or doesn't exist: \"" . $lotus_tempDir . "\"\n" );
 }
 
 #CONSTANT file paths
@@ -439,7 +438,7 @@ my ($sdmIn,$derepOutHQ,$qualOffset,$filterOutAdd,$filterOut,
 
 
 my $A_UCfil;
-my $tmpOTU = "$t/tmp_otu.fa";
+my $tmpOTU = "$lotus_tempDir/tmp_otu.fa";
 my $OTUfa  = "$outdir/otus.fa";
 
 
@@ -469,8 +468,8 @@ else {
 #/////////////////////////////////////////  SEED extension /////////////////////
 #$derepOutMap,$derepOutHQ
 my @mergeSeedsFiles; my @mergeSeedsFilesSing;
-my $OTUSEED    = "$t/otu_seeds.fna";
-my $OTUrefSEED = "$t/otu_seeds.fna.ref";
+my $OTUSEED    = "$lotus_tempDir/otu_seeds.fna";
+my $OTUrefSEED = "$lotus_tempDir/otu_seeds.fna.ref";
 
 #uc additions have to be in matrix creation (>0.96 through sdm)
 #my $UCadditions = $ucFinalFile.".ADD";
@@ -493,13 +492,13 @@ if ($REFflag)
 
 my $sdmOut2 = "-o_fna $OTUSEED";
 if ( $numInput == 2 ) {
-    push( @mergeSeedsFiles, "$t/otu_seeds.1.fq" );
-    push( @mergeSeedsFiles, "$t/otu_seeds.2.fq" );
+    push( @mergeSeedsFiles, "$lotus_tempDir/otu_seeds.1.fq" );
+    push( @mergeSeedsFiles, "$lotus_tempDir/otu_seeds.2.fq" );
 	@mergeSeedsFilesSing = @mergeSeedsFiles; 
 	$mergeSeedsFilesSing[0] =~ s/\.1\.fq/\.1\.singl\.fq/;$mergeSeedsFilesSing[1] =~ s/\.2\.fq/\.2\.singl\.fq/;
 
     $sdmOut2    = "-o_fastq " . $mergeSeedsFiles[0] . "," . $mergeSeedsFiles[1];
-    $OTUrefSEED = "$t/otu_seeds.1.fq.ref";
+    $OTUrefSEED = "$lotus_tempDir/otu_seeds.1.fq.ref";
 
     #TODO : $sdmIn
 }
@@ -544,11 +543,11 @@ undef $tmpOTU;
 
 if ( $numInput == 2){
 	my $key = "merged";
-	$input = "$t/$key";
+	$input = "$lotus_tempDir/$key";
 	my $single1  = "";my $single2  = "";
-	$input   = "$t/$key.extendedFrags.fastq";
-	$single1 = "$t/$key.notCombined_1.fastq";
-	$single2 = "$t/$key.notCombined_2.fastq";
+	$input   = "$lotus_tempDir/$key.extendedFrags.fastq";
+	$single1 = "$lotus_tempDir/$key.notCombined_1.fastq";
+	$single2 = "$lotus_tempDir/$key.notCombined_2.fastq";
 	if (@mergeSeedsFiles > 0 && -s $mergeSeedsFiles[0] > 0 #check that file even exists..
 			&& (-f $VSBin || -f $flashBin) #as well as the alignment programs
 			&& $otuRefDB ne "ref_closed" && $onlyTaxRedo == 0  && $TaxOnly eq "0" ) #and otherwise also wanted step..
@@ -572,9 +571,9 @@ if ( $numInput == 2){
 				$flashCustom =~ s/\"//g;
 				$flOvOption = " $flashCustom ";
 			}
-			$mergCmd = "$flashBin $flOvOption -o $key -d $t -t $BlastCores "
+			$mergCmd = "$flashBin $flOvOption -o $key -d $lotus_tempDir -t $BlastCores "
 			  . $mergeSeedsFiles[0] . " " . $mergeSeedsFiles[1];
-			$mergCmd .= "cp $t/$key.hist $logDir/FlashPairedSeedsMerges.hist";
+			$mergCmd .= "cp $lotus_tempDir/$key.hist $logDir/FlashPairedSeedsMerges.hist";
 			
 			$citations .="Flash read pair merging: Magoc T, Salzberg SL. 2011. FLASH: fast length adjustment of short reads to improve genome assemblies. Bioinformatics 27: 2957-63\n";
 		} 
@@ -588,6 +587,7 @@ if ( $numInput == 2){
 				printL( "Merge command failed: \n$mergCmd\n", 3 );
 			}
 		}
+		die "XX";
 		if ( $single1 ne "" ){    
 			
 		}
@@ -684,14 +684,14 @@ if ($TaxOnly ne "0") {
 
 #pre 0.97
 #my $lnkHref="";
-#my ($OTUmatref,$failsR) = makeAbundTable($taxblastf,"$t/RDPotus.tax",$A_UCfil,$OTUmFile,$lnkHref,\@avSmps);
+#my ($OTUmatref,$failsR) = makeAbundTable($taxblastf,"$lotus_tempDir/RDPotus.tax",$A_UCfil,$OTUmFile,$lnkHref,\@avSmps);
 my ( $OTUmatref, $avOTUsR ) = readOTUmat($OTUmFile);
 
 #debug
 #my %retMat = %{$OTUmatref};my @hdss = keys %retMat;my @fdfd = keys %{$retMat{bl21}};die "@hdss\n@fdfd\n$retMat{bl14}{OTU_1} $retMat{bl14}{OTU_2} $retMat{bl14}{OTU_3}\n";
 
 #this subroutine also has blast/LCA algo inside
-my ($failsR) = makeAbundTable2( "$t/RDPotus.tax", $OTUmatref );    #,\@avSmps);
+my ($failsR) = makeAbundTable2( "$lotus_tempDir/RDPotus.tax", $OTUmatref );    #,\@avSmps);
 
 if ( !-d $highLvlDir ) {
     if ( systemL("mkdir -p $highLvlDir;") ) {
@@ -756,7 +756,7 @@ my $phyloseqCreated=runPhyloObj($treeF);
 #print"\n".$repStr;
 $duration = time - $start;
 
-systemL("rm -rf $t;") if ($exec == 0 && !$keepTmpFiles);  #printL "Delete temp dir $t\n", 0; }
+systemL("rm -rf $lotus_tempDir;") if ($exec == 0 && !$keepTmpFiles);  #printL "Delete temp dir $lotus_tempDir\n", 0; }
 systemL("rm -rf $outdir;") if ($rmOutDir); #online in extreme cases, keep well defined & controlled
 printL(    frame("Finished after $duration s \nOutput files are in \n\n$outdir\n\- LotuSLogS/ contains run statistics (useful for describing data/amount of reads/quality\n- LotuSLogS/citations.txt: papers of programs used in this run\nNext steps: you can use the rtk program in this pipeline, to generate rarefaction curves and diversity estimates of your samples.\n"    ),0);
 my $phyloHlp="";
@@ -814,20 +814,20 @@ close LOG; close cmdLOG;
 
 sub sdmStep1{
 	my $sdmcmd       = "";
-	my $filterOut    = "$t/demulti.fna";
-	my $filterOutAdd = "$t/demulti.add.fna";
+	my $filterOut    = "$lotus_tempDir/demulti.fna";
+	my $filterOutAdd = "$lotus_tempDir/demulti.add.fna";
 	if ( $numInput > 1 ) {
-		$filterOut    = "$t/demulti.1.fna,$t/demulti.2.fna";
-		$filterOutAdd = "$t/demulti.1.add.fna,$t/demulti.2.add.fna";
+		$filterOut    = "$lotus_tempDir/demulti.1.fna,$lotus_tempDir/demulti.2.fna";
+		$filterOutAdd = "$lotus_tempDir/demulti.1.add.fna,$lotus_tempDir/demulti.2.add.fna";
 	}
 	my $filOutCmd = "-o_fna ";
 	if ($UPARSEfilter) {
-		$filterOut    = "$t/demulti.fastq";
+		$filterOut    = "$lotus_tempDir/demulti.fastq";
 		$filOutCmd    = "-o_fastq ";
-		$filterOutAdd = "$t/demulti.add.fastq";
+		$filterOutAdd = "$lotus_tempDir/demulti.add.fastq";
 		if ( $numInput > 1 ) {
-			$filterOut    = "$t/demulti.1.fastq,$t/demulti.2.fastq";
-			$filterOutAdd = "$t/demulti.1.add.fastq,$t/demulti.2.add.fastq";
+			$filterOut    = "$lotus_tempDir/demulti.1.fastq,$lotus_tempDir/demulti.2.fastq";
+			$filterOutAdd = "$lotus_tempDir/demulti.1.add.fastq,$lotus_tempDir/demulti.2.add.fastq";
 		}
 	}
 	my $qualOffset = "-o_qual_offset 33";       #33 for UPARSE
@@ -860,15 +860,15 @@ sub sdmStep1{
 	}
 
 	if ($sdmDerepDo) {
-		$derepCmd = "-o_dereplicate $t/derep.fas ";
+		$derepCmd = "-o_dereplicate $lotus_tempDir/derep.fas ";
 		if ( 0 && $ClusterPipe == 2 ) {
 			$derepCmd .= "-dere_size_fmt 1 ";
 		}
 		else { $derepCmd .= "-dere_size_fmt 0 "; }
 		$derepCmd .= " -min_derep_copies $dereplicate_minsize ";
-		$derepOutHQ  = "$t/derep.hq.fq";
-		$derepOutMap = "$t/derep.map";
-		$derepOutHQ2 = "$t/derep.2.hq.fq";
+		$derepOutHQ  = "$lotus_tempDir/derep.hq.fq";
+		$derepOutMap = "$lotus_tempDir/derep.map";
+		$derepOutHQ2 = "$lotus_tempDir/derep.2.hq.fq";
 		if ( $saveDemulti == 3 ) {   #temp deactivated, since I have  $sdmDemultiDir
 			$derepCmd .= " -suppressOutput 0";
 		}
@@ -1189,7 +1189,7 @@ sub contamination_rem($ $ $ ) {
 			finWarn($warnStr);
 
 			#systemL("cp $otusFA $outfile");
-			#$outfile = "$t/uparse.fa";
+			#$outfile = "$lotus_tempDir/uparse.fa";
 		}
 		$contRemStr += $contRem;
 	}
@@ -1210,7 +1210,7 @@ sub contamination_rem($ $ $ ) {
 
 sub chimera_rem($ $) {
     my ( $otusFA, $outfile ) = @_;
-    my $chimOut = "$t/chimeras_ref.fa";
+    my $chimOut = "$lotus_tempDir/chimeras_ref.fa";
     if ($extendedLogs) {
         $chimOut = "$extendedLogD/chimeras_ref.fa";
     }
@@ -1239,7 +1239,7 @@ sub chimera_rem($ $) {
     else {
 		printL "No ref based chimera detection\n";
         systemL("cp $otusFA $outfile;");
-        #$outfile = "$t/uparse.fa";
+        #$outfile = "$lotus_tempDir/uparse.fa";
     }
     return "";
 }
@@ -1625,7 +1625,7 @@ sub biomFmt($ $ $ $ $) {
         printL "Combined samples in lotus run.. attempting merge of metadata in .biom file\n",
           "w";
     }
-    my $otutab2 = $t . "/OTUpTax_tmp.txt";
+    my $otutab2 = $lotus_tempDir . "/OTUpTax_tmp.txt";
     my %OTUmat  = %{$otutab};
     my @avSmps  = sort( keys %OTUmat );
     my @avOTUs  = sort( keys %{ $OTUmat{ $avSmps[0] } } );
@@ -2582,15 +2582,19 @@ sub frame {
 	my $dur = " ". parse_duration(time - $start) . "";
     my @txtarrT = split( /\n/, $txt );
 	my @txtarr; 
-	my $width = 60;
+	my $width = `tput cols`;
+	#print "$width\n";
+	$width = 80 if (!defined $width || $width > 80|| $width < 20);
     my $numOfChar = 10;
 	my $txtSpac=  $width - $numOfChar;
 	foreach my $s (@txtarrT){
 		#last;
 		my $cnt=0;
 		while (length($s) > $txtSpac || $cnt > 20){
-			push (@txtarr, (substr $s,0,$txtSpac));
-			substr ($s,0,$txtSpac) = "";
+			my $spacIdx = index $s, ' ',$txtSpac-15;
+
+			push (@txtarr, (substr $s,0,$spacIdx));
+			substr ($s,0,$spacIdx+1) = "";
 			$cnt++;
 		}
 		push (@txtarr, $s);
@@ -2628,8 +2632,8 @@ sub firstXseqs($ $ $) {
 sub get16Sstrand($ $) {    #
     my ( $OTUfa, $refDB ) = @_;
     my $ret      = "both";
-    my $OTUfa_sh = firstXseqs( $OTUfa, 6, "$t/otus4blast.tmp" );
-    my $cmd = "$blastBin -query $OTUfa_sh -db $refDB -out $t/blast4dire.blast -outfmt 6 -max_target_seqs 200 -perc_identity 75 -num_threads $BlastCores -strand both;"
+    my $OTUfa_sh = firstXseqs( $OTUfa, 6, "$lotus_tempDir/otus4blast.tmp" );
+    my $cmd = "$blastBin -query $OTUfa_sh -db $refDB -out $lotus_tempDir/blast4dire.blast -outfmt 6 -max_target_seqs 200 -perc_identity 75 -num_threads $BlastCores -strand both;"
       ;                    #-strand plus both
     if ( systemL($cmd) != 0 ) {
         printL "FAILED pre-run blast command:\n$cmd\n", 5;
@@ -2638,7 +2642,7 @@ sub get16Sstrand($ $) {    #
     #die "$t\n$cmd\n";
     my $plus  = 0;
     my $minus = 0;
-    open I, "<", "$t/blast4dire.blast";
+    open I, "<", "$lotus_tempDir/blast4dire.blast";
     while ( my $line = <I> ) {
         my @spl = split( "\t", $line );
         if ( $spl[6] < $spl[7] ) {
@@ -4115,7 +4119,7 @@ sub doDBblasting($ $ $) {
         print "Starting LAMBDA similarity search..\n";
 
         #TMPDIR env var.. TODO
-        my $tmptaxblastf = "$t/tax.m8";
+        my $tmptaxblastf = "$lotus_tempDir/tax.m8";
 		my $outcols = "'qseqid sseqid pident length mismatch gapopen qstart qend sstart send qlen'";
         $cmd = "$lambdaBin -t $BlastCores -id 75 -nm 200 -p blastn -e 1e-8 -so 7 -sl 16 -sd 1 -b 5 -pd on -q $query -d $DB -o $tmptaxblastf -oc $outcols;";
         $cmd .= "mv $tmptaxblastf $taxblastf;";
@@ -4211,14 +4215,14 @@ sub runRDP{
 		$msg = "Assigning taxonomy with multiRDP";
 
 		#ampliconType
-		$cmd = "java -Xmx1g -jar $mjar --gene=$rdpGene --format=fixrank --hier_outfile=$outdir/hierachy_cnt.tax --conf=0.1 --assign_outfile=$t/RDPotus.tax $OTUfa;";
+		$cmd = "java -Xmx1g -jar $mjar --gene=$rdpGene --format=fixrank --hier_outfile=$outdir/hierachy_cnt.tax --conf=0.1 --assign_outfile=$lotus_tempDir/RDPotus.tax $OTUfa;";
 		$RDPTAX = 2;
 	} elsif ( $doRDPing > 0 && ( $rdpjar ne "" || exists( $ENV{'RDP_JAR_PATH'} ) ) ) {
 		$msg = "Assigning taxonomy with RDP";
 		my $toRDP = $ENV{'RDP_JAR_PATH'};
 		if ( $rdpjar ne "" ) { $toRDP = $rdpjar; }
 		my $subcmd = "classify";
-		$cmd =        "java -Xmx1g -jar " . $toRDP  . " $subcmd -f fixrank -g $rdpGene -h $outdir/hierachy_cnt.tax -q $OTUfa -o $t/RDPotus.tax -c 0.1;";
+		$cmd =        "java -Xmx1g -jar " . $toRDP  . " $subcmd -f fixrank -g $rdpGene -h $outdir/hierachy_cnt.tax -q $OTUfa -o $lotus_tempDir/RDPotus.tax -c 0.1;";
 		$RDPTAX = 1;
 	}    
 	
@@ -4230,11 +4234,11 @@ sub runRDP{
 			printL "FAILED RDP classifier execution:\n$cmd\n", 2;
 		}
 		if ($TaxOnly ne "0" && -f $TaxOnly){
-			systemL "cp $t/RDPotus.tax $TaxOnly.rdp";
+			systemL "cp $lotus_tempDir/RDPotus.tax $TaxOnly.rdp";
 		}
 		$citations .= "RDP ${OTU_prefix} taxonomy: Wang Q, Garrity GM, Tiedje JM, Cole JR. 2007. Naive Bayesian classifier for rapid assignment of rRNA sequences into the new bacterial taxonomy. Appl Env Microbiol 73: 5261–5267.\n";
 	} elsif ( $rdpjar ne "" || exists( $ENV{'RDP_JAR_PATH'} ) ) {
-		if ($extendedLogs) { systemL "cp $t/RDPotus.tax $extendedLogD/;"; }
+		if ($extendedLogs) { systemL "cp $lotus_tempDir/RDPotus.tax $extendedLogD/;"; }
 		if ( $RDPTAX > 0 ) {                #move confusing files
 			if ($extendedLogs) {
 				systemL "mv $outdir/hierachy_cnt.tax $outdir/cnadjusted_hierachy_cnt.tax $extendedLogD/;";
@@ -4267,14 +4271,14 @@ sub assignTaxOnly($ $) {
     my $GGloaded      = 0;
     my %GG;
     if ( $doBlasting == 3 ) {
-        my $utaxRaw = "$t/tax.blast";
+        my $utaxRaw = "$lotus_tempDir/tax.blast";
         my $utout   = utaxTaxAssign( $taxf, $utaxRaw );
         $failsR = writeUTAXhiera( $utout, $avOTUsR, $failsR );
     }
     elsif ( -f $LCABin && $blastFlag && $maxHitOnly != 1 ) {
         my @blOuts = ();
         for ( my $DBi = 0 ; $DBi < @TAX_REFDB ; $DBi++ ) {
-            my $taxblastf = "$t/tax.$DBi.blast";
+            my $taxblastf = "$lotus_tempDir/tax.$DBi.blast";
             my $DB        = $TAX_REFDB[$DBi];
             my $DBtax     = $TAX_RANKS[$DBi];
             my $blastout  = doDBblasting( $taxf, $DB, $taxblastf );
@@ -4324,14 +4328,14 @@ sub makeAbundTable2($ $) {
         die "TODO ref assign of denove OTUs\n";
     }
     if ( $doBlasting == 3 ) {
-        my $utaxRaw = "$t/tax.blast";
+        my $utaxRaw = "$lotus_tempDir/tax.blast";
         my $utout   = utaxTaxAssign( $OTUfa, $utaxRaw );
         $failsR = writeUTAXhiera( $utout, $avOTUsR, $failsR );
     }     elsif ( $blastFlag && $maxHitOnly != 1 ) {
 		#TODO: maxHitOnly
         my @blOuts = ();
         for ( my $DBi = 0 ; $DBi < @TAX_REFDB ; $DBi++ ) {
-            my $taxblastf = "$t/tax.$DBi.blast";
+            my $taxblastf = "$lotus_tempDir/tax.$DBi.blast";
             my $DB        = $TAX_REFDB[$DBi];
             my $DBtax     = $TAX_RANKS[$DBi];
             my $blastout  = doDBblasting( $curQuery, $DB, $taxblastf );
@@ -4346,7 +4350,7 @@ sub makeAbundTable2($ $) {
         #unlink @blOuts;
     }
     else {    #old Perl implementation
-        my $taxblastf = "$t/tax.blast";
+        my $taxblastf = "$lotus_tempDir/tax.blast";
         my $BlastTaxR = {};                  # my $BlastTaxDepR = {};
                                              #read this only once
         my $leftOver  = 111;
@@ -4370,7 +4374,7 @@ sub makeAbundTable2($ $) {
                 $BlastTaxR = getTaxForOTUfromRefBlast( $blastout, \%GG, 0 );
                 if ( $DBi < ( @TAX_REFDB - 1 ) ) {
                     ( $curQuery, $BlastTaxR, $leftOver, $fasrA ) = findUnassigned( $BlastTaxR, $fasrA,$OTUfa . "__U" . $DBi . ".fna" );
-                    $taxblastf = "$t/tax.blast_rem_$DBi";
+                    $taxblastf = "$lotus_tempDir/tax.blast_rem_$DBi";
                 }
                 else { findUnassigned( $BlastTaxR, $fasrA, "" ); }
                 $fullBlastTaxR = { %$fullBlastTaxR, %$BlastTaxR };
@@ -4539,12 +4543,12 @@ sub cdhitOTUs() {
 
     my $cdh454 = "/home/falhil/bin/cd-hit_v461/./cd-hit-454";
     my $cmd =
-      $cdh454 . " -i $input -o $t/OTUs.fa -c .$id_OTU -M 0 -T $BlastCores";
+      $cdh454 . " -i $input -o $lotus_tempDir/OTUs.fa -c .$id_OTU -M 0 -T $BlastCores";
     print $cmd. "\n";
-    my $OTUfa = "$t/OTUs.fa";
+    my $OTUfa = "$lotus_tempDir/OTUs.fa";
 
     my $cdhConBin = "/home/falhil/bin/cdhit-clcon/./cdhit-cluster-consensus";
-    $cmd = $cdhConBin . " $OTUfa $input $t/Consensus.fa";
+    $cmd = $cdhConBin . " $OTUfa $input $lotus_tempDir/Consensus.fa";
     print $cmd. "\n";
     die();
     my $UCfil = "";
@@ -4651,7 +4655,7 @@ sub announce_options{
 	if ( $barcodefile ne "" ) {
 		printL("Barcodes= $barcodefile\n",0);
 	}
-	printL "TempDir= $t\n",                                     0;
+	printL "TempDir= $lotus_tempDir\n",                                     0;
 	printL "------------ Configuration LotuS --------------\n", 0;
 	printL( "Sequencing platform=$platform\nAmpliconType=$ampliconType\n", 0 );
 	if ( $ClusterPipe == 2 ) {
@@ -4915,7 +4919,7 @@ sub usearchDerepSort($ ) {
 "\n =========================================================================\n Dereplicate exact sub-sequences & sort (usearch).\n ",
         0
     );
-    $cmd = "$VSBin -derep_fulllength $filtered $outputLab $t/derep.fa -uc $t/derep.uc -log $logDir/derep.log -sizeout -threads $uthreads;";
+    $cmd = "$VSBin -derep_fulllength $filtered $outputLab $lotus_tempDir/derep.fa -uc $lotus_tempDir/derep.uc -log $logDir/derep.log -sizeout -threads $uthreads;";
 
     #die($cmd);
     if ( systemL($cmd) != 0 ) { printL "Failed dereplication\n", 1; }
@@ -4923,15 +4927,15 @@ sub usearchDerepSort($ ) {
     my $dcnt          = 1;
     my $bigDerepCnt   = 0;
     my @lotsFiles     = ($filtered);
-    my @subDerepFa    = ("$t/derep.fa");    #my @subDerepUC = ("$t/derep.uc");
+    my @subDerepFa    = ("$lotus_tempDir/derep.fa");    #my @subDerepUC = ("$lotus_tempDir/derep.uc");
     my @subDerepFaTmp = ();
     while ( -f $filtered . "." . $dcnt ) {
         if ( $dcnt == 1 ) { @subDerepFaTmp = @subDerepFa; @subDerepFa = (); }
         push( @lotsFiles,     $filtered . "." . $dcnt );
-        push( @subDerepFaTmp, "$t/derep.fa.$dcnt" )
-          ;    #push(@subDerepUC,"$t/derep.uc.$dcnt");
+        push( @subDerepFaTmp, "$lotus_tempDir/derep.fa.$dcnt" )
+          ;    #push(@subDerepUC,"$lotus_tempDir/derep.uc.$dcnt");
         $cmd = "$VSBin -derep_fulllength $filtered.$dcnt $outputLab $subDerepFaTmp[-1] -sizeout -threads $uthreads;"
-          ;    #-uc $t/derep.uc -log $logDir/derep.log
+          ;    #-uc $lotus_tempDir/derep.uc -log $logDir/derep.log
                #die $cmd;
         if ( systemL($cmd) != 0 ) { printL "Failed dereplication\n", 1; }
         if ( -f $filterOutAdd . "." . $dcnt ) {
@@ -4953,15 +4957,15 @@ sub usearchDerepSort($ ) {
             foreach (@subDerepFaTmp) { unlink; }
             @subDerepFaTmp = ();
 
-            my $dereOut = "$t/derep.inter.$bigDerepCnt.temp";
-            $cmd = "$VSBin -derep_fulllength $firstF $outputLab $dereOut -uc $t/derep.uc -log $logDir/derep.log -sizeout -threads $uthreads;";
+            my $dereOut = "$lotus_tempDir/derep.inter.$bigDerepCnt.temp";
+            $cmd = "$VSBin -derep_fulllength $firstF $outputLab $dereOut -uc $lotus_tempDir/derep.uc -log $logDir/derep.log -sizeout -threads $uthreads;";
             if ( systemL($cmd) != 0 ) {
                 printL "Failed intermediate dereplication\n", 1;
             }
-            newUCSizes( $dereOut, "$t/derep.uc" );
+            newUCSizes( $dereOut, "$lotus_tempDir/derep.uc" );
 
             #delete tmp files
-            unlink("$t/derep.uc");
+            unlink("$lotus_tempDir/derep.uc");
             unlink("$firstF");
             push( @subDerepFa, $dereOut );
             $bigDerepCnt++;
@@ -4974,17 +4978,17 @@ sub usearchDerepSort($ ) {
                 defined($pid)
                   || printL( "Cannot fork derep of subfiles.\n", 1 );
                 close CMD || printL "Merge of derep subfiles failed.\n", 1;
-                $cmd = "$VSBin -derep_fulllength $firstF $outputLab $t/derep.post.temp -uc $t/derep.uc -log $logDir/derep.log -sizeout -threads $uthreads;";
+                $cmd = "$VSBin -derep_fulllength $firstF $outputLab $lotus_tempDir/derep.post.temp -uc $lotus_tempDir/derep.uc -log $logDir/derep.log -sizeout -threads $uthreads;";
                 print $cmd. "\n";
                 systemL $cmd || printL "Derep Command Failed: \n$cmd\n", 1;
-                newUCSizes( "$t/derep.post.temp", "$t/derep.uc" );
+                newUCSizes( "$lotus_tempDir/derep.post.temp", "$lotus_tempDir/derep.uc" );
                 foreach (@subDerepFa) { print $_. "\n"; unlink; }
-                systemL("mv $t/derep.post.temp $t/derep.fa");
-                unlink("$t/derep.pre.temp");
-                @subDerepFa = ("$t/derep.fa");
+                systemL("mv $lotus_tempDir/derep.post.temp $lotus_tempDir/derep.fa");
+                unlink("$lotus_tempDir/derep.pre.temp");
+                @subDerepFa = ("$lotus_tempDir/derep.fa");
             }
             elsif ( !-f $filtered . "." . ( $dcnt + 1 ) ) {
-                systemL("mv $subDerepFa[0] $t/derep.fa");
+                systemL("mv $subDerepFa[0] $lotus_tempDir/derep.fa");
             }
         }
         $dcnt++;
@@ -4997,10 +5001,10 @@ sub usearchDerepSort($ ) {
       "w";
 
     #dereplicate_minsize is 2 by default
-    $cmd = "$VSBin -sortbysize  $t/derep.fa $outputLab $t/derep.fas -minsize $dereplicate_minsizeX -log $logDir/sortbysize.log;";
+    $cmd = "$VSBin -sortbysize  $lotus_tempDir/derep.fa $outputLab $lotus_tempDir/derep.fas -minsize $dereplicate_minsizeX -log $logDir/sortbysize.log;";
     if ( systemL($cmd) != 0 ) { exit(1); }
-    unlink("$t/derep.fa");
-    return ("$t/derep.fas");
+    unlink("$lotus_tempDir/derep.fa");
+    return ("$lotus_tempDir/derep.fas");
 }
 
 sub parseSDMlog($) {
@@ -5098,7 +5102,7 @@ sub dnaClust2UC($ $) {
 sub buildOTUs($) {
 
     my ($outfile) = @_;
-    my @UCguide = ( "$t/finalOTU.uc", "$t/finalOTU2.uc" );    #,"$t/otus.uc",1);
+    my @UCguide = ( "$lotus_tempDir/finalOTU.uc", "$lotus_tempDir/finalOTU2.uc" );    #,"$lotus_tempDir/otus.uc",1);
 
     #if ($exec==1){return(\@UCguide);}
     systemL "rm -f $UCguide[0]*;";
@@ -5106,7 +5110,7 @@ sub buildOTUs($) {
     my $refDB4otus = "$TAX_REFDB[0]" if ( @TAX_REFDB > 0 );  #reference database
 
     #print_nseq("$filterOut");
-    my $filtered = "$t/filtered.fa";
+    my $filtered = "$lotus_tempDir/filtered.fa";
 
     if ($UPARSEfilter) {
         printL("\n =========================================================================\n Secondary uparse filter\n",0  );
@@ -5120,7 +5124,7 @@ sub buildOTUs($) {
         $filtered = $filterOut;
     }
 
-    my $derepl = "$t/derep.fas";    #,$totSeqs,$arL)
+    my $derepl = "$lotus_tempDir/derep.fas";    #,$totSeqs,$arL)
     my ( $totSeqs, $SeqLength ) = parseSDMlog("$logDir/demulti.log");
     if ( !$sdmDerepDo ) {
         my ($derepl) = usearchDerepSort($filtered);
@@ -5132,8 +5136,8 @@ sub buildOTUs($) {
 
 #my @lotsFiles = ($filtered); my $dcnt=1; while (-f $filtered.".".$dcnt){	push(@lotsFiles,$filtered.".".$dcnt);$dcnt++}
     }
-    my $OTUfastaTmp = $outfile;                 #"$t/uparse.fa";
-    my $dnaclustOut = "$t/clusters_pre.dncl";
+    my $OTUfastaTmp = $outfile;                 #"$lotus_tempDir/uparse.fa";
+    my $dnaclustOut = "$lotus_tempDir/clusters_pre.dncl";
 
     #have to rev seq for dnaclust & cd-hit ref clustering
     if ($REFflag) {
@@ -5215,24 +5219,24 @@ sub buildOTUs($) {
     } elsif ( $ClusterPipe == 2 ) {
 
 #prelim de novo OTU filter
-#$cmd="$usBin -uchime_denovo  $derepl -chimeras $t/chimeras_denovo.fa -nonchimeras $t/tmp1.fa -abskew $chimera_absskew -log $logDir/uchime_dn.log";
-#if (systemL($cmd) != 0){exit(1);}	systemL("ls -lh $t/tmp1.fa");
+#$cmd="$usBin -uchime_denovo  $derepl -chimeras $lotus_tempDir/chimeras_denovo.fa -nonchimeras $lotus_tempDir/tmp1.fa -abskew $chimera_absskew -log $logDir/uchime_dn.log";
+#if (systemL($cmd) != 0){exit(1);}	systemL("ls -lh $lotus_tempDir/tmp1.fa");
         if ( !-e $swarmBin ) {printL "No valid swarm binary found at $swarmBin\n", 88;}
 		printL(frame("SWARM ${OTU_prefix} clustering\n Cluster with d = ". $swarmClus_d ),0);
         #printL("\n =========================================================================\n SWARM ${OTU_prefix} clustering\n Cluster with d = ". $swarmClus_d. "\n=========================================================================\n",0);
 
         #-z: unsearch size output. -u uclust result file
-        my $uclustFile = "$t/clusters.uc";
+        my $uclustFile = "$lotus_tempDir/clusters.uc";
         my $dofasti    = "-f ";
         if ( $swarmClus_d > 1 ) { $dofasti = ""; }
-        $cmd = "$swarmBin -z $dofasti -u $uclustFile -t $uthreads -w $OTUfastaTmp --ceiling 4024 -s $logDir/SWARMstats.log -l $logDir/SWARM.log -o $t/otus.swarm -d $swarmClus_d < $derepl;";
+        $cmd = "$swarmBin -z $dofasti -u $uclustFile -t $uthreads -w $OTUfastaTmp --ceiling 4024 -s $logDir/SWARMstats.log -l $logDir/SWARM.log -o $lotus_tempDir/otus.swarm -d $swarmClus_d < $derepl;";
         $citations .= "swarm v2 ${OTU_prefix} clustering - Mahé F, Rognes T, Quince C, de Vargas C, Dunthorn M. 2015. Swarm v2: highly-scalable and high-resolution amplicon clustering. PeerJ. DOI: 10.7717/peerj.1420\n";
 
 #perl script to replace swarm size with usearch size
 #print $cmd."\n";
 #create OTU fasta ($OTUfastaTmp)
-#$cmd .= "\ncut -d \" \" -f 1 $t/otus.swarm | sed -e 's/^/>/' > $t/tmp_seeds.txt";
-#$cmd.= "\ngrep -A 1 -F -f $t/tmp_seeds.txt $derepl | sed -e '/^--\$/d' > $OTUfastaTmp";
+#$cmd .= "\ncut -d \" \" -f 1 $lotus_tempDir/otus.swarm | sed -e 's/^/>/' > $lotus_tempDir/tmp_seeds.txt";
+#$cmd.= "\ngrep -A 1 -F -f $lotus_tempDir/tmp_seeds.txt $derepl | sed -e '/^--\$/d' > $OTUfastaTmp";
     }
     elsif ( $ClusterPipe == 3 ) {
         if ( !-e $cdhitBin ) {printL "No valid CD-Hit binary found at $cdhitBin\n", 88;}
@@ -5316,32 +5320,32 @@ sub buildOTUs($) {
             #print "GF";
 
         printL( frame("de novo chimera filter\n"), 0 );
-        my $chimOut = "$t/chimeras_denovo.fa";
+        my $chimOut = "$lotus_tempDir/chimeras_denovo.fa";
         if ($extendedLogs) {
             $chimOut = "$extendedLogD/chimeras_denovo.fa";
         }
 
-        $cmd = "$VSBin -uchime_denovo $OTUfastaTmp -chimeras $chimOut -nonchimeras $t/tmp1.fa -abskew $chimera_absskew -log $logDir/chimera_dn.log;";
+        $cmd = "$VSBin -uchime_denovo $OTUfastaTmp -chimeras $chimOut -nonchimeras $lotus_tempDir/tmp1.fa -abskew $chimera_absskew -log $logDir/chimera_dn.log;";
 
         #die "\n\n$usearchVer\n";
         if (!$useVsearch && $usearchVer >= 10 && !$VSused ) {
             if ( $usearchVer == 10.0 && $usearchsubV <= 240 ) {
                 #really dirty hack..
-                $cmd ="$VSBinOri -uchime_denovo $OTUfastaTmp -chimeras $chimOut -nonchimeras $t/tmp1.fa -abskew $chimera_absskew -log $logDir/chimera_dn.log;";
+                $cmd ="$VSBinOri -uchime_denovo $OTUfastaTmp -chimeras $chimOut -nonchimeras $lotus_tempDir/tmp1.fa -abskew $chimera_absskew -log $logDir/chimera_dn.log;";
                 printL "Can't do de novo chimer filter, since usearch 10.0.240 currently has a bug with this\nUsing vsearch chimera detection instead\n","w";
             }
             else {
-                $cmd = "$usBin -uchime3_denovo $OTUfastaTmp -chimeras $chimOut -nonchimeras $t/tmp1.fa -log $logDir/chimera_dn.log;";
+                $cmd = "$usBin -uchime3_denovo $OTUfastaTmp -chimeras $chimOut -nonchimeras $lotus_tempDir/tmp1.fa -log $logDir/chimera_dn.log;";
             }
 
             #replace until bug is fixed
         }
         elsif ( $usearchVer >= 9 && !$VSused ) {
-            $cmd = "$usBin -uchime2_denovo $OTUfastaTmp -abskew 16 -chimeras $chimOut -nonchimeras $t/tmp1.fa -log $logDir/chimera_dn.log;";
+            $cmd = "$usBin -uchime2_denovo $OTUfastaTmp -abskew 16 -chimeras $chimOut -nonchimeras $lotus_tempDir/tmp1.fa -log $logDir/chimera_dn.log;";
         }
 
         #die $cmd."\n";
-        $cmd .= "\nrm $OTUfastaTmp\nmv -f $t/tmp1.fa $OTUfastaTmp";
+        $cmd .= "\nrm $OTUfastaTmp\nmv -f $lotus_tempDir/tmp1.fa $OTUfastaTmp";
         if ( systemL($cmd) != 0 ) {
             printL( "uchime de novo failed// aborting\n", 1 );
         }
@@ -5355,7 +5359,7 @@ sub buildOTUs($) {
             $citations .=
 "uchime chimera detection deNovo: Edgar RC, Haas BJ, Clemente JC, Quince C, Knight R. 2011. UCHIME improves sensitivity and speed of chimera detection. Bioinformatics 27: 2194–200.\n";
         }
-        systemL("ls -lh $t/tmp1.fa");
+        systemL("ls -lh $lotus_tempDir/tmp1.fa");
     }
 
     #die "NN\n";
@@ -5397,7 +5401,7 @@ sub buildOTUs($) {
             $dcnt++;
         }
         foreach my $fil (@lotsFiles) {
-            my $tmpUC = "$t/tmpUCs.$cnt.uct";
+            my $tmpUC = "$lotus_tempDir/tmpUCs.$cnt.uct";
             push( @allUCs, $tmpUC );
             $cmd = "$VSBin -usearch_global $fil -db $outfile -uc $tmpUC -strand both -id $id_OTU -threads $uthreads $vsearchSpcfcOpt;";    #-threads  $BlastCores";
             if ( systemL($cmd) != 0 ) { exit(1); }
@@ -5434,7 +5438,7 @@ sub buildOTUs($) {
             close T;
             if ( $lcnt > 2 ) {    #file contains reads, so map
                 printL frame("Searching with mid qual reads..\n"), 0;
-                my $tmpUC = "$t/add.uc";
+                my $tmpUC = "$lotus_tempDir/add.uc";
                 $cmd ="$VSBin -usearch_global $subF -db $OTUfastaTmp -uc ". $tmpUC. " $userachDffOpt $vsearchSpcfcOpt;"; #-threads  $BlastCores";
                 if ( -s $OTUfastaTmp ) {
                     if ( systemL($cmd) != 0 ) { printL( "Failed: $cmd\n", 1 ); }
@@ -5458,7 +5462,7 @@ sub buildOTUs($) {
     if ( -s $derepl . ".rest" ) {
 #push(@lotsFiles,$derepl.".rest"); #these are sdm "uniques" that were too small to map
 #my @lotsFiles2 = ($derepl,$derepl.".rest");
-        my $restUC = "$t/rests.uc";
+        my $restUC = "$lotus_tempDir/rests.uc";
         $cmd =  "$VSBin -usearch_global ". $derepl . ".rest" . " -db $OTUfastaTmp -uc $restUC $userachDffOpt $vsearchSpcfcOpt;";#-threads  $BlastCores";
         if ( -s $OTUfastaTmp ) {
             if ( systemL($cmd) != 0 ) { exit(1); }
@@ -5493,12 +5497,11 @@ sub derepBash($) {
 		hash=${hash:0:40}
 		printf ">%s_%d_%s\n" "${hash}" "${abundance}" "${sequence}"
 	done | sort -t "_" -k2,2nr -k1.2,1d | \
-	sed -e \'s/\_/\n/2\' > '
-      . "$t/derep.fa";    #amplicons_linearized_dereplicated.fasta
+	sed -e \'s/\_/\n/2\' > ' . "$lotus_tempDir/derep.fa";    #amplicons_linearized_dereplicated.fasta
     die $derepCmd . "\n";
     open( CMD, $derepCmd ) || printL( "Can't derep in swarm:\n$derepCmd\n", 1 );
     close CMD;
-    return ("$t/derep.fa");
+    return ("$lotus_tempDir/derep.fa");
 }
 
 sub swarmClust($) {
@@ -5510,11 +5513,11 @@ sub swarmClust($) {
     my $swarmBin     = "$swPath/swarm";
 
     #my $swarmBreakBin = "python $swPath/scripts/swarm_breaker.py";
-    my @UCguide = ( "$t/finalOTU.uc", 2 );    #,"$t/otus.uc",1);
+    my @UCguide = ( "$lotus_tempDir/finalOTU.uc", 2 );    #,"$lotus_tempDir/otus.uc",1);
     if ( $exec == 1 ) { return ( \@UCguide ); }
 
     my $filtered = $filterOut;
-    my $derepl   = "$t/derep.fas";            #,$totSeqs,$arL)
+    my $derepl   = "$lotus_tempDir/derep.fas";            #,$totSeqs,$arL)
     if ( !-f $derepl || -z $derepl ) {
         printL "The sdm dereplicated output file was either empty or not existant, aborting lotus.\n$derepl\n", 1;
     }
