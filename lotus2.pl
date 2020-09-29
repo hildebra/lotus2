@@ -32,11 +32,10 @@ sub usage;
 sub help;
 sub frame;sub printL;
 sub announce_options;
-sub readPaths;sub readPaths_aligners;
 sub announceClusterAlgo;  sub buildOTUs;
 sub mergeUCs;sub delineateUCs;sub cutUCstring;sub uniq;
 sub cdhitOTUs;
-sub checkBlastAvaila;sub getSimBasedTax;
+sub prepLtsOptions;
 
 sub makeAbundTable2;
 sub readMap;
@@ -144,9 +143,14 @@ my $osname      = $^O;
 my $verbosity = 1;
 my $versionOut=0;
 
+#LotuS file related
+my $rmOutDir = 0;
+my $lotusCfg  = "$RealBin/lOTUs.cfg";
+
 my $ClusterPipe_pre = "1";
 my $ClusterPipe     = 1; #use UPARSE (1) or otupipe(0) or SWARM (2) or cd-hit(3), dnaclust (4), micca (5)
-my $lotus_tempDir;
+my $clusteringNameStr = "otupipe";
+my $lotus_tempDir    = "";
 my $sdmOpt           = "";    #default sdm (simple demultiplexer) options
 my $damagedFQ        = 0;
 my $BlastCores       = 12;    #number of cores to use for BLASTn
@@ -165,10 +169,10 @@ my $numInput         = 1;
 my $saveDemulti      = 0;            #save a copy of demultiplexed reads??
 my $check_map        = "";
 my $create_map       = "";
-my $lotusCfg         = "$RealBin/lOTUs.cfg";
 my $curSdmV          = 1.46;
 my $platform         = "miSeq";        #454, miSeq, hiSeq, PacBio
-my $keepUnclassified = 1;
+my $keepUnclassified = 0;
+my $keepOfftargets   = 0;
 my $doITSx           = 1;            #run itsx in its mode?
 my $ITSpartial       = 0;            #itsx --partial parameter
 my $finalWarnings    = "";
@@ -220,7 +224,8 @@ my $dereplicate_minsize_def = 2
   ; # Discard clusters < dereplicate_minsize in error correction round #Default: 2 for UPARSE, 4 for otupipe
 my $dereplicate_minsize = -1;
 my $doXtalk             = -1;    #check for cross talk in OTU tables
-my $usearchVer          = 7;
+my $usearchVer          = 7; my $usearchsubV = 0;
+my $REFflag = 0;#reference based OTU clustering requested?
 
 #flash control
 my $flashCustom = "";
@@ -260,7 +265,7 @@ GetOptions(
     "tmp|tmpDir=s"          => \$lotus_tempDir,
     "c|config=s"            => \$lotusCfg,
     "exe|executionMode=i"   => \$exec,
-    "keepTmpFiles=i"        => \$keepTmpFiles,
+    "keepTmpFiles"          => \$keepTmpFiles,
     "extendedLogs=i"        => \$extendedLogs,
     "CL|clustering|UP|UPARSE=s" => \$ClusterPipe_pre,
     "t|thr|threads=i"       => \$uthreads,
@@ -282,7 +287,8 @@ GetOptions(
     "chim_skew=f"           => \$chimera_absskew,		#miSeq,hiSeq,pacbio
     "p|platform=s"          => \$platform,
     "tolerateCorruptFq=i"   => \$damagedFQ,
-    "keepUnclassified=i"    => \$keepUnclassified,
+    "keepUnclassified"      => \$keepUnclassified,
+	"keepOfftargets"        => \$keepOfftargets,
     "derepMin=s"            => \$dereplicate_minsize,
     "doBlast|simBasedTaxo|taxAligner=s"=> \$doBlasting_pre,
     "refDB=s"               => \$refDBwanted,
@@ -310,43 +316,6 @@ if ($versionOut){
 	print "$selfID\n";
 	exit(0);
 }
-if ($chimCnt){
-	$chimCnt = "T";
-} else {
-	$chimCnt = "F";
-}
-
-#still undocumented options: VsearchChimera removePhiX
-
-#uc/lc some vars
-$platform = lc($platform);
-if ($greengAnno) {
-	$pseudoRefOTU   = 1;
-	$refDBwanted    = "GG";
-	$doBlasting_pre = "4";
-	print "Greengenes ID as species ID requested (for integration with software that requires greengenes ID).\nUsing Lambda OTU similarity search and greengenes ref DB\n";
-}    #
-if ( -f $refDBwanted ) {
-}
-elsif ( $refDBwanted =~ m/^GG|SLV|UNITE|HITDB|PR2|BEETAX$/i ) {
-    #$refDBwanted = uc($refDBwanted);
-}elsif ( $refDBwanted ne "" ) {
-    print "$refDBwanted not recognized. Aborting..\n";
-    exit(5);
-}
-if ( $platform eq "pacbio" ) {
-    $dereplicate_minsize_def = 0;
-}
-if ( $dereplicate_minsize !~ m/\D/ && $dereplicate_minsize == -1 ){
-	$dereplicate_minsize = $dereplicate_minsize_def ;
-}
-
-#die $refDBwanted."\n";
-$ampliconType    = uc($ampliconType);
-$organism        = lc($organism);
-$ClusterPipe_pre = uc($ClusterPipe_pre);
-$otuRefDB        = lc $otuRefDB;
-
 if ( $check_map ne "" ) {
 	$map = $check_map;
 	my ( $x11, $x22, $x33 ) = readMap();
@@ -360,28 +329,8 @@ if ($create_map ne ""){
 }
 
 
-getSimBasedTax();
+prepLtsOptions();
 
-if ( $TaxOnly eq "0" && !defined($input) && !defined($outdir) && !defined($map) ) { 
-	defined($input) or usage("-i option (input dir/files) is required\n");
-	if ( $input =~ m/\*/ ) {
-		usage
-	"\"*\" not supported in input command. Please see documentation on how to set up the mapping file for several input files.";
-	}
-	defined($outdir) or usage("-o option (output dir) is required\n");
-	if ( !defined($map) ) {
-		usage("-m missing option (mapping file)\n");
-	}
-}
-if ( !defined($sdmOpt) && $TaxOnly eq "0" ) {
-    finWarn("WARNING:\n sdm options not set\n WARNING\n");
-}
-my $rmOutDir = 0;
-if ($TaxOnly ne "0" && -f $TaxOnly){
-	$TaxOnly =~ m/.*\/(.*)$/;$outdir = $1."/tmp/";;
-	printL "Using tmp outdir $outdir\n";
-	$rmOutDir=1;
-}
 
 defined($lotus_tempDir) or $lotus_tempDir = $outdir . "/tmpFiles/";
 system("rm -f -r $outdir") if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" );
@@ -417,216 +366,6 @@ if ($extendedLogs) {
 #all parameters set; pipeline starts from here
 printL( frame( "\n" . $selfID . "\n" ) . $cmdCall . "\n", 0 );
 
-if ( $platform eq "hiseq" ) {
-    $linesPerFile = 8000000;
-}
-my $defDBset = 0;
-if ( $refDBwanted eq "" ) {
-    $refDBwanted = "GG";
-    $defDBset    = 1;
-}
-
-readPaths_aligners($lotusCfg);
-my $usvstr = `$usBin --version`;
-
-#die $usvstr."\n";
-$usvstr =~ m/usearch v(\d+\.\d+)\.(\d+)/;
-$usearchVer = $1;
-my $usearchsubV = $2;
-
-#if ($usearchVer == 9){printL "Usearch ver 9 currently not supported, please install ver 8.\n",39;}
-if ( $usearchVer > 11 ) {
-    printL "Usearch ver $usearchVer is not supported.\n", 55;
-}
-elsif ( $usearchVer >= 8 && $usearchVer < 9 ) {
-    printL
-"Usearch ver 8 is outdated, it is recommended to install ver 9.\nDownload from http://drive5.com/ and execute \n\"./autoInstall.pl -link_usearch [path to usearch9]\"\n",
-      0;
-}
-elsif ( $usearchVer < 8 ) {
-    printL "Usearch ver 7 is outdated, it is recommended to install ver 9.\nDownload from http://drive5.com/ and execute \n\"./autoInstall.pl -link_usearch [path to usearch9]\"\n",0;
-}
-
-#die "$usearchVer $usearchsubV\n";
-if ( $doXtalk == -1 ) {
-    if ( $usearchVer >= 11 ) {
-        $doXtalk = 0;    #deactivate since useless if not 64-bit uparse
-    }
-    else {
-        $doXtalk = 0;
-    }
-}
-
-#die "$VSBin\n";
-#which default aligner?
-if ( $doBlasting == -1 ) {
-    if ($defDBset) {
-        $doBlasting = 0;
-    }   else {
-        #check which aligner is installed
-        my $defaultTaxAlig = 4;
-        if ( !-f $VSBin ) {
-            if ( -f $lambdaBin ) { $defaultTaxAlig = 2; }
-            if ( -f $usBin ) { $defaultTaxAlig = 5; }
-            if ( -f $blastBin ) { $defaultTaxAlig = 1; }
-            elsif ( !-f $blastBin && $refDBwanted ne "" ) {
-                printL "Requested similarity search ($refDBwanted), but no suitable aligner (blast, lambda) binaries found!\n",
-                  50;
-            }
-        }
-        if ( substr( $ampliconType, 0, 3 ) eq "ITS" ) {
-            $doBlasting  = $defaultTaxAlig;
-            $refDBwanted = "UNITE";
-        }
-        if ( $refDBwanted ne "" ) {
-            $doBlasting = $defaultTaxAlig;    #set default to lambda
-            printL "RefDB $refDBwanted requested. Setting similarity based search to default Blast option to search $refDBwanted.\n",
-              0;
-        }
-    }
-}
-elsif ( $doBlasting == 0 && $refDBwanted ne "" ) {
-    printL "RefDB $refDBwanted requested, but -taxAligner set to \"0\": therefore RDP classification of reads will be done\n",
-      0;
-}
-
-readPaths($lotusCfg);
-
-#die "$refDBwanted\n";
-if ( $doBlasting < 1 ) {
-    $doRDPing = 1;
-}
-else {    #LCA only
-    $doRDPing = 0;
-}
-
-if ( $ClusterPipe_pre eq "CD-HIT" || $ClusterPipe_pre eq "CDHIT" || $ClusterPipe_pre eq "3" ) {
-    $ClusterPipe = 3;
-    if ( !-e $cdhitBin ) {
-        printL "No valid CD-Hit binary found at $cdhitBin\n", 88;
-    }
-}elsif ( $ClusterPipe_pre eq "UPARSE" || $ClusterPipe_pre eq "1" ) {
-    $ClusterPipe = 1;
-}elsif ( $ClusterPipe_pre eq "UNOISE" || $ClusterPipe_pre eq "UNOISE3" || $ClusterPipe_pre eq "6" ) {
-    $ClusterPipe = 6;
-	${OTU_prefix} = "Zotu";
-}elsif ( $ClusterPipe_pre eq "DADA2" || $ClusterPipe_pre eq "7" ) {
-    $ClusterPipe = 7;
-	${OTU_prefix} = "ASV";
-}elsif ( $ClusterPipe_pre eq "SWARM" || $ClusterPipe_pre eq "2" ) {
-    $ClusterPipe = 2;
-    if ( !-e $swarmBin ) {
-        printL "No valid swarm binary found at $swarmBin\n", 88;
-    }
-}elsif ( $ClusterPipe_pre eq "DNACLUST" || $ClusterPipe_pre eq "4" ) {
-    $ClusterPipe = 4;
-    if ( !-e $dnaclustBin ) {
-        printL "No valid DNA clust binary found at $dnaclustBin\n", 88;
-    }
-}
-if ( $platform eq "pacbio" && $ClusterPipe != 3 ) {
-    printL("CD-HIT clustering is strongly recommended with PacBio reads (unless you know what you are doing).","w");
-}
-
-#reference based OTU clustering requested?
-my $REFflag = $otuRefDB eq "ref_closed" || $otuRefDB eq "ref_open";
-
-if ($REFflag) {
-    if ( $ClusterPipe == 0 ) {
-        printL(
-"otupipe does not support ref DB out clustering\nUse dnaclust instead\n",
-            12
-        );
-    }
-    elsif ( $ClusterPipe == 1 ) {
-        printL("UPARSE does not support ref DB out clustering\nUse dnaclust instead\n",12 );
-    }
-    elsif ( $ClusterPipe == 6 ) {
-        printL("UNOISE does not support ref DB out clustering\nUse dnaclust instead\n",12 );
-    }
-    elsif ( $ClusterPipe == 2 ) {
-        printL(
-"SWARM does not support ref DB out clustering\nUse dnaclust instead\n",
-            12
-        );
-    }
-    if ( $refDBwanted eq "" ) {
-        printL "You selected ref based ${OTU_prefix} building, please set -refDB to \"SLV\", \"GG\", \"HITdb\", \"PR2\" or a custom fasta file.\n",
-          22;
-    }
-
-}
-
-checkBlastAvaila();
-
-#"LotuS 1.281"
-$selfID =~ m/LotuS (\d\.\d+)/;
-my $sdmVer = checkLtsVer($1);
-if ( $sdmVer < $curSdmV ) {
-    finWarn
-"Installed sdm version ($sdmVer < $curSdmV) seems to be outdated, please check on \n    lotus2.earlham.ac.uk\nfor the most recent version. Make sure the sdm path in '$lotusCfg' points to the correct sdm binary\n";
-}
-$swarmClus_d = int($swarmClus_d);
-if ( $swarmClus_d < 1 ) {
-    printL "Please provide as swarm distance an int > 0\n", 29;
-}
-
-#change automatically lambdaindexer based on mem installed in machine
-if ( (`cat /proc/meminfo |  grep "MemTotal" | awk '{print \$2}'`) < 16524336 ) {
-    $lowMemLambI = 1;
-    printL "Less than 16GB Ram detected, switching to mem-friendly workflow\n";
-}
-
-#die();
-
-if ( !-e $sdmOpt && $TaxOnly eq "0") {
-	if ( $sdmOpt eq "" ) {
-		$sdmOpt = "$RealBin/sdm_miSeq.txt";
-		printL "No sdm Option specified, using standard 454 sequences options", 0;
-	}
-    printL "Could not find sdm options file (specified via \"-s\". Please make sure this is available.\n Aborting run..\n",33;
-}
-
-#die $LCABin."\n";
-if ( substr( $ampliconType, 0, 3 ) eq "ITS" ) {
-    if ( $organism ne "fungi" && $organism ne "eukaryote" ) {
-        $organism = "eukaryote";
-        finWarn
-"Setting \"-tax_group\" to \"eukaryote\" as only eukaryote and fungi are supported options for $ampliconType.\n";
-    }
-
-    if (   $doBlasting == 0
-        || ( !-f $blastBin && !-f $lambdaBin )  || @TAX_REFDB == 0 || !-f $TAX_REFDB[0] )
-    {
-        my $failedBlastITS = "ITS region was chosen as target; this requires a similarity based taxnomic annotation and excludes RDP tax annotation.\n";
-        $failedBlastITS .= "Blast similarity based annotation is not possible due to: ";
-        if ( $doBlasting == 0 ) {
-            $failedBlastITS .= "Similarity search was not explicitly activated (please use option \"-taxAligner usearch\" or vsearch,lambda,blast).";
-        }
-        elsif ( !-f $blastBin || !-f $lambdaBin ) {
-            $failedBlastITS .=
-              "Neither Lambda nor Blast binary being specified correctly";
-        }
-        elsif ( @TAX_REFDB == 0 || !-f $TAX_REFDB[0] ) {
-            $failedBlastITS .= "Reference DB does not exist ($TAX_REFDB[0]).\n";
-        }
-        $failedBlastITS .= "\nTherefore LotuS had to abort..\n";
-        printL $failedBlastITS, 87;
-    }
-
-#$doBlasting && (-f $blastBin || -f $lambdaBin) && $TAX_REFDB ne "" && -f $TAX_REFDB)
-}
-if ( $noChimChk < 0 || $noChimChk > 3 ) {
-    printL "option \"-deactivateChimeraCheck\" has to be between 0 and 3\n", 45;
-}
-if ( $saveDemulti < 0 || $saveDemulti > 3 ) {
-    printL "option \"-saveDemultiplex\" has to be between 0 and 3\n", 46;
-}
-
-#if ($ClusterPipe == 1 && ($noChimChk == 2 || $noChimChk == 1) ){
-#printL "Deactivation of deNovo chimera filter in conjuction with UPARSE clustering is NOT supported","w";
-#}
-#die $TAX_REFDB."\n";
 
 my @inputArray = split( /,/, $input );
 my @inqArray   = split( /,/, $inq );
@@ -1902,8 +1641,7 @@ sub biomFmt($ $ $ $ $) {
     my %Tax    = %{$hr1};
     my %hit2db = %{$hr2};                  #my @lvls = @{$ar1};
 
-    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =
-      gmtime();
+    my ( $sec, $min, $hour, $mday, $mon, $year, $wday, $yday, $isdst ) =  gmtime();
     my $biomo =
 "{\n \"id\":null,\n \"format\": \"Biological Observation Matrix 0.9.1-dev\",
 	 \"format_url\": \"http://biom-format.org/documentation/format_versions/biom-1.0.html\",
@@ -2045,7 +1783,7 @@ sub truePath($){
 	return $tmp;
 }
 
-sub readPaths_aligners() {
+sub readPaths_aligners($) {
     my ($inF) = @_;
     die("$inF does not point to a valid lotus configuration\n")
       unless ( -f $inF );
@@ -2147,8 +1885,8 @@ sub readPaths_aligners() {
 }
 
 #read database paths on hdd
-sub readPaths() {    #read tax databases and setup correct usage
-    my ($inF) = @_;
+sub readPaths {    #read tax databases and setup correct usage
+    my ($inF,$defDBset) = @_;
     die("$inF does not point to a valid lotus configuration\n")
       unless ( -f $inF );
     open I, "<", $inF;
@@ -2504,6 +2242,247 @@ sub checkBlastAvaila() {
         printL "Requested USEARCH based similarity tax annotation; no usearch binary found at $usBin\n",55;
     }
 }
+
+sub prepLtsOptions{
+	
+	if ($chimCnt){
+		$chimCnt = "T";
+	} else {
+		$chimCnt = "F";
+	}
+
+	#still undocumented options: VsearchChimera removePhiX
+
+	#uc/lc some vars
+	$platform = lc($platform);
+	if ($greengAnno) {
+		$pseudoRefOTU   = 1;
+		$refDBwanted    = "GG";
+		$doBlasting_pre = "4";
+		print "Greengenes ID as species ID requested (for integration with software that requires greengenes ID).\nUsing Lambda OTU similarity search and greengenes ref DB\n";
+	}    #
+	if ( -f $refDBwanted ) {
+	}
+	elsif ( $refDBwanted =~ m/^GG|SLV|UNITE|HITDB|PR2|BEETAX$/i ) {
+		#$refDBwanted = uc($refDBwanted);
+	}elsif ( $refDBwanted ne "" ) {
+		print "$refDBwanted not recognized. Aborting..\n";
+		exit(5);
+	}
+	if ( $platform eq "pacbio" ) {
+		$dereplicate_minsize_def = 0;
+	}
+	if ( $dereplicate_minsize !~ m/\D/ && $dereplicate_minsize == -1 ){
+		$dereplicate_minsize = $dereplicate_minsize_def ;
+	}
+
+	#die $refDBwanted."\n";
+	$ampliconType    = uc($ampliconType);
+	$organism        = lc($organism);
+	$ClusterPipe_pre = uc($ClusterPipe_pre);
+	$otuRefDB        = lc $otuRefDB;
+
+	getSimBasedTax();
+
+	if ( $TaxOnly eq "0" && !defined($input) && !defined($outdir) && !defined($map) ) { 
+		defined($input) or usage("-i option (input dir/files) is required\n");
+		if ( $input =~ m/\*/ ) {
+			usage ("\"*\" not supported in input command. Please see documentation on how to set up the mapping file for several input files.");
+		}
+		defined($outdir) or usage("-o option (output dir) is required\n");
+		if ( !defined($map) ) {
+			usage("-m missing option (mapping file)\n");
+		}
+	}
+	if ( !defined($sdmOpt) && $TaxOnly eq "0" ) {
+		finWarn("WARNING:\n sdm options not set\n WARNING\n");
+	}
+	if ($TaxOnly ne "0" && -f $TaxOnly){
+		$TaxOnly =~ m/.*\/(.*)$/;$outdir = $1."/tmp/";;
+		printL "Using tmp outdir $outdir\n";
+		$rmOutDir=1;
+	}
+	
+	#----- part 2 ----------
+		
+	if ( $platform eq "hiseq" ) {
+		$linesPerFile = 8000000;
+	}
+	my $defDBset = 0;
+	if ( $refDBwanted eq "" ) {
+		$refDBwanted = "GG";
+		$defDBset    = 1;
+	}
+
+	readPaths_aligners($lotusCfg);
+	my $usvstr = `$usBin --version`;
+	$usvstr =~ m/usearch v(\d+\.\d+)\.(\d+)/;
+	$usearchVer = $1;$usearchsubV = $2;
+
+	#if ($usearchVer == 9){printL "Usearch ver 9 currently not supported, please install ver 8.\n",39;}
+	if ( $usearchVer > 11 ) {
+		printL "Usearch ver $usearchVer is not supported.\n", 55;
+	}elsif ( $usearchVer >= 8 && $usearchVer < 9 ) {
+		printL"Usearch ver 8 is outdated, it is recommended to install ver 9.\nDownload from http://drive5.com/ and execute \n\"./autoInstall.pl -link_usearch [path to usearch9]\"\n",0;
+	}elsif ( $usearchVer < 8 ) {
+		printL "Usearch ver 7 is outdated, it is recommended to install ver 9.\nDownload from http://drive5.com/ and execute \n\"./autoInstall.pl -link_usearch [path to usearch9]\"\n",0;
+	}
+
+	#die "$usearchVer $usearchsubV\n";
+	if ( $doXtalk == -1 ) {
+		if ( $usearchVer >= 11 ) {
+			$doXtalk = 0;    #deactivate since useless if not 64-bit uparse
+		}  else { $doXtalk = 0;}
+	}
+
+	#die "$VSBin\n";
+	#which default aligner?
+	if ( $doBlasting == -1 ) {
+		if ($defDBset) {
+			$doBlasting = 0;
+		}   else {
+			#check which aligner is installed
+			my $defaultTaxAlig = 4;
+			if ( !-f $VSBin ) {
+				if ( -f $lambdaBin ) { $defaultTaxAlig = 2; }
+				if ( -f $usBin ) { $defaultTaxAlig = 5; }
+				if ( -f $blastBin ) { $defaultTaxAlig = 1; }
+				elsif ( !-f $blastBin && $refDBwanted ne "" ) {
+					printL "Requested similarity search ($refDBwanted), but no suitable aligner (blast, lambda) binaries found!\n",50;
+				}
+			}
+			if ( substr( $ampliconType, 0, 3 ) eq "ITS" ) {
+				$doBlasting  = $defaultTaxAlig;
+				$refDBwanted = "UNITE";
+			}
+			if ( $refDBwanted ne "" ) {
+				$doBlasting = $defaultTaxAlig;    #set default to lambda
+				printL "RefDB $refDBwanted requested. Setting similarity based search to default Blast option to search $refDBwanted.\n",0;
+			}
+		}
+	}
+	elsif ( $doBlasting == 0 && $refDBwanted ne "" ) {
+		printL "RefDB $refDBwanted requested, but -taxAligner set to \"0\": therefore RDP classification of reads will be done\n",0;
+	}
+
+	readPaths($lotusCfg,$defDBset);
+
+	#die "$refDBwanted\n";
+	if ( $doBlasting < 1 ) {
+		$doRDPing = 1;
+	}
+	else {    #LCA only
+		$doRDPing = 0;
+	}
+
+	if ( $ClusterPipe_pre eq "CD-HIT" || $ClusterPipe_pre eq "CDHIT" || $ClusterPipe_pre eq "3" ) {
+		$ClusterPipe = 3; $clusteringNameStr = "CD-HIT";
+		if ( !-e $cdhitBin ) {
+			printL "No valid CD-Hit binary found at $cdhitBin\n", 88;
+		}
+	}elsif ( $ClusterPipe_pre eq "UPARSE" || $ClusterPipe_pre eq "1" ) {
+		$ClusterPipe = 1;$clusteringNameStr = "UPARSE";
+	}elsif ( $ClusterPipe_pre eq "UNOISE" || $ClusterPipe_pre eq "UNOISE3" || $ClusterPipe_pre eq "6" ) {
+		$ClusterPipe = 6; $clusteringNameStr = "UNOISE3";
+		${OTU_prefix} = "Zotu";
+	}elsif ( $ClusterPipe_pre eq "DADA2" || $ClusterPipe_pre eq "7" ) {
+		$ClusterPipe = 7; $clusteringNameStr = "DADA2";
+		${OTU_prefix} = "ASV";
+	}elsif ( $ClusterPipe_pre eq "SWARM" || $ClusterPipe_pre eq "2" ) {
+		$ClusterPipe = 2; $clusteringNameStr = "SWARM";
+		if ( !-e $swarmBin ) {
+			printL "No valid swarm binary found at $swarmBin\n", 88;
+		}
+	}elsif ( $ClusterPipe_pre eq "DNACLUST" || $ClusterPipe_pre eq "4" ) {
+		$ClusterPipe = 4; $clusteringNameStr = "DNACLUST";
+		if ( !-e $dnaclustBin ) {
+			printL "No valid DNA clust binary found at $dnaclustBin\n", 88;
+		}
+	}
+	if ( $platform eq "pacbio" && $ClusterPipe != 3 ) {
+		printL("CD-HIT clustering is strongly recommended with PacBio reads (unless you know what you are doing).","w");
+	}
+
+
+
+	$REFflag = $otuRefDB eq "ref_closed" || $otuRefDB eq "ref_open";
+	if ($REFflag) {
+		if ( $ClusterPipe != 0  ) {
+			printL( "$clusteringNameStr does not support ref DB out clustering\nUse dnaclust instead\n",12);
+		}
+		if ( $refDBwanted eq "" ) {
+			printL "You selected ref based ${OTU_prefix} building, please set -refDB to \"SLV\", \"GG\", \"HITdb\", \"PR2\" or a custom fasta file.\n",22;
+		}
+
+	}
+
+	checkBlastAvaila();
+
+	#"LotuS 1.281"
+	$selfID =~ m/LotuS (\d\.\d+)/;
+	my $sdmVer = checkLtsVer($1);
+	if ( $sdmVer < $curSdmV ) {
+		finWarn "Installed sdm version ($sdmVer < $curSdmV) seems to be outdated, please check on \n    lotus2.earlham.ac.uk\nfor the most recent version. Make sure the sdm path in '$lotusCfg' points to the correct sdm binary\n";
+	}
+	$swarmClus_d = int($swarmClus_d);
+	if ( $swarmClus_d < 1 ) {
+		printL "Please provide as swarm distance an int > 0\n", 29;
+	}
+
+	#change automatically lambdaindexer based on mem installed in machine
+	if ( (`cat /proc/meminfo |  grep "MemTotal" | awk '{print \$2}'`) < 16524336 ) {
+		$lowMemLambI = 1;
+		printL "Less than 16GB Ram detected, switching to mem-friendly workflow\n";
+	}
+
+	#die();
+
+	if ( !-e $sdmOpt && $TaxOnly eq "0") {
+		if ( $sdmOpt eq "" ) {
+			$sdmOpt = "$RealBin/sdm_miSeq.txt";
+			printL "No sdm Option specified, using standard 454 sequences options", 0;
+		}
+		printL "Could not find sdm options file (specified via \"-s\". Please make sure this is available.\n Aborting run..\n",33;
+	}
+
+	#die $LCABin."\n";
+	if ( substr( $ampliconType, 0, 3 ) eq "ITS" ) {
+		if ( $organism ne "fungi" && $organism ne "eukaryote" ) {
+			$organism = "eukaryote";
+			finWarn
+	"Setting \"-tax_group\" to \"eukaryote\" as only eukaryote and fungi are supported options for $ampliconType.\n";
+		}
+
+		if (   $doBlasting == 0
+			|| ( !-f $blastBin && !-f $lambdaBin )  || @TAX_REFDB == 0 || !-f $TAX_REFDB[0] )
+		{
+			my $failedBlastITS = "ITS region was chosen as target; this requires a similarity based taxnomic annotation and excludes RDP tax annotation.\n";
+			$failedBlastITS .= "Blast similarity based annotation is not possible due to: ";
+			if ( $doBlasting == 0 ) {
+				$failedBlastITS .= "Similarity search was not explicitly activated (please use option \"-taxAligner usearch\" or vsearch,lambda,blast).";
+			}
+			elsif ( !-f $blastBin || !-f $lambdaBin ) {
+				$failedBlastITS .=
+				  "Neither Lambda nor Blast binary being specified correctly";
+			}
+			elsif ( @TAX_REFDB == 0 || !-f $TAX_REFDB[0] ) {
+				$failedBlastITS .= "Reference DB does not exist ($TAX_REFDB[0]).\n";
+			}
+			$failedBlastITS .= "\nTherefore LotuS had to abort..\n";
+			printL $failedBlastITS, 87;
+		}
+
+	#$doBlasting && (-f $blastBin || -f $lambdaBin) && $TAX_REFDB ne "" && -f $TAX_REFDB)
+	}
+	if ( $noChimChk < 0 || $noChimChk > 3 ) {
+		printL "option \"-deactivateChimeraCheck\" has to be between 0 and 3\n", 45;
+	}
+	if ( $saveDemulti < 0 || $saveDemulti > 3 ) {
+		printL "option \"-saveDemultiplex\" has to be between 0 and 3\n", 46;
+	}
+}
+
+
 
 sub help {
 	my $ver = 0;
