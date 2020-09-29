@@ -312,7 +312,7 @@ GetOptions(
     #"flashAvgLengthSD" => \$flashSD,
 ) or usage("Unknown options");
 
-
+#routines that are external of a proper 16S run
 if ($versionOut){
 	print "$selfID\n";
 	exit(0);
@@ -323,29 +323,22 @@ if ( $check_map ne "" ) {
 	print "\n\nmapping file seems correct\n";
 	exit(0);
 }
-
 if ($create_map ne ""){
 	autoMap($input, $create_map);
 	exit(0);
 }
-
-
-prepLtsOptions();
-
-
-$lotus_tempDir = $outdir . "/tmpFiles/" if (!defined($lotus_tempDir) || $lotus_tempDir == "");
-system("rm -f -r $outdir") if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" );
-system("mkdir -p $outdir") unless ( -d $outdir );
-if ( !-d $outdir ) {  die( "Failed to make outputdir or doesn't exist: " . $outdir . "\n" );}
-my $existing_otus = "";
-$BlastCores = $uthreads;
+#declare global vars
 my $logDir       = $outdir . "/LotuSLogS/";
 my $extendedLogD = $outdir . "/ExtraFiles/";
-system("mkdir -p $logDir") unless ( -d $logDir );#$3
 $mainLogFile = $logDir . "LotuS_run.log";
 my $cmdLogFile = $logDir . "LotuS_cmds.log";
 my $progOutPut = $logDir . "LotuS_progout.log";
-system "rm -f $progOutPut\n";
+#create dirs
+system("rm -f -r $outdir") if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" );
+system("mkdir -p $outdir") unless ( -d $outdir );
+system("mkdir -p $logDir") unless ( -d $logDir );
+system "rm -f $progOutPut\n"; #from here log systemL
+systemL("mkdir -p $extendedLogD;") unless ( -d $extendedLogs && $extendedLogs);
 die "TaxOnly option specified, but not an output dir: $outdir\n" unless (-d $outdir && -d $logDir);
 #reset logfile
 open LOG, ">", $mainLogFile or die "Can't open Logfile $mainLogFile\n";
@@ -353,9 +346,11 @@ open cmdLOG , ">$cmdLogFile" or die "Can't open cmd log $cmdLogFile\n";
 
 
 
-if ($extendedLogs) {
-    systemL("mkdir -p $extendedLogD;") unless ( -d $extendedLogs );
-}
+#just setup options to default pars, check consistency of options etc
+prepLtsOptions();
+
+
+
 #-----------------
 #all parameters set; pipeline starts from here
 printL( frame( $selfID . "\n". $cmdCall ), 0 );
@@ -580,7 +575,6 @@ if ( $numInput == 2){
 	} elsif ( $onlyTaxRedo && $numInput == 2 ) {
 		printL "Skipping paired end merging step\n", 0;
 	}
-	
 	#needs to be run in any case for paired input, just to make sure all reads are correctly listed in $OTUSEED
 	forceMerge_fq2fna( $single1, $single2, $input,$mergeSeedsFilesSing[0], $OTUSEED );
 }
@@ -631,7 +625,6 @@ if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 } elsif ($onlyTaxRedo) {
     printL "Skipping removal of contaminated OTUs step\n", 0;
 }
-
 # ////////////////////////// TAXONOMY ////////////////////////////////////////////
 my $RDPTAX = 0;
 my $REFTAX = 0;
@@ -1121,9 +1114,7 @@ sub contamination_rem($ $ $ ) {
 			}
 
 			#die $cmd."\n";
-
 			if ( systemL($cmd) != 0 ) { printL( "Failed command:\n$cmd\n", 1 ); }
-
 			#create tmp
 			my %hits;
 			if ($hitsFile =~ m/\.paf/){
@@ -1140,8 +1131,6 @@ sub contamination_rem($ $ $ ) {
 				}
 				close I;
 			}
-
-			
 			printL (frame( "Removed $contRem OTUs using $matchAlgo ($nameRDB:$refDB)."), 0);
 			#die ("@hits\n");
 			if (!$contRem) { return(0);}
@@ -1151,7 +1140,6 @@ sub contamination_rem($ $ $ ) {
 			print LLOG "$nameRDB\t$refDB\n@hitA\n";
 			close LLOG;
 			#report
-
 			#(add - deleted before) contaminated Fastas to file
 			open Ox, ">$outContaminated" or printL "Can't open contaminated OTUs file $outContaminated\n", 39;
 			foreach my $hi (@hitA) {
@@ -1178,7 +1166,7 @@ sub contamination_rem($ $ $ ) {
 		}
 		$contRemStr += $contRem;
 	}
-	
+print "B";
 		#print remaining OTUs
 	open Oa, ">$otusFA" or printL "Can't open ${OTU_prefix} file $otusFA\n", 39;
 	my $cnt=0;
@@ -2332,6 +2320,9 @@ sub checkBlastAvaila() {
 
 sub prepLtsOptions{
 	
+	$lotus_tempDir = $outdir . "/tmpFiles/" if (!defined($lotus_tempDir) || $lotus_tempDir eq "");
+	$BlastCores = $uthreads;
+
 	if ($chimCnt){
 		$chimCnt = "T";
 	} else {
@@ -2517,9 +2508,9 @@ sub prepLtsOptions{
 	}
 
 	#change automatically lambdaindexer based on mem installed in machine
-	if ( (`cat /proc/meminfo |  grep "MemTotal" | awk '{print \$2}'`) < 16524336 ) {
+	if ( 0 && (`cat /proc/meminfo |  grep "MemTotal" | awk '{print \$2}'`) < 16524336 ) {
 		$lowMemLambI = 1;
-		printL "Less than 16GB Ram detected, switching to mem-friendly workflow\n";
+		printL "Less than 16GB Ram detected, switching to mem-friendly workflow\n",0;
 	}
 
 	#die();
@@ -2677,15 +2668,16 @@ sub frame {
 	foreach my $s (@txtarrT){
 		#last;
 		my $cnt=0;
-		while (length($s) > $txtSpac || $cnt > 20){
+		while (length($s) > $txtSpac && $cnt < 20){
 			my $spacIdx = index $s, ' ',$txtSpac-15;
-
+			last if ($spacIdx <= 0);
 			push (@txtarr, (substr $s,0,$spacIdx));
 			substr ($s,0,$spacIdx+1) = "";
 			$cnt++;
 		}
 		push (@txtarr, $s);
 	}
+
     my $repStr = '-' x $width;#"=========================================================================\n";
     my $ret = $repStr."\n";
 	
@@ -3927,7 +3919,7 @@ sub readMap() {
         my $smplNms = $spl[0];
         if ( $fileCol != -1 ) {
             if ( $spl[$fileCol] =~ m/,/ ) {
-                printL "Switching to paired end read mode\n", 0 if ( $numInput != 2 );
+                $Ltxt .= "Switching to paired end read mode\n" if ( $numInput != 2 );
                 $numInput = 2;
             }
             elsif ( $numInput == 2 ) {
