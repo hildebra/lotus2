@@ -1413,7 +1413,7 @@ sub clean_otu_mat($ $ $ $) {
 
 	#writeFasta(\%newOTUs,$OTUfa);
 	$Lreport .= "Postfilter:\n"; 
-	my $chimTag = "chimeric";$chimTag .= "/ITSx" if ($doITSx);
+	my $chimTag = "chimeric";#$chimTag .= "/ITSx" if ($doITSx);
 	$Lreport .= "Chimeras: $chimRm $chimTag found ($chimRdCnt reads)\n" if ($chimRm);
 	my $strTmp = "Contaminants: ";
 	my $lcnt =0;
