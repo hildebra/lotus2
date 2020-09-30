@@ -339,7 +339,7 @@ system("rm -f -r $outdir") if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "
 system("mkdir -p $outdir") unless ( -d $outdir );
 system("mkdir -p $logDir") unless ( -d $logDir );
 system "rm -f $progOutPut\n"; #from here log systemL
-systemL("mkdir -p $extendedLogD;") unless ( -d $extendedLogs && $extendedLogs);
+system("mkdir -p $extendedLogD;") unless ( -d $extendedLogs && $extendedLogs);
 die "TaxOnly option specified, but not an output dir: $outdir\n" unless (-d $outdir && -d $logDir);
 #reset logfile
 open LOG, ">", $mainLogFile or die "Can't open Logfile $mainLogFile\n";
@@ -601,7 +601,7 @@ if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
     #remove chimeras on longer merged reads
     my $refChims = chimera_rem( $OTUSEED);
     #ITSx
-    ITSxOTUs($OTUSEED);
+    my $nonITShref = ITSxOTUs($OTUSEED);
 
     #phiX
     
@@ -624,6 +624,7 @@ if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
     #but OTU matrix already written, need to remove these
     my $XtalkRef = checkXtalk( $OTUfa, $OTUmFile );
 	${$xtraConthref}{"phiX"} = $XtalkRef;
+	${$xtraConthref}{"ITSx"} = $nonITShref;
 	
 	#integrate all these filters now
     $OTUrefDBlnk = clean_otu_mat($OTUfa,$OTUrefSEED, $OTUmFile,
@@ -997,47 +998,48 @@ sub loadFaProTax($){
 }
 
 sub ITSxOTUs {
-    my ($otusFA) = @_;
-    return unless ( substr( $ampliconType, 0, 3 ) eq "ITS" );
-    return if ( !$doITSx );
-    if ( !-e $itsxBin ) {
-        printL "Did not find ITSx binary at $itsxBin\nNo ITS extraction used\n";
-        return;
-    }
-    if ( !-e $hmmsrchBin ) {
-        printL "Did not find hmmscan binary at $hmmsrchBin\nNo ITS extraction used\n";
-        return;
-    }
+	my ($otusFA) = @_;
+	my %ret;
+	return \%ret unless ( substr( $ampliconType, 0, 3 ) eq "ITS" );
+	return \%ret if ( !$doITSx );
+	if ( !-e $itsxBin ) {
+		printL "Did not find ITSx binary at $itsxBin\nNo ITS extraction used\n";
+		return \%ret;
+	}
+	if ( !-e $hmmsrchBin ) {
+		printL "Did not find hmmscan binary at $hmmsrchBin\nNo ITS extraction used\n";
+		return \%ret;
+	}
 
-    my $outBFile = $otusFA . ".itsX";
-    my $ITSxReg  = "ITS1,ITS2";
-    if ( $ampliconType eq "ITS2" ) {
-        $ITSxReg = "ITS2";
-        printL "Setting to ITS2 region\n";
-    }
-    if ( $ampliconType eq "ITS1" ) {
-        $ITSxReg = "ITS1";
-        printL "Setting to ITS1 region\n";
-    }
-    my $itsxOrg = "all";
-    $itsxOrg = "F" if ( lc($organism) eq "fungi" );
+	my $outBFile = $otusFA . ".itsX";
+	my $ITSxReg  = "ITS1,ITS2";
+	if ( $ampliconType eq "ITS2" ) {
+		$ITSxReg = "ITS2";
+		printL "Setting to ITS2 region\n";
+	}
+	if ( $ampliconType eq "ITS1" ) {
+		$ITSxReg = "ITS1";
+		printL "Setting to ITS1 region\n";
+	}
+	my $itsxOrg = "all";
+	$itsxOrg = "F" if ( lc($organism) eq "fungi" );
 
-    #die "$itsxOrg\n";
-    my $cmd = "$itsxBin -i $otusFA -o $outBFile -cpu $uthreads -t $itsxOrg --silent T --fasta T --save_regions $ITSxReg --partial $ITSpartial --hmmBin $hmmsrchBin;";
-    $cmd .= "cp $outBFile.summary.txt $logDir/ITSx.summary.txt\n";
-    if ( systemL($cmd) != 0 ) { printL( "Failed command:\n$cmd\n", 1 ); }
+	#die "$itsxOrg\n";
+	my $cmd = "$itsxBin -i $otusFA -o $outBFile -cpu $uthreads -t $itsxOrg --silent T --fasta T --save_regions $ITSxReg --partial $ITSpartial --hmmBin $hmmsrchBin;";
+	$cmd .= "cp $outBFile.summary.txt $logDir/ITSx.summary.txt\n";
+	if ( systemL($cmd) != 0 ) { printL( "Failed command:\n$cmd\n", 1 ); }
 
 #die $cmd;
 #if (-z "$outBFile.full.fasta"){printL "Could not find any valid ITS OTU's. Aborting run.\n Remaining OTUs can be found in $outBFile*\n",923;}
-    my $hr;
-    my %ITSo;
+	my $hr;
+	my %ITSo;
 	
 	if ($ampliconType eq "ITS"){
 		#printL "cat $outBFile.ITS1.fasta $outBFile.ITS2.fasta >> $outBFile.full.fasta\n\n",0;
 		systemL "cat $outBFile.ITS1.fasta $outBFile.ITS2.fasta >> $outBFile.full.fasta";
-        $hr   = readFasta("$outBFile.full.fasta");
-        %ITSo = %{$hr};
-    } else{
+		$hr   = readFasta("$outBFile.full.fasta");
+		%ITSo = %{$hr};
+	} else{
 		if ( $ampliconType eq "ITS1" || $ampliconType eq "ITS" ) {
 			$hr   = readFasta("$outBFile.ITS1.fasta");
 			%ITSo = %{$hr};
@@ -1048,29 +1050,38 @@ sub ITSxOTUs {
 		}
 	}
 
-    #my $ITSfa = `grep -c '^>' $outBFile.full.fasta`;
-    my $orifa = `grep -c '^>' $otusFA`;
-    chomp $orifa;    #chomp $ITSfa;
-    if ( scalar( keys(%ITSo) ) == 0 ) {
-        printL "Could not find any valid ITS ${OTU_prefix}'s. Aborting run.\n Remaining OTUs can be found in $outBFile*\n", 923;
-    }
+	#my $ITSfa = `grep -c '^>' $outBFile.full.fasta`;
+	#my $orifa = `grep -c '^>' $otusFA`;chomp $orifa;    #chomp $ITSfa;
+	$hr = readFasta($otusFA); my %FNA = %{$hr};
+	
+	if ( scalar( keys(%ITSo) ) == 0 ) {
+		printL "Could not find any valid ITS ${OTU_prefix}'s. Aborting run.\n Remaining OTUs can be found in $outBFile*\n", 923;
+	}
+	
+	#check which OTUs existed before, but are not longer listed in ITSx output
+	my @prevOTUs = keys %FNA;
+	my @newOTUs = keys %ITSo;
+	my %lookup = map { $_ => 1 } @newOTUs;
+	for my $otu ( @prevOTUs ) {
+		$ret{$otu} = 1 if (!exists($lookup{ $otu }));
+	}
 
-    printL "ITSx analysis: Kept " . scalar( keys(%ITSo) ) . " ${OTU_prefix}'s identified as $ITSxReg (of $orifa ${OTU_prefix}'s).\n";
+	printL frame( "ITSx analysis: Kept " . scalar( keys(%ITSo) ) . " ${OTU_prefix}'s identified as $ITSxReg (of "  . scalar( keys(%ITSo) ) . " ${OTU_prefix}'s).\n"),0;
 
-    #systemL "cat $outBFile.full.fasta > $otusFA";
-    open O, ">$otusFA" or die "Can't open output $otusFA\n";
-    foreach my $k ( keys %ITSo ) {
-        my $hdde = "${OTU_prefix}x_1";
-		if ($k =~ m/^(ASV|[z]?OTU_\d+)\|/){
-			$hdde = $1;
-		}
-        print O ">$hdde\n$ITSo{$k}\n";
-    }
-    close O;
-    systemL "rm -f $outBFile*;";
-    $citations .= "ITSx removal of non ITS OTUs: ITSx: Johan Bengtsson-Palm et al. (2013) Improved software detection and extraction of ITS1 and ITS2 from ribosomal ITS sequences of fungi and other eukaryotes for use in environmental sequencing. Methods in Ecology and Evolution, 4: 914-919, 2013\n";
-
-    #die $cmd."\n";
+	#systemL "cat $outBFile.full.fasta > $otusFA";
+	#open O, ">$otusFA" or die "Can't open output $otusFA\n";
+	#foreach my $k ( keys %ITSo ) {
+	#	my $hdde = "${OTU_prefix}x_1";
+	#	if ($k =~ m/^(ASV|[z]?OTU_\d+)\|/){
+	#		$hdde = $1;
+	#	}
+	#	print O ">$hdde\n$ITSo{$k}\n";
+	#}
+	#close O;
+	systemL "rm -f $outBFile*;";
+	$citations .= "ITSx removal of non ITS OTUs: ITSx: Johan Bengtsson-Palm et al. (2013) Improved software detection and extraction of ITS1 and ITS2 from ribosomal ITS sequences of fungi and other eukaryotes for use in environmental sequencing. Methods in Ecology and Evolution, 4: 914-919, 2013\n";
+	return \%ret;
+	#die $cmd."\n";
 }
 
 sub contamination_rem($ $ $ ) {
@@ -1261,11 +1272,10 @@ sub checkXtalk($ $) {
         printL "Cross talk unsuccessful, continuing without\n","w";
     } else {
 		my $tmp = `cut -f1 $otuM`; my @prevOTUs = split /\n/,$tmp;
-		my $tmp = `cut -f1 $otuM1`; my @newOTUs = split /\n/,$tmp;
+		$tmp = `cut -f1 $otuM1`; my @newOTUs = split /\n/,$tmp;
 		my %lookup = map { $_ => 1 } @newOTUs;
 		for my $thing ( @prevOTUs ) {
 			$ret{$thing} = 1 if (!exists($lookup{ $thing }));
-			
 		}
         $citations .= "CrossTalk ${OTU_prefix} removal: UNCROSS2: identification of cross-talk in 16S rRNA OTU tables. Robert C. Edgar . Bioarxiv (https://www.biorxiv.org/content/biorxiv/early/2018/08/27/400762.full.pdf)\n";
     }
@@ -1404,7 +1414,7 @@ sub clean_otu_mat($ $ $ $) {
 	#writeFasta(\%newOTUs,$OTUfa);
 	$Lreport .= "Postfilter:\n"; 
 	my $chimTag = "chimeric";$chimTag .= "/ITSx" if ($doITSx);
-	$Lreport .= "Chimears: $chimRm $chimTag found ($chimRdCnt reads)\n" if ($chimRm);
+	$Lreport .= "Chimeras: $chimRm $chimTag found ($chimRdCnt reads)\n" if ($chimRm);
 	my $strTmp = "Contaminants: ";
 	my $lcnt =0;
 	foreach my $k (keys %contaCnt){
@@ -2613,6 +2623,7 @@ sub help {
 #HELPSTART
     print "LotuS usage:\n./lotus2.pl -i [input fasta / fastq / dir]";
     print " -o [output dir] -m/-map [mapping file]\n";
+	print "minimal example: \"perl lotus2.pl -i testDir/ -o testOut/ -m testDir/mymap.txt -CL dada2\n";
 	
 	if ($ver == 1){
 		print "            === or ===   \n";
@@ -2621,68 +2632,64 @@ sub help {
 		print "To see further arguments, use \"./lotus2.pl -help\"\n";
 		return;
 	}
-	print "Optional options are:\n";
-    print "############### other functions ###############\n";
-	print "  -v print LotuS2 version\n";
-    print "  -check_map [mapping file] only checks mapping file and exists\n";
-    print "############### Basic pipeline options ###############\n";
+	print "Optional options\n";
+	print "\n############### Basic pipeline options ###############\n";
+	print "  -q [input qual file (empty in case of fastq or directory)]\n";
+	print "  -barcode|MID [file path to fastq formated file with barcodes, e.g. MID (this is a processed mi/hiSeq format)]\n";
+	print "  -s [sdm option file, defaults to \"sdm_options.txt\" in current dir]\n";
+	print "  -c [lOTUs.cfg config file with program paths]\n";
+	print "  -p [sequencing platform:454,miSeq,hiSeq,PacBio]\n";
+	print "  -t|threads [number of threads to be used, default 1]\n";
+	print "  -tmp|tmpDir [temporary directory]. Default [-o]/tmp/\n";
+	print "\n############### Worflow related options ###############\n";
 	print "  -verbosity [0-3] level of verbosity from printing all program calls and program output [3] to not even printing errors [0]\n";
-    print "  -q [input qual file (empty in case of fastq or directory)]\n";
-    print "  -barcode|MID [file path to fastq formated file with barcodes, e.g. MID (this is a processed mi/hiSeq format)]\n";
-    print "  -s [sdm option file, defaults to \"sdm_options.txt\" in current dir]\n";
-    print
-"  -c [lOTUs.cfg config file with program paths]\n  -p [sequencing platform:454,miSeq,hiSeq,PacBio]\n";
-    print "  -tmp|tmpDir [temporary directory]. Default [-o]/tmp/\n";
-    print "  -t|threads [number of threads to be used, default 1]\n  -UP [(1) use UPARSE, (0) use otupipe, default 1]\n";
-    print "  -offtargetDB [Default: empty. This option checks in analogy to the phiX filter step in a custom DB (e.g. mouse genome, needs to be fasta format), for contaminant OTUs that are more likely to derrive from this genome than e.g. bacteria. Example: -offtargetDB /YY/mouse.fna,/YY/human.fna]\n";
-    print "  -keepTmpFiles [1: save extra tmp files like chimeric OTUs or the raw blast output in extra dir; 0: don't save these, default 0]\n";
-    print "  -saveDemultiplex [1: Saves all demultiplexed & filtered reads in gzip format in the output directory (can require quite a lot of diskspace). 2: Only saves quality filtered demultiplexed reads and continues LotuS run subsequently. 3: Saves demultiplexed file into a single fq, saving sample ID in fastq/a header. 0: No demultiplexed reads are saved. Default: 0]\n";
-    print "  -tolerateCorruptFq [1: continue reading fastq files, even if single entries are incomplete (e.g. half of qual values missing). 0: Abort lotus run, if fastq file is corrupt. Default 1]\n";
-    #print "  -highmem [1 : highmem mode which has much faster excecution speed but can require substantial amounts of ram (e.g. hiSeq: ~40GB). 0 deactivates this, reducing memory requirements to < 4 GB, default=1]\n";
-	print "  -taxOnly [fasta file]. Skip most of the lotus pipeline and only run a taxonomic classification on a fasta file. E.g. ./lotus2.pl -taxOnly some16S.fna -refDB SLV\n";
-    print "  -redoTaxOnly [1: only redo the taxonomic assignments (useful for replacing a DB used on a finished lotus run), 0: normal lotus run, default]\n";
+	print "  -saveDemultiplex [1: Saves all demultiplexed & filtered reads in gzip format in the output directory (can require quite a lot of diskspace). 2: Only saves quality filtered demultiplexed reads and continues LotuS run subsequently. 3: Saves demultiplexed file into a single fq, saving sample ID in fastq/a header. 0: No demultiplexed reads are saved. Default: 0]\n";
+	print "  -taxOnly [fasta_file: Skip most of the lotus pipeline and only run a taxonomic classification on a fasta file. E.g. ./lotus2.pl -taxOnly some16S.fna -refDB SLV]\n";
+	print "  -redoTaxOnly [1: only redo the taxonomic assignments (useful for replacing a DB used on a finished lotus run), 0: normal lotus run, default]\n";
+	print "  -offtargetDB [Default: empty. This option checks in analogy to the phiX filter step in a custom DB (e.g. mouse genome, needs to be fasta format), for contaminant OTUs that are more likely to derrive from this genome than e.g. bacteria. Example: -offtargetDB /YY/mouse.fna,/YY/human.fna]\n";
+	print "  -keepOfftargets [0/1: keep offtarget hits against offtargetDB in output fasta and otu matrix, default 0]\n";
+	print "  -keepTmpFiles [1: save extra tmp files like chimeric OTUs or the raw blast output in extra dir; 0: don't save these, default 0]\n";
+	print "  -keepUnclassified [1: includes unclassified OTUs (i.e. no match in RDP/Blast database) in OTU and taxa abundance matrix calculations; 0 does not take these OTU's into account, default 0]\n";
+	print "  -tolerateCorruptFq [1: continue reading fastq files, even if single entries are incomplete (e.g. half of qual values missing). 0: Abort lotus run, if fastq file is corrupt. Default 1]\n";
 
-    print "\n############### Taxonomy related options ###############\n";
-    print "  -amplicon_type [LSU: large subunit (23S/28S) or SSU: small subunit (16S/18S). Default SSU]\n";
-    print "  -tax_group [\"bacteria\": bacterial 16S rDNA annnotation, \"fungi\": fungal 18S/23S/ITS annotation. Default \"bacteria\"]\n";
-    print "  -rdp_thr [Confidence thresshold for RDP, default 0.8]\n  -utax_thr [Confidence thresshold for UTAX, default 0.8]\n  -LCA_frac [min fraction of reads with identical taxonomy, default 0.9]\n";
-    print "  -keepUnclassified [1: includes unclassified OTUs (i.e. no match in RDP/Blast database) in OTU and taxa abundance matrix calculations; 0 does not take these OTU's into account, default 0]\n";
-    print "  -taxAligner [(previously doBlast) 0: deavtivated (just use RDP); [1 or \"blast\"]: use Blast; [2 or \"lambda\"]: use LAMBDA to search against a 16S reference database for taxonomic profiling of OTUs; [3 or \"utax\"]: use UTAX with custom databases; [4 or \"vsearch \"]: use VSEARCH to align OTUs to custom databases; [5 or \"usearch\"]: use USEARCH to align OTUs to custom databases. Default 0]\n";
-    print "  -useBestBlastHitOnly [1: don't use LCA (last common ancestor) to determine most likely taxnomic level (not recommended), instead just use the best blast hit. 0: (default) LCA algorithm]\n";
+	print "\n############### Taxonomy related options ###############\n";
+	print "  -refDB [\"SLV\" Silva LSU (23/28S) or SSU (16/18S), \"GG\" greengenes (only SSU available), \"HITdb\" (SSU, human gut specific), \"PR2\" (LSU spezialized on Ocean environmentas), \"UNITE\" (ITS fungi specific), \"beetax\" (bee gut specific database and tax names). Decide which reference DB will be used for a similarity based taxonomy annotation, default \"GG\". Databases can be combined, with the first having the highest prioirty. E.g. \"PR2,SLV\" would first use PR2 to assign OTUs and all unaasigned OTUs would be searched for with SILVA, given that \"-amplicon_type LSU\" was set. Can also be a custom fasta formatted database: in this case provide the path to the fasta file as well as the path to the taxonomy for the sequences using -tax4refDB. See also online help on how to create a custom DB.]\n";
+	print "  -tax4refDB [in conjunction with a custom fasta file provided to argument -refDB, this file contains for each fasta entry in the reference DB a taxonomic annotation string, with the same number of taxonomic levels for each, tab separated.]\n";
+	print "  -amplicon_type [LSU: large subunit (23S/28S) or SSU: small subunit (16S/18S). Default SSU]\n";
+	print "  -tax_group [\"bacteria\": bacterial 16S rDNA annnotation, \"fungi\": fungal 18S/23S/ITS annotation. Default \"bacteria\"]\n";
+	print "  -rdp_thr [Confidence thresshold for RDP, default 0.8]\n";
+	print "  -utax_thr [Confidence thresshold for UTAX, default 0.8]\n";
+	print "  -LCA_frac [min fraction of reads with identical taxonomy, default 0.9]\n";
+	print "  -taxAligner [(previously doBlast) 0: deavtivated (just use RDP); [1 or \"blast\"]: use Blast; [2 or \"lambda\"]: use LAMBDA to search against a 16S reference database for taxonomic profiling of OTUs; [3 or \"utax\"]: use UTAX with custom databases; [4 or \"vsearch \"]: use VSEARCH to align OTUs to custom databases; [5 or \"usearch\"]: use USEARCH to align OTUs to custom databases. Default 0]\n";
+	print "  -useBestBlastHitOnly [1: don't use LCA (last common ancestor) to determine most likely taxnomic level (not recommended), instead just use the best blast hit. 0: (default) LCA algorithm]\n";
 	print "  -LCA_cover [0-1] min horizontal coverage of an OTU sequence against ref DB. Default 0.5\n";
 	print "  -LCA_frac [0-1] fraction of hits that have to cover the same taxon at each taxonomic level for the hit to be accepted. Default 0.8\n";
-    print "  -refDB [\"SLV\" Silva LSU (23/28S) or SSU (16/18S), \"GG\" greengenes (only SSU available), \"HITdb\" (SSU, human gut specific), \"PR2\" (LSU spezialized on Ocean environmentas), \"UNITE\" (ITS fungi specific), \"beetax\" (bee gut specific database and tax names). Decide which reference DB will be used for a similarity based taxonomy annotation, default \"GG\"\nDatabases can be combined, with the first having the highest prioirty. E.g. \"PR2,SLV\" would first use PR2 to assign OTUs and all unaasigned OTUs would be searched for with SILVA, given that \"-amplicon_type LSU\" was set.\n";
-    print "  -tax4refDB [in conjunction with a custom fasta file provided to argument -refDB, this file contains for each fasta entry in the reference DB a taxonomic annotation string, with the same number of taxonomic levels for each, tab separated.]";
-    print "  -greengenesSpecies [1: Create greengenes output labels instead of OTU (to be used with greengenes specific programs such as BugBase). Default: 0]\n";
-    print "  -itsextraction [1: use ITSx to only retain OTUs fitting to ITS1/ITS2 hmm models; 0: deactivate; Default=1]\n";
-    print"  -itsx_partial [0-100: parameters for ITSx to extract partial (%) ITS regions as well; 0: deactivate; Default=0]\n";
+	print "  -greengenesSpecies [1: Create greengenes output labels instead of OTU (to be used with greengenes specific programs such as BugBase). Default: 0]\n";
+	print "  -itsextraction [1: use ITSx to only retain OTUs fitting to ITS1/ITS2 hmm models; 0: deactivate; Default=1]\n";
+	print "  -itsx_partial [0-100: parameters for ITSx to extract partial (%) ITS regions as well; 0: deactivate; Default=0]\n";
 
-    print "\n############### OTU clustering options ###############\n";
-    print "  -CL/-clustering [(1) use UPARSE, (0) use otupipe (deprecated), (2) use swarm and (3) use cd-hit, default 1]\n";
-    print "  -id [clustering threshold for OTU's, default 0.97]\n";
-    print "  -swarm_distance [clustering threshold for OTU's when using swarm clustering, default 1]\n";
-    print
-"  -chim_skew [skew in chimeric fragment abundance (uchime option), default 2]\n";
-    print
-"  -derepMin [minimum size of dereplicated clustered, one form of noise removal. Can be complex terms like \"10:1,3:3\" -> meaning at least 10x in 1 sample or 3x in 3 different samples. Default 1]\n";
-    print
-"Can also be a custom fasta formatted database: in this case provide the path to the fasta file as well as the path to the taxonomy for the sequences using -tax4refDB. See also online help on how to create a custom DB.]\n";
-    print
-"  -count_chimeras if set, will count chimeric reads into their estimated original OTUs\n";
-    print
-"  -deactivateChimeraCheck [0: do OTU chimera checks. 1: no chimera Check at all. 2: Deactivate deNovo chimera check. 3: Deactivate ref based chimera check.Default = 0]\n";
+	print "\n############### OTU clustering options ###############\n";
+	print "  -CL/-clustering [sequence clustering algorithm: (1) UPARSE, (2) swarm, (3) cd-hit, (6) unoise3, (7) dada2, default 1]\n";
+	print "  -id [clustering threshold for OTU's, default 0.97]\n";
+	print "  -swarm_distance [clustering threshold for OTU's when using swarm clustering, default 1]\n";
+	print "  -chim_skew [skew in chimeric fragment abundance (uchime option), default 2]\n";
+	print "  -derepMin [minimum size of dereplicated clustered, one form of noise removal. Can be complex terms like \"10:1,3:3\" -> meaning at least 10x in 1 sample or 3x in 3 different samples. Default 2]\n";
+	print "  -count_chimeras if set, will count chimeric reads into their estimated original OTUs\n";
+	print "  -deactivateChimeraCheck [0: do OTU chimera checks. 1: no chimera Check at all. 2: Deactivate deNovo chimera check. 3: Deactivate ref based chimera check.Default = 0]\n";
 
+	print "  -readOverlap [the maximum number of basepairs that two reads are overlapping, default 300]\n";
+	print "  -flash_param [custom flash parameters, since this contains spaces the command needs to be in parentheses: e.g. -flash_param \"-r 150 -s 20\". Note that this option completely replaces the default -m and -M flash options (i.e. need to be reinserted, if wanted)]\n";
+	print "  -endRem [DNA sequence, usually reverse primer or reverse adaptor; all sequence beyond this point will be removed from OTUs. This is redundant with the \"ReversePrimer\" option from the mapping file, but gives more control (e.g. there is a probelm with adaptors in the OTU output), default \"\"]\n";
+	print "  -xtalk [(1) check for crosstalk; note that this requires in most cases 64bit usearch, default 0]\n";
+	print "############### other functions ###############\n";
+	print "  -v print LotuS2 version\n";
+	print "  -check_map [mapping_file: only checks mapping file and exists\n";
+	print "  -create_map [mapping_file: creates a new mapping file at location, based on already demultiplexed input (-i) dir. E.g. ./lotus2.pl -create_map mymap.txt -i /home/dir_with_demultiplex_fastq]\n";
+
+#HELPEND
 #   print "  -pseudoRefOTUcalling [1: create Reference based (open) OTUs, where the chosen reference database (SLV,GG etc) is being used as cluster center. Default: 0]\n";
 #print "  -OTUbuild [OTU building strategy: \"ref_closed\", \"ref_open\" or \"denovo\" (default)\n";
-    print
-"  -readOverlap [the maximum number of basepairs that two reads are overlapping, default 300]\n";
-    print
-"  -flash_param [custom flash parameters, since this contains spaces the command needs to be in parentheses: e.g. -flash_param \"-r 150 -s 20\". Note that this option completely replaces the default -m and -M flash options (i.e. need to be reinserted, if wanted)]\n";
-    print
-"  -endRem [DNA sequence, usually reverse primer or reverse adaptor; all sequence beyond this point will be removed from OTUs. This is redundant with the \"ReversePrimer\" option from the mapping file, but gives more control (e.g. there is a probelm with adaptors in the OTU output), default \"\"]\n";
-    print "  -xtalk [(1) check for crosstalk; note that this requires in most cases 64bit usearch, default 0]\n";
-#HELPEND
-    exit(0);
+	exit(0);
 }
 
 sub usage {
@@ -4122,7 +4129,7 @@ sub utaxTaxAssign($ $) {
     #die $utaCmd."\n";
 
     if ( $exec == 0 ) {
-        printL frame("Assigning taxonomy against reference using UTAX with confidence $taxLconf bp");
+        printL frame("Assigning taxonomy using UTAX with confidence $taxLconf bp");
 
         #print $cmd."\n";
         if ( systemL($cmd) ) { printL "UTAX failed:\n$cmd\n", 3; }
@@ -4238,7 +4245,7 @@ sub doDBblasting($ $ $) {
     #die($cmd."\n");
     $duration = time - $start;
 	if ( $exec == 0 ) {
-		printL frame("Assigning taxonomy against reference using $simMethod");
+		printL frame("Assigning taxonomy against $DB using $simMethod");
 		#print $cmd."\n";
 		if ( systemL($cmd) ) {
 			printL "$simMethod against ref database failed:\n$cmd\n", 3;
