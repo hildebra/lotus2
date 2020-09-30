@@ -171,7 +171,7 @@ my $check_map        = "";
 my $create_map       = "";
 my $curSdmV          = 1.46;
 my $platform         = "miSeq";        #454, miSeq, hiSeq, PacBio
-my $keepUnclassified = 0;
+my $keepUnclassified = 1;
 my $keepOfftargets   = 0;
 my $doITSx           = 1;            #run itsx in its mode?
 my $ITSpartial       = 0;            #itsx --partial parameter
@@ -287,8 +287,8 @@ GetOptions(
     "chim_skew=f"           => \$chimera_absskew,		#miSeq,hiSeq,pacbio
     "p|platform=s"          => \$platform,
     "tolerateCorruptFq=i"   => \$damagedFQ,
-    "keepUnclassified"      => \$keepUnclassified,
-	"keepOfftargets"        => \$keepOfftargets,
+    "keepUnclassified=i"      => \$keepUnclassified,
+	"keepOfftargets=i"        => \$keepOfftargets,
     "derepMin=s"            => \$dereplicate_minsize,
     "doBlast|simBasedTaxo|taxAligner=s"=> \$doBlasting_pre,
     "refDB=s"               => \$refDBwanted,
@@ -311,6 +311,7 @@ GetOptions(
     # "flashAvgLength" => \$flashLength,
     #"flashAvgLengthSD" => \$flashSD,
 ) or usage("Unknown options");
+
 
 #routines that are external of a proper 16S run
 if ($versionOut){
@@ -596,32 +597,40 @@ if ($TaxOnly ne "0" && -f $TaxOnly){
 my $OTUrefDBlnk;
 if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 
+
+    #remove chimeras on longer merged reads
+    my $refChims = chimera_rem( $OTUSEED);
     #ITSx
     ITSxOTUs($OTUSEED);
 
     #phiX
-    my $phiXcnt = 0;
-	if ($doPhiX){
-		$phiXcnt = contamination_rem( $OTUSEED, $CONT_REFDB_PHIX, "PhiX" );
-	}
+    
+	
+	my $phiXhref = contamination_rem( $OTUSEED, $CONT_REFDB_PHIX, "phiX" );
+	
 
     #custom DB for contamination - off-target
-	my $xtraContCnt=0;
-	$xtraContCnt += contamination_rem( $OTUSEED, $custContamCheckDB, "offTarget" );
+	
+	my $xtraConthref = contamination_rem( $OTUSEED, $custContamCheckDB, "offTarget" );
+	#merge contamination results..
+	${$xtraConthref}{"phiX"} = ${$phiXhref}{"phiX"} ;
 
-    #remove chimeras on longer merged reads
-    my $refChims = chimera_rem( $OTUSEED, $OTUfa );
-
-    #die $OTUrefSEED."\n";
     #link between OTU and refDB seq - replace with each other
     $OTUrefDBlnk = readLinkRefFasta( $OTUrefSEED . ".lnks" );
+	
+	#finalize OTU file;
+	systemL "cp $OTUSEED $OTUfa";
 
     #but OTU matrix already written, need to remove these
+    my $XtalkRef = checkXtalk( $OTUfa, $OTUmFile );
+	${$xtraConthref}{"phiX"} = $XtalkRef;
+	
+	#integrate all these filters now
     $OTUrefDBlnk = clean_otu_mat($OTUfa,$OTUrefSEED, $OTUmFile,
-        $OTUrefDBlnk, $phiXcnt,$xtraContCnt) if ($seedExtDone);    #&& $otuRefDB ne "ref_closed" );
+        $OTUrefDBlnk,$xtraConthref) if ($seedExtDone);    #&& $otuRefDB ne "ref_closed" );
         # $OTUfa.ref contains reference Seqs only, needs to be merged later..
         #and last check for cross talk in remaining OTU match
-    checkXtalk( $OTUfa, $OTUmFile );
+#die "$OTUfa,$OTUrefSEED, $OTUmFile, $OTUrefDBlnk\n";
 } elsif ($onlyTaxRedo) {
     printL "Skipping removal of contaminated OTUs step\n", 0;
 }
@@ -639,12 +648,6 @@ if ( !$doBlasting && substr( $ampliconType, 0, 3 ) eq "ITS" ) {
     $failedBlastITS .=       "Blast similarity based annotation is not possible due to: ";
     if ( !$doBlasting ) {
         $failedBlastITS .= "Similarity search being deactivated.";
-    }
-    elsif ( !-f $blastBin || !-f $lambdaBin ) {
-        $failedBlastITS .= "Neither Lambda nor Blast binary being specified correctly";
-    }
-    elsif ( @TAX_REFDB == 0 || !-f $TAX_REFDB[0] ) {
-        $failedBlastITS .= "Reference DB does not exist (@TAX_REFDB).\n";
     }
     $failedBlastITS .= "\nTherefore LotuS had to abort..\n";
     printL $failedBlastITS, 87;
@@ -1058,7 +1061,7 @@ sub ITSxOTUs {
     open O, ">$otusFA" or die "Can't open output $otusFA\n";
     foreach my $k ( keys %ITSo ) {
         my $hdde = "${OTU_prefix}x_1";
-		if ($k =~ m/^([z]?OTU_\d+)\|/){
+		if ($k =~ m/^(ASV|[z]?OTU_\d+)\|/){
 			$hdde = $1;
 		}
         print O ">$hdde\n$ITSo{$k}\n";
@@ -1077,6 +1080,14 @@ sub contamination_rem($ $ $ ) {
 	my $hr = readFasta($otusFA);
 	my %OTUs = %{$hr};
 	my %totHits;
+	my %ret;
+	
+	if (!$doPhiX && $nameRDB1 =~ m/^phiX/){
+		return \%ret;
+	}
+	
+	my $Lreport="";#text for frame at end of routine
+	my $anycontRem = 0; #total count of contaminants across databases
 
 	foreach (my $i=0;$i<@refDBs;$i++){
 		my $refDB = $refDBs[$i];
@@ -1131,25 +1142,35 @@ sub contamination_rem($ $ $ ) {
 				}
 				close I;
 			}
-			printL (frame( "Removed $contRem OTUs using $matchAlgo ($nameRDB:$refDB)."), 0);
-			#die ("@hits\n");
-			if (!$contRem) { return(0);}
 			my @hitA = keys %hits;
+			my $storeContamIDsF = "$logDir/$nameRDB1.$nameRDB.otus";
+			my $Xtxt ="\n";
+			#$Xtxt .= "\nIDs stored in $storeContamIDsF" if ($contRem);
+			if ($i==(@refDBs-1) && $anycontRem){
+				$Xtxt = "";
+				if ($keepOfftargets){$Xtxt .= ", will be retained in ${OTU_prefix} matrix.";} else {$Xtxt .= ", will be removed from ${OTU_prefix} matrix.";}
+				$Xtxt .= "\nEnsure to use option -keepUnclassified to retain all these in output matrix." if (!$keepUnclassified && $contRem );
+				$Xtxt .= "\n";
+			}
+			$Lreport .= "Found ". scalar(@hitA). " ${OTU_prefix}'s using $matchAlgo ($nameRDB: $refDB)$Xtxt";
+
+			#die ("@hits\n");
+			$anycontRem += $contRem;
+			$totHits{$nameRDB} = \%hits;
+			next if (scalar(@hitA) == 0);# { return(0);}
 			systemL ("gzip $hitsFile\nmv $hitsFile.gz $logDir;");
-			open LLOG,">$logDir/detected.$nameRDB.otus";
-			print LLOG "$nameRDB\t$refDB\n@hitA\n";
-			close LLOG;
+			#open LLOG,">$storeContamIDsF";
+			#print LLOG "$nameRDB\t$refDB\n@hitA\n";
+			#close LLOG;
 			#report
 			#(add - deleted before) contaminated Fastas to file
-			open Ox, ">$outContaminated" or printL "Can't open contaminated OTUs file $outContaminated\n", 39;
-			foreach my $hi (@hitA) {
-				print Ox ">" . $hi."_".$nameRDB . "\n" . $OTUs{$hi} . "\n";
-				#delete $OTUs{$hi};
-			}
-			close Ox;
-			systemL "gzip $outContaminated";
-			%totHits = (%totHits, %hits);
-			#if (($nonChimRm-$emptyOTUcnt)==0){
+			#open Ox, ">$outContaminated" or printL "Can't open contaminated OTUs file $outContaminated\n", 39;
+			#foreach my $hi (@hitA) {
+			#	print Ox ">" . $hi."_".$nameRDB . "\n" . $OTUs{$hi} . "\n";
+			#}
+			#close Ox;
+			#systemL "gzip $outContaminated";
+			#if (($nonChim-$emptyOTUcnt)==0){
 			#	printL "Empty OTU matrix.. aborting LotuS run!\n",87;
 			#}
 			#print "\n\n\n\n\n\nWARN DEBUG TODO .95 .45 $outContaminated\n";
@@ -1166,8 +1187,16 @@ sub contamination_rem($ $ $ ) {
 		}
 		$contRemStr += $contRem;
 	}
-print "B";
-		#print remaining OTUs
+	#nothing found? don't bother writing file again..
+	printL (frame( $Lreport), 0) if ($Lreport ne "");
+	my @kh = keys %totHits;
+	#print @kh. "   @kh\n";
+	return \%totHits; #if ($contRemStr == 0);
+	
+	die; #should no longer go here..
+	$contRemStr = scalar(keys(%totHits));
+	#print "\n\n\"". scalar(keys %totHits) ."\n";
+	#print remaining OTUs
 	open Oa, ">$otusFA" or printL "Can't open ${OTU_prefix} file $otusFA\n", 39;
 	my $cnt=0;
 	foreach my $hi ( keys %OTUs ) {
@@ -1176,19 +1205,19 @@ print "B";
 		$cnt++;
 	}
 	close Oa;
-	printL "Writing $cnt/" . scalar(keys(%OTUs)) ." ${OTU_prefix} seeds after off-target removal\n";
-	$contRemStr = scalar(keys(%totHits));
+	printL "Writing $cnt/" . scalar(keys(%OTUs)) ." ${OTU_prefix} seeds after $nameRDB1 removal\n";
     return $contRemStr;
 }
 
-sub chimera_rem($ $) {
-    my ( $otusFA, $outfile ) = @_;
-    my $chimOut = "$lotus_tempDir/chimeras_ref.fa";
-    if ($extendedLogs) {
-        $chimOut = "$extendedLogD/chimeras_ref.fa";
-    }
-    if (   $UCHIME_REFDB ne ""  && -f $UCHIME_REFDB && ( $noChimChk == 2 || $noChimChk == 0 ) )
-    {
+sub chimera_rem($) {
+    my ( $otusFA ) = @_;
+    my $chimOut = "";
+	
+	my $outfile = $otusFA.".tmp.fa";
+    if (   $UCHIME_REFDB ne ""  && -f $UCHIME_REFDB && ( $noChimChk == 2 || $noChimChk == 0 ) ){
+		if ($extendedLogs) {
+			$chimOut = "$extendedLogD/chimeras_ref.fa";
+		} else {$chimOut = "$lotus_tempDir/chimeras_ref.fa";}
         printL "Could not find fasta otu file $otusFA. Aborting..\n", 33 unless ( -s $otusFA );
         $cmd = "$VSBin -uchime_ref  $otusFA -db $UCHIME_REFDB -strand plus -chimeras $chimOut -nonchimeras $outfile -threads $uthreads -log $logDir/uchime_refdb.log;";
         if (!$useVsearch && $usearchVer >= 9 && !$VSused ) {
@@ -1205,182 +1234,198 @@ sub chimera_rem($ $) {
         else {
             $citations .= "Vsearch reference based chimera detection: \n";
         }
-
+		systemL "rm $otusFA; mv $outfile $otusFA";
         #print $outfile."\n";
-        return $chimOut;
     }
     else {
 		printL "No ref based chimera detection\n";
-        systemL("cp $otusFA $outfile;");
         #$outfile = "$lotus_tempDir/uparse.fa";
     }
-    return "";
+	return $chimOut;
 }
 
 sub checkXtalk($ $) {
     my ( $otuFA, $otuM ) = @_;
-    if ( !$doXtalk ) { return; }
+	my %ret;
+    if ( !$doXtalk ) { return \%ret; }
     if ( $usearchVer < 11 ) {
         printL "cannot check for cross-talk, as only implemented in usearch version > 11\n",83;
     }
     my $otuM1 = $otuM . ".noXref";
-    systemL "cp $otuM $otuM1;";
-    my $cmd = "$usBin -otutab_xtalk $otuM1 -otutabout $otuM -report $logDir/crossTalk_analysis.txt;";
+    #systemL "cp $otuM $otuM1;";
+    my $cmd = "$usBin -otutab_xtalk $otuM -otutabout $otuM1 -report $logDir/crossTalk_analysis.txt;";
 
     #get the OTUs that are not in both tables
     systemL($cmd,"crosstalk",0);
     if ( -z "$logDir/crossTalk_analysis.txt" ) {
         printL "Cross talk unsuccessful, continuing without\n","w";
-        systemL "rm $otuM; mv $otuM1 $otuM;";
-    }
-    else {
+    } else {
+		my $tmp = `cut -f1 $otuM`; my @prevOTUs = split /\n/,$tmp;
+		my $tmp = `cut -f1 $otuM1`; my @newOTUs = split /\n/,$tmp;
+		my %lookup = map { $_ => 1 } @newOTUs;
+		for my $thing ( @prevOTUs ) {
+			$ret{$thing} = 1 if (!exists($lookup{ $thing }));
+			
+		}
         $citations .= "CrossTalk ${OTU_prefix} removal: UNCROSS2: identification of cross-talk in 16S rRNA OTU tables. Robert C. Edgar . Bioarxiv (https://www.biorxiv.org/content/biorxiv/early/2018/08/27/400762.full.pdf)\n";
     }
+	systemL "rm -f $otuM1;";
+	return \%ret;
 }
 
 #remove entries from OTU matrix
-sub clean_otu_mat($ $ $ $ $) {
-    my ( $OTUfa, $OTUrefFa, $OTUmFile, $OTUrefDBlnk, $phiXCnt, $xtraContCnt ) = @_;
+sub clean_otu_mat($ $ $ $) {
+	my ( $OTUfa, $OTUrefFa, $OTUmFile, $OTUrefDBlnk, $ContaHR ) = @_;#$phiXCnt, $xtraContCnt
+	my %Contam = %{$ContaHR};
+	my @contaK = keys %Contam;
+	my $phiXCnt = 0;my $xtraContCnt = 0;
+	my %contT; my %contaCnt; my %contaCntRds; my %contRN; #new system of tracking contaminant..
+	foreach my $conta (@contaK){
+		if ($conta eq "phiX"){
+			$phiXCnt += scalar(keys(%{$Contam{"phiX"}}));
+		} else {
+			$xtraContCnt += scalar(keys(%{$Contam{$conta}}));
+		}
+		foreach my $otus (keys %{$Contam{$conta}}){
+			$contT{$otus} .= "$conta.";
+		}
 
-    #search for local matchs of chimeras in clean reads
-    #TODO
-    #get headers of OTUs
-    my $hr  = readFasta($OTUfa);
-    my %hds = %{$hr};
-    my $cnt = -1;
+	}
+	#search for local matchs of chimeras in clean reads
+	#get headers of OTUs
+	my $hr  = readFasta($OTUfa);
+	my %hds = %{$hr};
+	my $cnt = -1;
 
-    #my @kkk =  keys %hds; die scalar @kkk ."\n";
-    $hr = readFasta($OTUrefFa);
-    my %refHds = %{$hr};
-    my %ORDL   = %{$OTUrefDBlnk};
-    my %ORDL2;
-    my $chimRm      = 0;
-    my $nonChimRm   = 0;
-    my $chimRdCnt   = 0;
-    my $emptyOTUcnt = 0;
-    my %OTUcnt;
-    my %OTUmat;
+	#my @kkk =  keys %hds; die scalar @kkk ."\n";
+	$hr = readFasta($OTUrefFa);
+	my %refHds = %{$hr};
+	my %ORDL   = %{$OTUrefDBlnk};
+	my %ORDL2;
+	my $chimRm      = 0; my $chimRdCnt   = 0;
+	my %OTUcnt;
+	my %OTUmat;
+	
+	my $Lreport = "";
+	
 
-    #die "$OTUmFile\n$OTUfa\n";
-    open I, "<$OTUmFile";
-    if ($extendedLogs) {
-        open O2x, ">$extendedLogD/otu_mat.chim.txt"
-          or printL "Failed to open $extendedLogD/otu_mat.chim.txt", 33;
-    }
-    while ( my $line = <I> ) {
-        $cnt++;
-        chomp $line;
-        if ( $cnt == 0 ) {
-            $OTUmat{head} = $line;
-            if ($extendedLogs) { print O2x $line . "\n"; }
-            next;
-        }
-        my @spl = split( /\t/, $line );
-        my $ot  = shift @spl;
+	#die "$OTUmFile\n$OTUfa\n";
+	open I, "<$OTUmFile";
+	if ($extendedLogs) {
+		open O2x, ">$extendedLogD/otu_mat.chim.txt" or printL "Failed to open $extendedLogD/otu_mat.chim.txt", 33;
+	}
+	while ( my $line = <I> ) {
+		$cnt++;
+		chomp $line;
+		if ( $cnt == 0 ) {
+			$OTUmat{head} = $line;
+			if ($extendedLogs) { print O2x $line . "\n"; }
+			next;
+		}
+		my @spl = split( /\t/, $line );
+		my $ot  = shift @spl;
+		#specific OTU read count
+		if ( exists( $hds{$ot} ) || exists( $refHds{$ot} ) ){    #exists in non-chimeric set or ref DB set
+			my $rdCnt =0;$rdCnt += $_ for @spl;
+			#die "$rdCnt @spl\n";
+			$OTUcnt{$ot} = $rdCnt;
+			$OTUmat{$ot} = join( "\t", @spl );
+		} else {
+			#print $ot."\n";
+			#die $line."\n";
+			$chimRm++;    #don't include
+			$contRN{$ot} = "Chim.".$chimRm;
+			$chimRdCnt += $_ for @spl;
+			if ($extendedLogs) { print O2x $contRN{$ot} ."\t". join( "\t", @spl ) . "\n"; }
+		}
+	}
+	close I;
 
-        #my $position = index($line, "\t");
-        #my $ot = substr $line,0,$position;
-        #die $ot."\n";
-        my $rdCnt = 0;
+	if ($extendedLogs) { close O2x; }
 
-        #specific OTU read count
-        if ( exists( $hds{$ot} ) || exists( $refHds{$ot} ) )
-        {    #exists in non-chimeric set or ref DB set
-            $rdCnt += $_ for @spl;
-            if ( $rdCnt == 0 ) {
+	#print resorted OTU matrix & contaminant matrix..
+	open OF,  ">$OTUfa";
+	open OOFF,  ">$logDir/OTU.contaminants.fa";
+	open OFR, ">$OTUfa.ref" if ( $REFflag );
+	open O,   ">$OTUmFile";
+	open O3x, ">$extendedLogD/otu_mat.contam.txt" or printL "Failed to open $extendedLogD/otu_mat.contam.txt", 33 if ($extendedLogs);
+	my $emptyOTUcnt = 0;my $nonChim   = 0; my $nonChimRds = 0;
+	print O $OTUmat{head} . "\n";
+	print O3x $OTUmat{head} . "\n" if ($extendedLogs); 
+	my @sorted_otus = ( sort { $OTUcnt{$b} <=> $OTUcnt{$a} } keys %OTUcnt);    #sort(keys(%OTUcnt));
+	my $OTUcntd = 1;    # my $maxOTUdig = length (keys %OTUcnt)
+	my $intoMatLast = "";
+	foreach my $ot (@sorted_otus) {
+		next unless (exists($OTUcnt{$ot})); #chimera
+		if (exists($contT{$ot}) ){
+			$contaCnt{$contT{$ot}} ++;
+			$contaCntRds{$contT{$ot}} += $OTUcnt{$ot};
+			$contRN{$ot} = ${OTU_prefix}.".".$contT{$ot}.$contaCnt{$contT{$ot}};
+			if ($extendedLogs) { print O3x $contRN{$ot}  ."\t". $OTUmat{$ot} . "\n"; }
+			print OOFF ">".$contRN{$ot}."\n$hds{$ot}\n"; #write fasta
+			#retain them? Then include in final matrix, otu fasta etc -> will also mean that we get taxo annotation/tree etc for these
+			if ($keepOfftargets){
+				$intoMatLast .= $contRN{$ot}  ."\t". $OTUmat{$ot} . "\n"; 
+				print OF ">".$contRN{$ot}."\n$hds{$ot}\n";
+			}
+			next;
+		} 
+		if ($OTUcnt{$ot} == 0){
+			$emptyOTUcnt++;
+			next;
+		}
+		#remaining OTUs that passed various checks are renamed & written here
+		$nonChim++;$nonChimRds+=$OTUcnt{$ot};
+		#$newOname = sprintf("%08d", $OTUcnt);
+		my $newOname = ${OTU_prefix} . $OTUcntd;
+		$OTUcntd++;
+		print O $newOname . "\t" . $OTUmat{$ot} . "\n";
+		if ( exists( $hds{$ot} ) ) {
+			print OF ">" . $newOname . "\n$hds{$ot}\n";
+		}
+		elsif ( exists( $refHds{$ot} ) ) {
+			print OFR ">" . $newOname . "\n$refHds{$ot}\n" if ( $REFflag );
+			$ORDL2{$newOname} = $ORDL{$ot};
 
-                #print "$ot";
-                delete $hds{$ot};
-                $emptyOTUcnt++;
-            }
-            else {
-                $OTUcnt{$ot} = $rdCnt;
-                $OTUmat{$ot} = join( "\t", @spl );
+			#die ("new:".$ORDL2{$newOname}."  old: ".$ORDL{$ot}."\n");
+		} else {
+			printL "Fatal error, cannot find ${OTU_prefix} $ot\n", 87;
+		}
+	}
+	print O $intoMatLast;
+	close O;
+	close OF;
+	close OOFF;
+	close OFR if ( $REFflag );
+	close O3x if ($extendedLogs) ;
+	#if ( $REFflag ) { unlink "$OTUfa.ref"; }
 
-                #print O $line;
-            }
-            $nonChimRm++;
-        }
-        else {
-            #print $ot."\n";
-            #die $line."\n";
-            $chimRm++;    #don't include
-            if ($extendedLogs) { print O2x $line . "\n"; }
-            $chimRdCnt += $_ for @spl;
-        }
-    }
-    close I;
 
-    if ($extendedLogs) { close O2x; }
+	#writeFasta(\%newOTUs,$OTUfa);
+	$Lreport .= "Postfilter:\n"; 
+	my $chimTag = "chimeric";$chimTag .= "/ITSx" if ($doITSx);
+	$Lreport .= "Chimears: $chimRm $chimTag found ($chimRdCnt reads)\n" if ($chimRm);
+	my $strTmp = "Contaminants: ";
+	my $lcnt =0;
+	foreach my $k (keys %contaCnt){
+		$strTmp .=  "$k: $contaCnt{$k} ${OTU_prefix}'s found ($contaCntRds{$k} reads); ";
+		$lcnt += $contaCntRds{$k}+$contaCnt{$k};
+	}
+	$Lreport .= "Extended logs active, contaminant and chimeric matrix will be created.\n" if ($extendedLogs);
+	$strTmp.="\n";
+	$strTmp ="" if ($lcnt==0);
+	$Lreport .= $strTmp;
+	$Lreport.= "Removed mismapped OTUs ($emptyOTUcnt) with 0 matrix counts..\n" if ( $emptyOTUcnt > 0 );
+	$Lreport .= "After filtering $nonChim $OTU_prefix ($nonChimRds reads) remaining in matrix.\n";
 
-    #print resorted OTU matrix
-    open OF,  ">$OTUfa";
-    open OFR, ">$OTUfa.ref";
-    open O,   ">$OTUmFile.tmp";
-    print O $OTUmat{head} . "\n";
-    my %newOTUs;
+	if ( ( $nonChim - $emptyOTUcnt ) == 0 ) {
 
-    #my @tmp= values %OTUcnt;
-    #print "@tmp\n";
-    my @sorted_otus = ( sort { $OTUcnt{$b} <=> $OTUcnt{$a} } keys %OTUcnt )
-      ;    #sort(keys(%OTUcnt));
-    my $OTUcntd = 1;    # my $maxOTUdig = length (keys %OTUcnt)
-    foreach my $ot (@sorted_otus) {
+		#print "$nonChim - $emptyOTUcnt\n";
+		printL "Empty ${OTU_prefix} matrix.. aborting LotuS run!\n", 87;
+	}
 
-        #$newOname = sprintf("%08d", $OTUcnt);
-        my $newOname = ${OTU_prefix} . $OTUcntd;
-        $OTUcntd++;
-        print O $newOname . "\t" . $OTUmat{$ot} . "\n";
-        if ( exists( $hds{$ot} ) ) {
-            print OF ">" . $newOname . "\n$hds{$ot}\n";
-
-            #$newOTUs{$newOname} = $hds{$ot}
-        }
-        elsif ( exists( $refHds{$ot} ) ) {
-            print OFR ">" . $newOname . "\n$refHds{$ot}\n";
-            $ORDL2{$newOname} = $ORDL{$ot};
-
-            #die ("new:".$ORDL2{$newOname}."  old: ".$ORDL{$ot}."\n");
-        }
-        else {
-            printL "Fatal error, cannot find ${OTU_prefix} $ot\n", 87;
-        }
-    }
-    close O;
-    close OF;
-    close OFR;
-    if ( !$REFflag ) { unlink "$OTUfa.ref"; }
-
-    #die $OTUmFile."\n";
-    unlink $OTUmFile;
-    rename "$OTUmFile.tmp", $OTUmFile;
-
-    #writeFasta(\%newOTUs,$OTUfa);
-	my $chimTag = "chimeric";
-	$chimTag .= "/ITSx" if ($doITSx);
-    if ($chimRm) {
-        my $strTmp =
-          "Removed " . ( $chimRm - $phiXCnt - $xtraContCnt ) . " $chimTag\n";
-        $strTmp .= "and " . $phiXCnt . " phiX contaminant\n"
-          if ( 1 || $phiXCnt > 0 );
-        $strTmp .= "and " . $xtraContCnt . " contaminants from custom DB\n"
-          if ( $xtraContCnt > 0 );
-        $strTmp .=
-            "OTUs ($chimRdCnt read counts) from abundance matrix, \n"
-          . $nonChimRm
-          . " OTUs remaining.\n", 0;
-		  #$strTmp .= "elapsed time: ". time - $start ." s\n";
-        printL frame($strTmp), 0;
-    }
-    if ( ( $nonChimRm - $emptyOTUcnt ) == 0 ) {
-
-        #print "$nonChimRm - $emptyOTUcnt\n";
-        printL "Empty ${OTU_prefix} matrix.. aborting LotuS run!\n", 87;
-    }
-    if ( $emptyOTUcnt > 0 ) {
-        printL "Removed mismapped OTUs ($emptyOTUcnt) with 0 counts..\n", 0;
-    }
-    return \%ORDL2;
+	printL frame($Lreport),0;
+	return \%ORDL2;
 }
 
 sub forceMerge_fq2fna($ $ $ $ $) {
@@ -1473,7 +1518,7 @@ sub forceMerge_fq2fna($ $ $ $ $) {
 
     close I;
     close O;
-	printL "Found $seedCnt fasta seed sequences based on seed extension and read merging\n";
+	printL frame("Found $seedCnt fasta seed sequences based on seed extension and read merging\n"),0;
 }
 
 sub readTaxIn($ $ $ $ ) {
