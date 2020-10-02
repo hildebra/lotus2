@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 # autoInstaller for lotus
-# Copyright (C) 2014  Falk Hildebrand
+# Copyright (C) 2014  Falk Hildebrand, Joachim Fritscher
 
 #This program is free software: you can redistribute it and/or modify
 #it under the terms of the GNU General Public License as published by
@@ -89,6 +89,74 @@ if (@ARGV > 0 && $ARGV[0] eq "-link_usearch"){
 }
 
 
+
+###DEBUG
+#minimap2
+print "Downloading minimap2 executables..\n";
+my $dtar = "$bdir/minimap2-2.17_x64-linux.tar.bz2";
+my $dexe = "$bdir/minimap2-2.17_x64-linux/minimap2";
+if ($isMac){
+	#getS2("http://lotus2.earlham.ac.uk/lotus/packs/dnaclust/dnaclust_OSX_release3.zip",$dtar);
+	#$dexe = "$bdir/dnaclust_OSX_release3/dnaclust";
+	print "please natively install minimap2 for MAC users\n";
+} else {
+	getS2("https://github.com/lh3/minimap2/releases/download/v2.17/minimap2-2.17_x64-linux.tar.bz2",$dtar);
+}
+system("tar -xzf $dtar -C $bdir");
+unlink($dtar);
+if (-e $dexe){ #not essential
+	system("chmod +x $dexe");
+	@txt = addInfoLtS("minimap2",$dexe,\@txt,1);
+} else {
+	print "minimap2 exe did not exist at $dexe\n Therefore minimap2 was not installed (please manually install).\n";
+}
+
+## iqtree2
+print "Downloading IQ-TREE 2 executables..\n";
+$dtar = "$bdir/iqtree-2.1.1-Linux.tar.gz";
+$dexe = "$bdir/iqtree-2.1.1-Linux/bin/iqtree2";
+if ($isMac){
+	getS2("https://github.com/iqtree/iqtree2/releases/download/v2.1.1/iqtree-2.1.1-MacOSX.zip",$dtar);
+	$dexe = "$bdir/iqtree-2.1.1-MacOSX/bin/iqtree2";
+} else {
+	getS2("https://github.com/iqtree/iqtree2/releases/download/v2.1.1/iqtree-2.1.1-Linux.tar.gz",$dtar);
+}
+system("tar -xzf $dtar -C $bdir");
+unlink($dtar);
+
+if (-e $dexe){ #not essential
+	system("chmod +x $dexe");
+	@txt = addInfoLtS("iqtree",$dexe,\@txt,1);
+} else {
+	print "iqtree2 exe did not exist at $dexe\n Therefore iqtree2 was not installed (please manually install).\n";
+}
+
+##mafft
+print "Downloading MAFFT 7 executables..\n";
+$dtar = "$bdir/mafft-7.471-linux.tgz";
+$dexe = "$bdir/mafft-linux64/mafft.bat";
+if ($isMac){
+	getS2("https://mafft.cbrc.jp/alignment/software/mafft-7.471-mac.zip",$dtar);
+	$dexe = "$bdir/mafft-mac/mafft.bat";
+	system("tar -xzf $dtar -C $bdir");
+
+} else {
+	getS2("https://mafft.cbrc.jp/alignment/software/mafft-7.471-linux.tgz",$dtar);
+	system("tar -xzf $dtar -C $bdir");
+}
+unlink($dtar);
+
+if (-e $dexe){ #not essential
+	system("chmod +x $dexe");
+	@txt = addInfoLtS("mafft",$dexe,\@txt,1);
+} else {
+	print "MAFFT exe did not exist at $dexe\n Therefore MAFFT was not installed (please manually install).\n";
+}
+
+exit(0);
+####DEBUG
+
+
 my ($lver,$sver) = getInstallVer("");
 if ($forceUpdate==0){
 	print "\n\t####################################\n\t LotuS $lver Auto Installer script.\n\t####################################\n\n";
@@ -131,7 +199,7 @@ if ( ($UID ne "??" && -f $uspath) || $forceUpdate || $usearchInstall ne ""){#set
 		#higher version? reinstall lotus2.pl, autoinstall.pl, sdm
 		if ($lsv ne $lver || $forceUpdate){
 			print "New LotuS version available: updating from $lver to $lsv\n";
-			getS2("http://psbweb05.psb.ugent.be/lotus/lotus/updates/$lsv/files.tar.gz","files.tar.gz");
+			getS2("http://lotus2.earlham.ac.uk/lotus/lotus/updates/$lsv/files.tar.gz","files.tar.gz");
 			system("tar -xzf files.tar.gz");
 			if (-s "autoInstall.pl" != -s "updates/autoInstall.pl" && !$forceUpdate){#at this point call autoupdate again
 				$rerun=1; print "Updated autoinstall.pl..\nAttempting to rerun autinstall.pl\n";
@@ -179,7 +247,7 @@ if ( ($UID ne "??" && -f $uspath) || $forceUpdate || $usearchInstall ne ""){#set
 if ($onlyDbinstall){
 	print "Installing LotuS tax databases anew.. \nplease choose which databases to install in the following dialogs\n\n";
 }else{
-	print "Total space required will be 0.3 - 5.0 Gb. \nSome programs require a recent version of the C++ compiler gcc. Please update (esp. Mac users) your gcc if there are compilation problems.\nWARNING: removes all files in $bdir and $ddir, rewrites the local lotus.cfg file.\n Continue (y/n)?\n Answer: ";
+	print "Total space required will be 0.3 - 2.3 Gb. \nSome programs require a recent version of the C++ compiler gcc. Please update (esp. Mac users) your gcc if there are compilation problems.\nWARNING: removes all files in $bdir and $ddir, rewrittes the local lotus.cfg file.\n Continue (y/n)?\n Answer: ";
 	while (<>){
 		chomp($_);
 		if ($_ eq "y" || $_ eq "Y" || $_ eq "yes"){
@@ -206,7 +274,7 @@ if ($onlyDbinstall){
 mkdir $bdir unless (-d $bdir);
 #system("rm -rf $ddir");
 mkdir $ddir unless (-d $ddir);
-($lver,$sver) = getInstallVer("$ldir/configs/sdm_src");
+($lver,$sver) = getInstallVer("$ldir/sdm_src");
 
 #if (length(`ldconfig -p | grep zlib`) < 3){
 
@@ -338,11 +406,11 @@ if ($getUTAX){
 if ($ITSready){
 	#ITS DB
 	my $tarUN = "$ddir/qITSfa.zip";
-	getS2("http://psbweb05.psb.ugent.be/lotus/packs/DB/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta.zip",$tarUN);
-	#getS2("http://psbweb05.psb.ugent.be/lotus/packs/DB/sh_qiime_release_02.03.2015.zip",$tarUN);
+	getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta.zip",$tarUN);
+	#getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/sh_qiime_release_02.03.2015.zip",$tarUN);
 	system("rm -r $ddir/UNITE;unzip -o $tarUN -d $ddir/UNITE/");
 	@txt = addInfoLtS("TAX_REFDB_ITS_UNITE","$ddir/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta",\@txt,1);
-	getS2("http://psbweb05.psb.ugent.be/lotus/packs/DB/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt.zip",$tarUN);
+	getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt.zip",$tarUN);
 	system("unzip -o $tarUN -d $ddir/UNITE/;rm -rf $ddir/UNITE/__MACOSX/");
 	@txt = addInfoLtS("TAX_RANK_ITS_UNITE","$ddir/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt",\@txt,1);
 	unlink($tarUN);
@@ -351,7 +419,7 @@ if ($ITSready){
 	#itsx
 	print "Downloading ITSX to detect valid ITS regions..\n";
 	my $tarUTN = "$bdir/ITSx_1.0.11.tar.gz";
-	getS2("http://psbweb05.psb.ugent.be/lotus/packs/ITSx_1.0.11.tar.gz",$tarUTN);
+	getS2("http://lotus2.earlham.ac.uk/lotus/packs/ITSx_1.0.11.tar.gz",$tarUTN);
 	system "tar -xzf $tarUTN -C $bdir;rm $tarUTN";
 	unlink($tarUTN);
 	@txt = addInfoLtS("itsx","$bdir/ITSx_1.0.11/./ITSx",\@txt,1);
@@ -361,14 +429,14 @@ if ($ITSready){
 #die "@txt\n";
 # phiX ref genome
 my $phiXf = "$ddir/phiX.fasta";
-getS2("http://psbweb05.psb.ugent.be/lotus/packs/DB/phiX.fasta",$phiXf);
+getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/phiX.fasta",$phiXf);
 @txt = addInfoLtS("REFDB_PHIX",$phiXf,\@txt,1);
 #-------BIG DB INSTALL END
 
 #-------------- install chimera check DBs
 #db gold #exchanged for rdp_gold since 1.30
 #my $goldDB = "http://drive5.com/uchime/gold.fa";
-my $goldDB = "http://psbweb05.psb.ugent.be/lotus/packs/rdp_gold.fa.gz";
+my $goldDB = "http://lotus2.earlham.ac.uk/lotus/packs/rdp_gold.fa.gz";
 my $DB = "$ddir/rdp_gold.fa"; system "rm -f $DB";
 #system("wget -O $DB $goldDB");
 getS2($goldDB,$DB.".gz");
@@ -377,7 +445,7 @@ system("gunzip $DB.gz");
 
 #ITS chimera check ref DB
 if ($ITSready){
-	my $itsDB = "http://psbweb05.psb.ugent.be/lotus/packs/DB/uchime_reference_dataset_11.03.2015.zip";
+	my $itsDB = "http://lotus2.earlham.ac.uk/lotus/packs/DB/uchime_reference_dataset_11.03.2015.zip";
 	getS2($itsDB,"$ddir/uchITS.zip");
 	system "rm -r $ddir/ITS_chimera/";
 	if (system("unzip -o $ddir/uchITS.zip -d $ddir/ITS_chimera") != 0){ die "Failed to unzip $ddir/uchITS.zip";}
@@ -390,7 +458,7 @@ if ($ITSready){
 
 
 #db Silva 119 clustered to 93% for LSUs
-my $LTUrefDB = "http://psbweb05.psb.ugent.be/lotus/packs/SILVA_119_LSU_93.ref.fasta.gz";
+my $LTUrefDB = "http://lotus2.earlham.ac.uk/lotus/packs/SILVA_119_LSU_93.ref.fasta.gz";
 $DB = "$ddir/SLV_119_LSU.fa"; system "rm -f $DB";
 getS2($LTUrefDB,$DB.".gz");
 system("gunzip $DB.gz");
@@ -426,7 +494,7 @@ if ($installBlast == 1 || $installBlast == 3){
 	}
 
 	$exe = "$bdir/blast.tar.gz";
-	getS2("http://psbweb05.psb.ugent.be/lotus/packs/".$blfil,$exe);
+	getS2("http://lotus2.earlham.ac.uk/lotus/packs/".$blfil,$exe);
 		
 	#my $path = "blast/executables/blast+/2.2.29/";
 	#my $host = "ftp.ncbi.nlm.nih.gov";my $ftp = Net::FTP->new($host, Debug => 0, Passive => 1) or die "Can't open $host\n";
@@ -441,9 +509,9 @@ if ($installBlast == 1 || $installBlast == 3){
 }
 if ($installBlast == 2 || $installBlast == 3){
 	print "Downloading lambda executables... \n";
-	my $lmdD = "http://psbweb05.psb.ugent.be/lotus/packs/lambda/lambda-v0.9.1-linux_x86-64.tar.gz";
+	my $lmdD = "http://lotus2.earlham.ac.uk/lotus/packs/lambda/lambda-v0.9.1-linux_x86-64.tar.gz";
 	if ($isMac){
-		$lmdD = "http://psbweb05.psb.ugent.be/lotus/packs/lambda/lambda-v0.9.1-darwin_x86-64.tar.gz";
+		$lmdD = "http://lotus2.earlham.ac.uk/lotus/packs/lambda/lambda-v0.9.1-darwin_x86-64.tar.gz";
 	}
 
 	$exe = "$bdir/lambda.tar.gz";
@@ -468,7 +536,7 @@ my $swarmdir = $bdir."swarm-master/";
 my $sexe = "$swarmdir/bin/swarm";
 my $tars = "$bdir/swarm.zip";
 #
-my $swarmtar = "http://psbweb05.psb.ugent.be/lotus/packs/swarm2.1.13.zip";#"https://github.com/torognes/swarm/archive/master.zip";#"http://psbweb05.psb.ugent.be/lotus/packs/swarm206d.tgz";
+my $swarmtar = "http://lotus2.earlham.ac.uk/lotus/packs/swarm2.1.13.zip";#"https://github.com/torognes/swarm/archive/master.zip";#"http://lotus2.earlham.ac.uk/lotus/packs/swarm206d.tgz";
 getS2($swarmtar,$tars);
 system("unzip -o -d $bdir $tars");
 unlink($tars);
@@ -488,9 +556,9 @@ if (-e $sexe){ #not essential
 print "Downloading vsearch executables..\n";
 my $vexe = "$bdir/vsearch-2.0.4";
 if ($isMac){
-	getS2("http://psbweb05.psb.ugent.be/lotus/packs/vsearch/vsearch-2.0.4-osx-x86_64/bin/vsearch",$vexe);
+	getS2("http://lotus2.earlham.ac.uk/lotus/packs/vsearch/vsearch-2.0.4-osx-x86_64/bin/vsearch",$vexe);
 } else {
-	getS2("http://psbweb05.psb.ugent.be/lotus/packs/vsearch/vsearch-2.0.4-linux-x86_64/bin/vsearch",$vexe);
+	getS2("http://lotus2.earlham.ac.uk/lotus/packs/vsearch/vsearch-2.0.4-linux-x86_64/bin/vsearch",$vexe);
 }
 if (-e $vexe){ #not essential
 	system("chmod +x $vexe");
@@ -505,9 +573,9 @@ if (-e $vexe){ #not essential
 print "Downloading infernal executables..\n";
 my $iexe = "$bdir/inf112.tar.gz";
 if ($isMac){
-	getS2("http://psbweb05.psb.ugent.be/lotus/packs/infernal/infernal-1.1.2-macosx-intel.tar.gz",$iexe);
+	getS2("http://lotus2.earlham.ac.uk/lotus/packs/infernal/infernal-1.1.2-macosx-intel.tar.gz",$iexe);
 } else {
-	getS2("http://psbweb05.psb.ugent.be/lotus/packs/infernal/infernal-1.1.2-linux-intel-gcc.tar.gz",$iexe);
+	getS2("http://lotus2.earlham.ac.uk/lotus/packs/infernal/infernal-1.1.2-linux-intel-gcc.tar.gz",$iexe);
 }
 	system("tar -xzf $iexe -C $bdir");
 	$iexe = "$bdir/infernal-1.1.2-linux-intel-gcc/binaries/";
@@ -520,29 +588,78 @@ system "rm -f $iexe" if (-e $iexe);
 
 
 #die "$vexe\n";
-#dnaclust
-print "Downloading dnaclust executables..\n";
-my $dtar = "$bdir/dnaclust.zip";
-my $dexe = "$bdir/dnaclust_linux_release3/dnaclust";
+
+
+
+
+#DEBUG
+#minimap2
+print "Downloading minimap2 executables..\n";
+my $dtar = "$bdir/minimap2-2.17_x64-linux.tar.bz2";
+my $dexe = "$bdir/minimap2-2.17_x64-linux/minimap2";
 if ($isMac){
-	getS2("http://psbweb05.psb.ugent.be/lotus/packs/dnaclust/dnaclust_OSX_release3.zip",$dtar);
-	$dexe = "$bdir/dnaclust_OSX_release3/dnaclust";
+	#getS2("http://lotus2.earlham.ac.uk/lotus/packs/dnaclust/dnaclust_OSX_release3.zip",$dtar);
+	#$dexe = "$bdir/dnaclust_OSX_release3/dnaclust";
+	print "please natively install minimap2 for MAC users\n";
 } else {
-	getS2("http://psbweb05.psb.ugent.be/lotus/packs/dnaclust/dnaclust_linux_release3.zip",$dtar);
+	getS2("https://github.com/lh3/minimap2/releases/download/v2.17/minimap2-2.17_x64-linux.tar.bz2",$dtar);
 }
-system("unzip -o -q $dtar -d $bdir");
+system("tar -xzf $dtar -C $bdir");
+unlink($dtar);
+if (-e $dexe){ #not essential
+	system("chmod +x $dexe");
+	@txt = addInfoLtS("minimap2",$dexe,\@txt,1);
+} else {
+	print "minimap2 exe did not exist at $dexe\n Therefore minimap2 was not installed (please manually install).\n";
+}
+
+## iqtree2
+print "Downloading IQ-TREE 2 executables..\n";
+$dtar = "$bdir/iqtree-2.1.1-Linux.tar.gz";
+$dexe = "$bdir/iqtree-2.1.1-Linux/bin/iqtree2";
+if ($isMac){
+	getS2("https://github.com/iqtree/iqtree2/releases/download/v2.1.1/iqtree-2.1.1-MacOSX.zip",$dtar);
+	$dexe = "$bdir/iqtree-2.1.1-MacOSX/bin/iqtree2";
+} else {
+	getS2("https://github.com/iqtree/iqtree2/releases/download/v2.1.1/iqtree-2.1.1-Linux.tar.gz",$dtar);
+}
+system("tar -xzf $dtar -C $bdir");
 unlink($dtar);
 
 if (-e $dexe){ #not essential
-	system("chmod +x $dexe;chmod +x $dexe-ref");
-	@txt = addInfoLtS("dnaclust",$dexe,\@txt,1);
+	system("chmod +x $dexe");
+	@txt = addInfoLtS("iqtree",$dexe,\@txt,1);
 } else {
-	print "dnaclust exe did not exist at $dexe\n Therefore dnaclust was not installed (please use other clustering algorithm or manually install).\n";
+	print "iqtree2 exe did not exist at $dexe\n Therefore iqtree2 was not installed (please manually install).\n";
 }
 
+##mafft
+print "Downloading MAFFT 7 executables..\n";
+$dtar = "$bdir/mafft-7.471-linux.tgz";
+$dexe = "$bdir/mafft-linux64/mafft.bat";
+if ($isMac){
+	getS2("https://mafft.cbrc.jp/alignment/software/mafft-7.471-mac.zip",$dtar);
+	$dexe = "$bdir/mafft-mac/mafft.bat";
+	system("tar -xzf $dtar -C $bdir");
+
+} else {
+	getS2("https://mafft.cbrc.jp/alignment/software/mafft-7.471-linux.tgz",$dtar);
+	system("tar -xzf $dtar -C $bdir");
+}
+unlink($dtar);
+
+if (-e $dexe){ #not essential
+	system("chmod +x $dexe");
+	@txt = addInfoLtS("mafft",$dexe,\@txt,1);
+} else {
+	print "MAFFT exe did not exist at $dexe\n Therefore MAFFT was not installed (please manually install).\n";
+}
+
+
+
 #dnaclust
-#http://psbweb05.psb.ugent.be/lotus/packs/dnaclust_linux_release3.zip
-#http://psbweb05.psb.ugent.be/lotus/packs/dnaclust_OSX_release3.zip
+#http://lotus2.earlham.ac.uk/lotus/packs/dnaclust_linux_release3.zip
+#http://lotus2.earlham.ac.uk/lotus/packs/dnaclust_OSX_release3.zip
 # dnaclust
 #system("chmod +x $exe\nchmod +x $exe-ref\n");
 #@txt = addInfoLtS("dnaclust",$exe,\@txt,1);
@@ -555,7 +672,7 @@ my $exe1 = "$bdir/FastTree.c";
 #system("wget -O $exe $fastt");
 #my $fastt = "http://www.microbesonline.org/fasttree/FastTreeMP";
 #if ($isMac){}
-my $fastt = "http://psbweb05.psb.ugent.be/lotus/packs/FastTree.c"; #http://www.microbesonline.org/fasttree/
+my $fastt = "http://lotus2.earlham.ac.uk/lotus/packs/FastTree.c"; #http://www.microbesonline.org/fasttree/
 getS2($fastt,$exe1);
 $callret = system("gcc -DOPENMP -fopenmp -O3 -finline-functions -funroll-loops -Wall -o $exe $exe1 -lm");
 if ($callret != 0){
@@ -573,7 +690,7 @@ system("chmod +x $exe");
 my $flashdir = $bdir."FLASH-1.2.10";
 my $fexe = "$flashdir/flash";
 my $tar = "$bdir/Flash.tar.gz";
-my $flashTar = "http://psbweb05.psb.ugent.be/lotus/packs/FLASH-1.2.10.tar.gz";#"http://sourceforge.net/projects/flashpage/files/FLASH-1.2.10.tar.gz/download";
+my $flashTar = "http://lotus2.earlham.ac.uk/lotus/packs/FLASH-1.2.10.tar.gz";#"http://sourceforge.net/projects/flashpage/files/FLASH-1.2.10.tar.gz/download";
 getS2($flashTar,$tar);
 system("tar -xzf $tar -C $bdir");
 unlink($tar);
@@ -591,7 +708,7 @@ my $cdhitdir = $bdir."cdhit-master/";
 my $cexe = "$cdhitdir/cd-hit-est";
 $tar = "$bdir/cdhit.zip";
 #my $cdhitTar = "https://cdhit.googlecode.com/files/cd-hit-v4.6.1-2012-08-27.tgz";
-my $cdhitTar = "http://psbweb05.psb.ugent.be/lotus/packs/cd-hit_git.zip";#"https://github.com/weizhongli/cdhit/archive/master.zip";
+my $cdhitTar = "http://lotus2.earlham.ac.uk/lotus/packs/cd-hit_git.zip";#"https://github.com/weizhongli/cdhit/archive/master.zip";
 getS2($cdhitTar,$tar);
 #system("tar -xzf $tar -C $bdir");
 system("unzip -o -q $tar -d $bdir");
@@ -605,7 +722,7 @@ if ($callret != 0){
 }
 
 
-my $rdpf = "http://psbweb05.psb.ugent.be/lotus/packs/rdp_classifier_2.12.zip"; #"http://downloads.sourceforge.net/project/rdp-classifier/rdp-classifier/rdp_classifier_2.6.zip?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Frdp-classifier%2F&ts=1391590725&use_mirror=netcologne";
+my $rdpf = "http://lotus2.earlham.ac.uk/lotus/packs/rdp_classifier_2.12.zip"; #"http://downloads.sourceforge.net/project/rdp-classifier/rdp-classifier/rdp_classifier_2.6.zip?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Frdp-classifier%2F&ts=1391590725&use_mirror=netcologne";
 #RDP classifier
 $exe = "$bdir/rdp.zip";
 #system("wget -O $exe $rdpf");
@@ -619,7 +736,7 @@ $exe = $bdir."rdp_classifier_2.12/dist/classifier.jar";
 
 
 #clustalO
-my $clo = "http://psbweb05.psb.ugent.be/lotus/packs/clustalo-1.2.0-Ubuntu-x86_64";#"http://www.clustal.org/omega/clustalo-1.2.0-Ubuntu-x86_64";
+my $clo = "http://lotus2.earlham.ac.uk/lotus/packs/clustalo-1.2.0-Ubuntu-x86_64";#"http://www.clustal.org/omega/clustalo-1.2.0-Ubuntu-x86_64";
 if ($isMac){
 	$clo = "http://www.clustal.org/omega/clustal-omega-1.2.0-macosx";
 }
@@ -630,11 +747,9 @@ system("chmod +x $exe");
 @txt = addInfoLtS("clustalo",$exe,\@txt,1);
 
 
-print "\n\nInstallation script finished. Please read the readme on the software used in this pipeline. Execute autoInstall.pl again, to upgrade LotuS to a newer version (if available).\n";
+print "\n\nInstallation script finished. Please read the readme on the software used in this pipeline. Excecute autoinstall.pl again, to upgrade LotuS to a newer version (if available).\n";
 
 finishAI("");
-
-
 
 #After install on your system, open\n   ".$ldir."lOTUs.cfg\nand search for the entry \"usearch {XX}\".\nReplace {XX} with the absolute path to your usearch install, e.g. /User/Thomas/bin/usearch/usearch7.0.1001_i86linux32\n LotuS is ready to run.\n";
 
@@ -646,7 +761,7 @@ sub finishAI($){
 	close O;
 	return if ($vTag eq "none");
 	if ($LWPsimple){
-		my $external_php = get("http://psbweb05.psb.ugent.be/lotus/in.php?ID=$UID&VERSION=$vTag$lver&SDMV=$sver") || print "";
+		my $external_php = get("http://lotus2.earlham.ac.uk/lotus/in.php?ID=$UID&VERSION=$vTag$lver&SDMV=$sver") || print "";
 	}
 	if ($finalWarning ne ""){
 		print "################################\nWarnings occured during LotuS installation:\n".$finalWarning."\n################################\n";
@@ -771,8 +886,8 @@ sub getbeetax($){
 	system "rm -rf $ddir/beeTax/;mkdir -p $ddir/beeTax/";
 	my $DB = "$ddir/beeTax/beeTax.fna"; my $DBtax = "$ddir/beeTax/beeTax.txt";
 	#getS2("http://5.196.17.195/pr2/download/representative_sequence_of_each_cluster/gb203_pr2_all_10_28_99p.fasta.tar.gz",$DB.".tar.gz");
-	getS2("http://psbweb05.psb.ugent.be/lotus/packs/DB/beeTax_Engel/beEngel.fna",$DB);
-	getS2("http://psbweb05.psb.ugent.be/lotus/packs/DB/beeTax_Engel/beEngel.txt",$DBtax);
+	getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/beeTax_Engel/beEngel.fna",$DB);
+	getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/beeTax_Engel/beEngel.txt",$DBtax);
 	#parse_PR2($DB,$DBtax); #unlink ($DBtax.".pre");
 	@txt = addInfoLtS("TAX_REFDB_BEE",$DB,\@txt,1);
 	@txt = addInfoLtS("TAX_RANK_BEE",$DBtax,\@txt,1);
@@ -786,7 +901,7 @@ sub getPR2db($){
 	system "rm -rf $ddir/PR2/;mkdir -p $ddir/PR2/";
 	my $DB = "$ddir/PR2/PR2_pack"; my $DBtax = "$ddir/PR2/PR2_taxonomy.txt";
 	#getS2("http://5.196.17.195/pr2/download/representative_sequence_of_each_cluster/gb203_pr2_all_10_28_99p.fasta.tar.gz",$DB.".tar.gz");
-	getS2("http://psbweb05.psb.ugent.be/lotus/packs/DB/gb203PR2.tar.gz",$DB.".tar.gz");
+	getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/gb203PR2.tar.gz",$DB.".tar.gz");
 	
 	system "tar -xzf $DB.tar.gz -C $ddir/PR2;rm $DB.tar.gz";
 	$DB = "$ddir/PR2/gb203_pr2_all_10_28_99p.fasta";
@@ -801,8 +916,8 @@ sub getHITdb($){
 	print "Downloading HITdb April 2015 release..\n";
 	system "rm -rf $ddir/HITdb/; mkdir -p $ddir/HITdb/";
 	my $DB = "$ddir/HITdb/HITdb_sequences.fna"; my $DBtax = "$ddir/HITdb/HITdb_taxonomy.txt";
-	getS2("http://psbweb05.psb.ugent.be/lotus/packs/hitdb/HITdb_sequences.fna",$DB);
-	getS2("http://psbweb05.psb.ugent.be/lotus/packs/hitdb/HITdb_taxonomy_qiime.txt",$DBtax.".pre");
+	getS2("http://lotus2.earlham.ac.uk/lotus/packs/hitdb/HITdb_sequences.fna",$DB);
+	getS2("http://lotus2.earlham.ac.uk/lotus/packs/hitdb/HITdb_taxonomy_qiime.txt",$DBtax.".pre");
 	parse_hitdb($DBtax.".pre",$DBtax); unlink ($DBtax.".pre");
 	@txt = addInfoLtS("TAX_REFDB_HITdb",$DB,\@txt,1);
 	@txt = addInfoLtS("TAX_RANK_HITdb",$DBtax,\@txt,1);
@@ -812,8 +927,8 @@ sub getGG($){
 	my ($aref) = @_;
 	my @txt = @{$aref};
 	#greengenes ------------------------
-	my $gg1 = "http://psbweb05.psb.ugent.be/lotus/packs/gg_13_5.fasta.gz";
-	my $gg2 = "http://psbweb05.psb.ugent.be/lotus/packs/gg_13_5_taxonomy.gz";
+	my $gg1 = "http://lotus2.earlham.ac.uk/lotus/packs/gg_13_5.fasta.gz";
+	my $gg2 = "http://lotus2.earlham.ac.uk/lotus/packs/gg_13_5_taxonomy.gz";
 	my $DB = "$ddir/gg_13_5.fasta";
 	system "rm -f $DB"."*";
 	#system("wget -O $DB.gz $gg1");
@@ -854,10 +969,10 @@ sub getSLV($){
 	system "rm -f $DB"."*";
 	print "Downloading SILVA SSU release $SLVver..\n";
 	if ($locSLBdl){ #in case silva server doesn't work again..
-		my $SlvAltFna = "http://psbweb05.psb.ugent.be/lotus/packs/DB/SLV/SLV_132_SSU.fasta.gz";
+		my $SlvAltFna = "http://lotus2.earlham.ac.uk/lotus/packs/DB/SLV/SLV_132_SSU.fasta.gz";
 		getS2($SlvAltFna,"$DB.gz");
 		system("gunzip -c $DB.gz > $DB;rm -f $DB.gz"); 
-		my $SlvAltTax = "http://psbweb05.psb.ugent.be/lotus/packs/DB/SLV/SLV_132_SSU.tax.gz";
+		my $SlvAltTax = "http://lotus2.earlham.ac.uk/lotus/packs/DB/SLV/SLV_132_SSU.tax.gz";
 		getS2($SlvAltTax,"$DB2.gz");
 		system("gunzip -c $DB2.gz > $DB2;rm -f $DB2.gz"); 
 	} else {
@@ -881,10 +996,10 @@ sub getSLV($){
 	system "rm -f $DB"."*";
 	$locSLBdl=1; $SLVver="132";#change this to local (132 release), since SIVLA doesn't have that yet..
 	if ($locSLBdl){ #in case silva server doesn't work again..
-		my $SlvAltFna = "http://psbweb05.psb.ugent.be/lotus/packs/DB/SLV/SLV_132_LSU.fasta.gz";
+		my $SlvAltFna = "http://lotus2.earlham.ac.uk/lotus/packs/DB/SLV/SLV_132_LSU.fasta.gz";
 		getS2($SlvAltFna,"$DB.gz");
 		system("gunzip -c $DB.gz > $DB;rm -f $DB.gz"); 
-		my $SlvAltTax = "http://psbweb05.psb.ugent.be/lotus/packs/DB/SLV/SLV_132_LSU.tax.gz";
+		my $SlvAltTax = "http://lotus2.earlham.ac.uk/lotus/packs/DB/SLV/SLV_132_LSU.tax.gz";
 		getS2($SlvAltTax,"$DB2.gz");
 		system("gunzip -c $DB2.gz > $DB2;rm -f $DB2.gz"); 
 	} else {
@@ -1096,10 +1211,11 @@ close I; close OT; close OS; #close OT2; close OS2;
 
 sub getS2($ $){
 	my ($in,$out) = @_;
-	#print "getS2:$in\n$out\n";
-	#print $in."\n";
+	print "getS2:$in\n$out\n";
+	print $in."\n";
 	if ($WGETpres){
-		print "wget\n";
+#		print "wget\n";
+		print "wget -O $out $in\n";
 		system("wget -O $out $in");
 	} elsif (!$isMac && $LWPsimple){
 		print "LWP\n";
@@ -1116,7 +1232,7 @@ sub getS2($ $){
 
 sub checkLtsVer($){
 	my ($lver) = @_;
-	my $updtmpf = get("http://psbweb05.psb.ugent.be/lotus/lotus/updates/Msg.txt");
+	my $updtmpf = get("http://lotus2.earlham.ac.uk/lotus/lotus/updates/Msg.txt");
 	my $msg = ""; my $hadMsg=0;
 	open( TF, '<', \$updtmpf ); while(<TF>){$msg .= $_;}  close(TF); 
 	foreach my $lin (split(/\n/,$msg)){
@@ -1127,13 +1243,13 @@ sub checkLtsVer($){
 	}
 	# compare to server version
 	die "LWP:simple package not installed, but required for updater!" if (!$LWPsimple);
-	$updtmpf = get("http://psbweb05.psb.ugent.be/lotus/lotus/updates/curVer.txt");
+	$updtmpf = get("http://lotus2.earlham.ac.uk/lotus/lotus/updates/curVer.txt");
 	open( TF, '<', \$updtmpf ); my $lsv = <TF>; close(TF); chomp $lsv;
 	my $msgEnd = "";
-	$updtmpf = get("http://psbweb05.psb.ugent.be/lotus/lotus/updates/curVerMsg.txt");
+	$updtmpf = get("http://lotus2.earlham.ac.uk/lotus/lotus/updates/curVerMsg.txt");
 	open( TF, '<', \$updtmpf ); while(<TF>){$msgEnd .= $_;} close(TF); 
 	
-	$updtmpf = get("http://psbweb05.psb.ugent.be/lotus/lotus/updates/UpdateHist.txt");
+	$updtmpf = get("http://lotus2.earlham.ac.uk/lotus/lotus/updates/UpdateHist.txt");
 	my $updates = "";
 	open( TF, '<', \$updtmpf );$msg = ""; while(<TF>){$msg .= $_;}  close(TF); 
 	foreach my $lin (split(/\n/,$msg)){

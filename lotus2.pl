@@ -1060,13 +1060,22 @@ sub ITSxOTUs {
 	
 	#check which OTUs existed before, but are not longer listed in ITSx output
 	my @prevOTUs = keys %FNA;
-	my @newOTUs = keys %ITSo;
-	my %lookup = map { $_ => 1 } @newOTUs;
+	my %lookup;
+	foreach my $k ( keys %ITSo ) {
+		my $hdde = "${OTU_prefix}x_1";
+		if ($k =~ m/^(ASV|[z]?OTU_\d+)\|/){
+			$hdde = $1;
+		}
+		$lookup{$hdde} = 1;
+	}
+
 	for my $otu ( @prevOTUs ) {
 		$ret{$otu} = 1 if (!exists($lookup{ $otu }));
 	}
+	
 
-	printL frame( "ITSx analysis: Kept " . scalar( keys(%ITSo) ) . " ${OTU_prefix}'s identified as $ITSxReg (of "  . scalar( keys(%ITSo) ) . " ${OTU_prefix}'s).\n"),0;
+	printL frame( "ITSx analysis: Kept " . scalar( keys(%ITSo) ) . " ${OTU_prefix}'s identified as $ITSxReg (of "  . scalar( keys(%FNA) ) . " ${OTU_prefix}'s).\n"),0;
+	#die scalar( keys(%ret) )."\n";
 
 	#systemL "cat $outBFile.full.fasta > $otusFA";
 	#open O, ">$otusFA" or die "Can't open output $otusFA\n";
@@ -2446,11 +2455,17 @@ sub prepLtsOptions{
 		$refDBwanted = "GG";
 		$defDBset    = 1;
 	}
-
+	
+	#read primary paths to binaries
 	readPaths_aligners($lotusCfg);
+	#version checks
 	my $usvstr = `$usBin --version`;
 	$usvstr =~ m/usearch v(\d+\.\d+)\.(\d+)/;
 	$usearchVer = $1;$usearchsubV = $2;
+	
+	$usvstr = `$mini2Bin --version`; $usvstr =~ m/(\d\.\d+)/;
+	my $miniVer = $1
+	if ($miniVer < 2.17){die "minimap2 version (found $miniVer at $mini2Bin) too low, expected at least 2.17\n";}
 
 	#if ($usearchVer == 9){printL "Usearch ver 9 currently not supported, please install ver 8.\n",39;}
 	if ( $usearchVer > 11 ) {
