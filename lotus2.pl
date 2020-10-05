@@ -2464,8 +2464,8 @@ sub prepLtsOptions{
 	$usearchVer = $1;$usearchsubV = $2;
 	
 	$usvstr = `$mini2Bin --version`; $usvstr =~ m/(\d\.\d+)/;
-	my $miniVer = $1
-	if ($miniVer < 2.17){die "minimap2 version (found $miniVer at $mini2Bin) too low, expected at least 2.17\n";}
+	my $miniVer = $1;
+	if ($miniVer < 2.17) {die "minimap2 version (found $miniVer at $mini2Bin) too low, expected at least 2.17\n";}
 
 	#if ($usearchVer == 9){printL "Usearch ver 9 currently not supported, please install ver 8.\n",39;}
 	if ( $usearchVer > 11 ) {
@@ -2597,8 +2597,7 @@ sub prepLtsOptions{
 	if ( substr( $ampliconType, 0, 3 ) eq "ITS" ) {
 		if ( $organism ne "fungi" && $organism ne "eukaryote" ) {
 			$organism = "eukaryote";
-			finWarn
-	"Setting \"-tax_group\" to \"eukaryote\" as only eukaryote and fungi are supported options for $ampliconType.\n";
+			finWarn	"Setting \"-tax_group\" to \"eukaryote\" as only eukaryote and fungi are supported options for $ampliconType.\n";
 		}
 
 		if (   $doBlasting == 0
