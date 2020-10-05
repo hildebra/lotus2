@@ -2634,73 +2634,174 @@ sub prepLtsOptions{
 sub help {
 	my $ver = 0;
 	($ver) = @_ if (@_ > 0);
-#HELPSTART
-    print "LotuS usage:\n./lotus2.pl -i [input fasta / fastq / dir]";
-    print " -o [output dir] -m/-map [mapping file]\n";
-	print "minimal example: \"perl lotus2.pl -i testDir/ -o testOut/ -m testDir/mymap.txt -CL dada2\n";
-	
-	if ($ver == 1){
-		print "            === or ===   \n";
-		print "Create map: ./lotus2.pl -i [dir with demultiplexed fastqs] -create_map [map out]\n";
-		print "Check map for errors: ./lotus2.pl -check_map [mapfile]\n";
-		print "To see further arguments, use \"./lotus2.pl -help\"\n";
-		return;
-	}
-	print "Optional options\n";
-	print "\n############### Basic pipeline options ###############\n";
-	print "  -q [input qual file (empty in case of fastq or directory)]\n";
-	print "  -barcode|MID [file path to fastq formated file with barcodes, e.g. MID (this is a processed mi/hiSeq format)]\n";
-	print "  -s [sdm option file, defaults to \"sdm_options.txt\" in current dir]\n";
-	print "  -c [lOTUs.cfg config file with program paths]\n";
-	print "  -p [sequencing platform:454,miSeq,hiSeq,PacBio]\n";
-	print "  -t|threads [number of threads to be used, default 1]\n";
-	print "  -tmp|tmpDir [temporary directory]. Default [-o]/tmp/\n";
-	print "\n############### Worflow related options ###############\n";
-	print "  -verbosity [0-3] level of verbosity from printing all program calls and program output [3] to not even printing errors [0]\n";
-	print "  -saveDemultiplex [1: Saves all demultiplexed & filtered reads in gzip format in the output directory (can require quite a lot of diskspace). 2: Only saves quality filtered demultiplexed reads and continues LotuS run subsequently. 3: Saves demultiplexed file into a single fq, saving sample ID in fastq/a header. 0: No demultiplexed reads are saved. Default: 0]\n";
-	print "  -taxOnly [fasta_file: Skip most of the lotus pipeline and only run a taxonomic classification on a fasta file. E.g. ./lotus2.pl -taxOnly some16S.fna -refDB SLV]\n";
-	print "  -redoTaxOnly [1: only redo the taxonomic assignments (useful for replacing a DB used on a finished lotus run), 0: normal lotus run, default]\n";
-	print "  -offtargetDB [Default: empty. This option checks in analogy to the phiX filter step in a custom DB (e.g. mouse genome, needs to be fasta format), for contaminant OTUs that are more likely to derrive from this genome than e.g. bacteria. Example: -offtargetDB /YY/mouse.fna,/YY/human.fna]\n";
-	print "  -keepOfftargets [0/1: keep offtarget hits against offtargetDB in output fasta and otu matrix, default 0]\n";
-	print "  -keepTmpFiles [1: save extra tmp files like chimeric OTUs or the raw blast output in extra dir; 0: don't save these, default 0]\n";
-	print "  -keepUnclassified [1: includes unclassified OTUs (i.e. no match in RDP/Blast database) in OTU and taxa abundance matrix calculations; 0 does not take these OTU's into account, default 0]\n";
-	print "  -tolerateCorruptFq [1: continue reading fastq files, even if single entries are incomplete (e.g. half of qual values missing). 0: Abort lotus run, if fastq file is corrupt. Default 1]\n";
 
-	print "\n############### Taxonomy related options ###############\n";
-	print "  -refDB [\"SLV\" Silva LSU (23/28S) or SSU (16/18S), \"GG\" greengenes (only SSU available), \"HITdb\" (SSU, human gut specific), \"PR2\" (LSU spezialized on Ocean environmentas), \"UNITE\" (ITS fungi specific), \"beetax\" (bee gut specific database and tax names). Decide which reference DB will be used for a similarity based taxonomy annotation, default \"GG\". Databases can be combined, with the first having the highest prioirty. E.g. \"PR2,SLV\" would first use PR2 to assign OTUs and all unaasigned OTUs would be searched for with SILVA, given that \"-amplicon_type LSU\" was set. Can also be a custom fasta formatted database: in this case provide the path to the fasta file as well as the path to the taxonomy for the sequences using -tax4refDB. See also online help on how to create a custom DB.]\n";
-	print "  -tax4refDB [in conjunction with a custom fasta file provided to argument -refDB, this file contains for each fasta entry in the reference DB a taxonomic annotation string, with the same number of taxonomic levels for each, tab separated.]\n";
-	print "  -amplicon_type [LSU: large subunit (23S/28S) or SSU: small subunit (16S/18S). Default SSU]\n";
-	print "  -tax_group [\"bacteria\": bacterial 16S rDNA annnotation, \"fungi\": fungal 18S/23S/ITS annotation. Default \"bacteria\"]\n";
-	print "  -rdp_thr [Confidence thresshold for RDP, default 0.8]\n";
-	print "  -utax_thr [Confidence thresshold for UTAX, default 0.8]\n";
-	print "  -LCA_frac [min fraction of reads with identical taxonomy, default 0.9]\n";
-	print "  -taxAligner [(previously doBlast) 0: deavtivated (just use RDP); [1 or \"blast\"]: use Blast; [2 or \"lambda\"]: use LAMBDA to search against a 16S reference database for taxonomic profiling of OTUs; [3 or \"utax\"]: use UTAX with custom databases; [4 or \"vsearch \"]: use VSEARCH to align OTUs to custom databases; [5 or \"usearch\"]: use USEARCH to align OTUs to custom databases. Default 0]\n";
-	print "  -useBestBlastHitOnly [1: don't use LCA (last common ancestor) to determine most likely taxnomic level (not recommended), instead just use the best blast hit. 0: (default) LCA algorithm]\n";
-	print "  -LCA_cover [0-1] min horizontal coverage of an OTU sequence against ref DB. Default 0.5\n";
-	print "  -LCA_frac [0-1] fraction of hits that have to cover the same taxon at each taxonomic level for the hit to be accepted. Default 0.8\n";
-	print "  -greengenesSpecies [1: Create greengenes output labels instead of OTU (to be used with greengenes specific programs such as BugBase). Default: 0]\n";
-	print "  -itsextraction [1: use ITSx to only retain OTUs fitting to ITS1/ITS2 hmm models; 0: deactivate; Default=1]\n";
-	print "  -itsx_partial [0-100: parameters for ITSx to extract partial (%) ITS regions as well; 0: deactivate; Default=0]\n";
 
-	print "\n############### OTU clustering options ###############\n";
-	print "  -CL/-clustering [sequence clustering algorithm: (1) UPARSE, (2) swarm, (3) cd-hit, (6) unoise3, (7) dada2, default 1]\n";
-	print "  -id [clustering threshold for OTU's, default 0.97]\n";
-	print "  -swarm_distance [clustering threshold for OTU's when using swarm clustering, default 1]\n";
-	print "  -chim_skew [skew in chimeric fragment abundance (uchime option), default 2]\n";
-	print "  -derepMin [minimum size of dereplicated clustered, one form of noise removal. Can be complex terms like \"10:1,3:3\" -> meaning at least 10x in 1 sample or 3x in 3 different samples. Default 2]\n";
-	print "  -count_chimeras if set, will count chimeric reads into their estimated original OTUs\n";
-	print "  -deactivateChimeraCheck [0: do OTU chimera checks. 1: no chimera Check at all. 2: Deactivate deNovo chimera check. 3: Deactivate ref based chimera check.Default = 0]\n";
+# HELP BLOCK LOTUS2
 
-	print "  -readOverlap [the maximum number of basepairs that two reads are overlapping, default 300]\n";
-	print "  -flash_param [custom flash parameters, since this contains spaces the command needs to be in parentheses: e.g. -flash_param \"-r 150 -s 20\". Note that this option completely replaces the default -m and -M flash options (i.e. need to be reinserted, if wanted)]\n";
-	print "  -endRem [DNA sequence, usually reverse primer or reverse adaptor; all sequence beyond this point will be removed from OTUs. This is redundant with the \"ReversePrimer\" option from the mapping file, but gives more control (e.g. there is a probelm with adaptors in the OTU output), default \"\"]\n";
-	print "  -xtalk [(1) check for crosstalk; note that this requires in most cases 64bit usearch, default 0]\n";
-	print "############### other functions ###############\n";
-	print "  -v print LotuS2 version\n";
-	print "  -check_map [mapping_file: only checks mapping file and exists\n";
-	print "  -create_map [mapping_file: creates a new mapping file at location, based on already demultiplexed input (-i) dir. E.g. ./lotus2.pl -create_map mymap.txt -i /home/dir_with_demultiplex_fastq]\n";
+my $usage_string = "perl lotus2.pl -i <input fasta|fastq|dir> -o <output_dir> -m/-map <mapping_file>";
+my $usage_example = "perl lotus2.pl -i testDir/ -o testOut/ -m testDir/mymap.txt -CL dada2";
+my $basic_heading = "Basic Options";
+my %basic_options = (
+  '-i <file|dir>', 'In case that fastqFile or fnaFile and qualFile were specified in the mapping file, this has to be the directory with input files',
+  '-o <dir>', 'Warning: The output directory will be completely removed at the beginning of the LotuS2 run. Please ensure this is a new directory or contains only disposable data!',
+  '-m|-map <file>', 'Mapping file'
+);
 
-#HELPEND
+my $further_heading = "Further Options";
+my %further_options = (
+  '-q <file>', 'input qual file (not defined in case of fastq or input directory)', 
+  '-barcode|-MID <file>', 'Filepath to fastq formated file with barcodes (this is a processed mi/hiSeq format). The complementary option in a mapping file would be the column "MIDfqFile"',
+  '-s <file>', 'SDM option file, defaults to \"sdm_options.txt\" in current dir',
+  '-c <file>', 'LotuS.cfg, config file with program paths',
+  '-p <454/miSeq/hiSeq/PacBio>', 'sequencing platform: PacBio, 454, miSeq or hiSeq',
+  '-t|-threads <num>', 'number of threads to be used',
+  '-tmp|-tmpDir <dir>', 'temporary directory used to save intermediate results'
+);
+
+my $workflow_heading = "Workflow Options";
+my %workflow_options = (
+  '-verbosity <0-3>', 'Level of verbosity from printing all program calls and program output (3) to not even printing errors (0). Default?
+',
+  '-saveDemultiplex <0|1|2|3>', '(1) Saves all demultiplexed reads (unfiltered) in the [outputdir]/demultiplexed folder, for easier data upload. (2) Only saves quality filtered demultiplexed reads and continues LotuS2 run subsequently. (3) Saves demultiplexed file into a single fq, saving sample ID in fastq/a header. (0) No demultiplexed reads are saved. (Default: 0)',
+  '-taxOnly <file>', 'Skip most of the lotus pipeline and only run a taxonomic classification on a fasta file. E.g. ./lotus2.pl -taxOnly <some16S.fna> -refDB SLV',
+  '-redoTaxOnly <0|1>', '(1) Only redo the taxonomic assignments (useful for replacing a DB used on a finished lotus run). (0) Normal lotus run. (Default: 0)',
+  '-keepOfftargets <0|1>', '(0)?!?: keep offtarget hits against offtargetDB in output fasta and otu matrix, default 0',
+  '-keepTmpFiles <0|1>', '(1) save extra tmp files like chimeric OTUs or the raw blast output in extra dir. (0) do not save these. (Default: 0)',
+  '-keepUnclassfied <0|1>', '(1) Includes unclassified OTUs (i.e. no match in RDP/Blast database) in OTU and taxa abundance matrix calculations. (0) does not take these OTUs into account. (Default: 0)',
+  '-tolerateCorruptFq <0|1>', '(1) Continue reading fastq files, even if single entries are incomplete (e.g. half of qual values missing). (0) Abort lotus run, if fastq file is corrupt. (Default: 0)'
+);
+
+my $taxonomy_heading = "Taxonomy Options";
+my %taxonomy_options = (
+  '-refDB <SLV|GG|HITdb|PR2|UNITE|beetax>', '(SLV) Silva LSU (23/28S) or SSU (16/18S), (GG greengenes (only SSU available), (HITdb) (SSU, human gut specific), (PR2) LSU spezialized on Ocean environmentas, (UNITE) ITS fungi specific, (beetax) bee gut specific database and tax names. \nDecide which reference DB will be used for a similarity based taxonomy annotation. Databases can be combined, with the first having the highest prioirty. E.g. "PR2,SLV" would first use PR2 to assign OTUs and all unaasigned OTUs would be searched for with SILVA, given that \"-amplicon_type LSU\" was set. Can also be a custom fasta formatted database: in this case provide the path to the fasta file as well as the path to the taxonomy for the sequences using -tax4refDB. See also online help on how to create a custom DB. (Default: GG)',
+  '-tax4refDB <file>', 'In conjunction with a custom fasta file provided to argument -refDB, this file contains for each fasta entry in the reference DB a taxonomic annotation string, with the same number of taxonomic levels for each, tab separated.',
+  '-amplicon_type <LSU|SSU>', '(LSU) large subunit (23S/28S) or (SSU) small subunit (16S/18S). (Default: SSU)',
+  '-tax_group <bacteria|fungi>', '(bacteria) bacterial 16S rDNA annnotation, (fungi) fungal 18S/23S/ITS annotation. (Default: bacteria)',
+  '-rdp_thr <0-1>', 'Confidence thresshold for RDP.(Default: 0.8)',
+  '-utax_thr <0-1>', 'Confidence thresshold for UTAX. (Default: 0.8)',
+  '-taxAligner <0|1|2|3|4|5>', 'Previously doBlast. (0) deavtivated (just use RDP); (1) or (blast) use Blast; (2) or (lambda) use LAMBDA to search against a 16S reference database for taxonomic profiling of OTUs; (3) or (utax): use UTAX with custom databases; (4) or (vsearch) use VSEARCH to align OTUs to custom databases; (5) or (usearch) use USEARCH to align OTUs to custom databases. (Default: 0)',
+  '-useBestBlastHitOnly <0|1>', '(1) do not use LCA (lowest common ancestor) to determine most likely taxnomic level (not recommended), instead just use the best blast hit. (0) LCA algorithm. (Default: 0)',
+  '-LCA_cover <0-1>', 'Min horizontal coverage of an OTU sequence against ref DB. (Default: 0.5)',
+  '-LCA_frac <0-1>', 'Min fraction of reads with identical taxonomy. (Default: 0.9)',
+  '-greengenesSpecies <0|1>', '(1) Create greengenes output labels instead of OTU (to be used with greengenes specific programs such as BugBase). (Default: 0)',
+  '-itsextraction <0|1>', '(1) use ITSx to only retain OTUs fitting to ITS1/ITS2 hmm models; (0) deactivate. (Default: 1)',
+  '-itsx_partial <0-100>', 'Parameters for ITSx to extract partial (%) ITS regions as well. (0) deactivate. (Default: 0)'
+);
+
+my $clustering_heading = "Clustering Options";
+my %clustering_options = (
+  '-CL|-clustering <1|2|3|6|7>', 'Sequence clustering algorithm: (1) UPARSE, (2) swarm, (3) cd-hit, (6) unoise3, (7) dada2. (Default: 1)',
+  '-id <0-1>', 'Clustering threshold for OTUs. (Default: 0.97)',
+  '-swarm_distance <0-1> ', 'Clustering threshold for OTUs when using swarm clustering. (Default: 1)',
+  '-chim_skew <num>', 'Skew in chimeric fragment abundance (uchime option). (Default: 2)',
+  '-count_chimeras', 'Minimum size of dereplicated clustered, one form of noise removal. Can be complex terms like "10:1,3:3" -> meaning at least 10x in 1 sample or 3x in 3 different samples. (Default: 2)',
+  '-deactivateChimeraCheck <0|1|2|3>', '(0) do OTU chimera checks. (1) no chimera check at all. (2) Deactivate deNovo chimera check. (3) Deactivate ref based chimera check. (Default: 0)',
+  '-readOverlap <num>', 'The maximum number of basepairs that two reads are overlapping. (Default: 300)',
+  '-flash_param <string>', 'custom flash parameters, since this contains spaces the command needs to be in parentheses: e.g. -flash_param "-r 150 -s 20". Note that this option completely replaces the default -m and -M flash options (i.e. need to be reinserted, if wanted)]
+ -endRem [DNA sequence, usually reverse primer or reverse adaptor; all sequence beyond this point will be removed from OTUs. This is redundant with the "ReversePrimer" option from the mapping file, but gives more control (e.g. there is a probelm with adaptors in the OTU output). (Default: "")',
+  '-endRem <string>', 'DNA sequence, usually reverse primer or reverse adaptor; all sequence beyond this point will be removed from OTUs. This is redundant with the "ReversePrimer" option from the mapping file, but gives more control (e.g. there is a probelm with adaptors in the OTU output). (Default: "")',
+  '-xtalk <0|1>', '(1) check for crosstalk. Note that this requires in most cases 64bit usearch. (Default: 0)'
+);
+
+my $other_heading = "Other Options";
+my %other_options = (
+  '-v', 'Print LotuS2 version',
+  '-check_map <file>', 'Mapping_file: only checks mapping file and exists.',
+  '-create_map <file>', 'mapping_file: creates a new mapping file at location, based on already demultiplexed input (-i) dir. E.g. ./lotus2.pl -create_map mymap.txt -i /home/dir_with_demultiplex_fastq',
+);
+
+my $option_indent = 2;
+my $option_width = 24;
+my $description_width = 79-$option_width-$option_indent;
+
+
+
+sub print_option_pair {
+  my $n = scalar($_);
+  my $option = $_[0];
+  my $description = $_[1];
+  my $option_indent = $_[2];
+  my $option_width = $_[3];
+  my $description_width = $_[4];
+
+  my $indent = ( ' ' x $option_indent );
+  my $description_indent = ( ' ' x ($option_width + $option_indent) );
+  my $option_spacer = "";
+
+  print "$indent$option";
+  if (length $option > $option_width - 2)
+  {
+    print "\n$description_indent";
+  }
+  else {
+    $option_spacer = ( ' ' x ($option_width - length $option) );
+    print "$option_spacer";
+  }
+  my @description_frags = split / /, $description;
+  
+  my $line_width = 0;
+  foreach my $frag (@description_frags)
+  {
+    $line_width = $line_width + length $frag;
+    if ($line_width > $description_width)
+    {
+      $line_width = length $frag;
+      print "\n$description_indent$frag "
+    }
+    else
+    {
+      $line_width = $line_width + 1;
+      print "$frag ";
+    }
+  }
+  
+
+  print "\n";
+}
+
+######## PRINT HELP HERE ###############
+
+print "Lotus2 usage:\n";
+print "$usage_string\n\n";
+print "Minimal example:\n$usage_example\n\n";
+print "#### OPTIONS ####\n\n";
+
+print "$basic_heading:\n\n";
+my $key = "";
+foreach $key (keys %basic_options)
+{
+  print_option_pair($key, $basic_options{$key}, $option_indent, $option_width, $description_width);
+}
+
+print "\n\n$further_heading:\n\n";
+foreach $key (keys %further_options)
+{
+  print_option_pair($key, $further_options{$key}, $option_indent, $option_width, $description_width);
+}
+
+print "\n\n$workflow_heading:\n\n";
+foreach $key (keys %workflow_options)
+{
+  print_option_pair($key, $workflow_options{$key}, $option_indent, $option_width, $description_width);
+}
+
+print "\n\n$taxonomy_heading:\n\n";
+foreach $key (keys %taxonomy_options)
+{
+  print_option_pair($key, $taxonomy_options{$key}, $option_indent, $option_width, $description_width);
+}
+
+print "\n\n$clustering_heading:\n\n";
+foreach $key (keys %clustering_options)
+{
+  print_option_pair($key, $clustering_options{$key}, $option_indent, $option_width, $description_width);
+}
+
+
+######## PRINT HELP END #############
+
+##### HELP BLOCK LOTUS2 END #########
+
 #   print "  -pseudoRefOTUcalling [1: create Reference based (open) OTUs, where the chosen reference database (SLV,GG etc) is being used as cluster center. Default: 0]\n";
 #print "  -OTUbuild [OTU building strategy: \"ref_closed\", \"ref_open\" or \"denovo\" (default)\n";
 	exit(0);
