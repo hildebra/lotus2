@@ -2638,6 +2638,7 @@ sub help {
 
 # HELP BLOCK LOTUS2
 
+#HELPPARSEBEGIN
 my $usage_string = "perl lotus2.pl -i <input fasta|fastq|dir> -o <output_dir> -m/-map <mapping_file>";
 my $usage_example = "perl lotus2.pl -i testDir/ -o testOut/ -m testDir/mymap.txt -CL dada2";
 my $basic_heading = "Basic Options";
@@ -2660,8 +2661,7 @@ my %further_options = (
 
 my $workflow_heading = "Workflow Options";
 my %workflow_options = (
-  '-verbosity <0-3>', 'Level of verbosity from printing all program calls and program output (3) to not even printing errors (0). Default?
-',
+  '-verbosity <0-3>', 'Level of verbosity from printing all program calls and program output (3) to not even printing errors (0). Default?',
   '-saveDemultiplex <0|1|2|3>', '(1) Saves all demultiplexed reads (unfiltered) in the [outputdir]/demultiplexed folder, for easier data upload. (2) Only saves quality filtered demultiplexed reads and continues LotuS2 run subsequently. (3) Saves demultiplexed file into a single fq, saving sample ID in fastq/a header. (0) No demultiplexed reads are saved. (Default: 0)',
   '-taxOnly <file>', 'Skip most of the lotus pipeline and only run a taxonomic classification on a fasta file. E.g. ./lotus2.pl -taxOnly <some16S.fna> -refDB SLV',
   '-redoTaxOnly <0|1>', '(1) Only redo the taxonomic assignments (useful for replacing a DB used on a finished lotus run). (0) Normal lotus run. (Default: 0)',
@@ -2698,8 +2698,8 @@ my %clustering_options = (
   '-deactivateChimeraCheck <0|1|2|3>', '(0) do OTU chimera checks. (1) no chimera check at all. (2) Deactivate deNovo chimera check. (3) Deactivate ref based chimera check. (Default: 0)',
   '-readOverlap <num>', 'The maximum number of basepairs that two reads are overlapping. (Default: 300)',
   '-flash_param <string>', 'custom flash parameters, since this contains spaces the command needs to be in parentheses: e.g. -flash_param "-r 150 -s 20". Note that this option completely replaces the default -m and -M flash options (i.e. need to be reinserted, if wanted)]
- -endRem [DNA sequence, usually reverse primer or reverse adaptor; all sequence beyond this point will be removed from OTUs. This is redundant with the "ReversePrimer" option from the mapping file, but gives more control (e.g. there is a probelm with adaptors in the OTU output). (Default: "")',
-  '-endRem <string>', 'DNA sequence, usually reverse primer or reverse adaptor; all sequence beyond this point will be removed from OTUs. This is redundant with the "ReversePrimer" option from the mapping file, but gives more control (e.g. there is a probelm with adaptors in the OTU output). (Default: "")',
+ -endRem [DNA sequence, usually reverse primer or reverse adaptor; all sequence beyond this point will be removed from OTUs. This is redundant with the "ReversePrimer" option from the mapping file, but gives more control (e.g. there is a problem with adaptors in the OTU output). (Default: "")',
+  '-endRem <string>', 'DNA sequence, usually reverse primer or reverse adaptor; all sequence beyond this point will be removed from OTUs. This is redundant with the "ReversePrimer" option from the mapping file, but gives more control (e.g. there is a problem with adaptors in the OTU output). (Default: "")',
   '-xtalk <0|1>', '(1) check for crosstalk. Note that this requires in most cases 64bit usearch. (Default: 0)'
 );
 
@@ -2709,6 +2709,7 @@ my %other_options = (
   '-check_map <file>', 'Mapping_file: only checks mapping file and exists.',
   '-create_map <file>', 'mapping_file: creates a new mapping file at location, based on already demultiplexed input (-i) dir. E.g. ./lotus2.pl -create_map mymap.txt -i /home/dir_with_demultiplex_fastq',
 );
+#HELPPARSEEND
 
 my $option_indent = 2;
 my $option_width = 24;
@@ -2800,7 +2801,7 @@ foreach $key (keys %clustering_options)
 
 ######## PRINT HELP END #############
 
-##### HELP BLOCK LOTUS2 END #########
+#### HELP BLOCK LOTUS2 END #########
 
 #   print "  -pseudoRefOTUcalling [1: create Reference based (open) OTUs, where the chosen reference database (SLV,GG etc) is being used as cluster center. Default: 0]\n";
 #print "  -OTUbuild [OTU building strategy: \"ref_closed\", \"ref_open\" or \"denovo\" (default)\n";
