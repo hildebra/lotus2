@@ -179,7 +179,7 @@ my $finalWarnings    = "";
 my $remFromEnd       = ""; #fix for strange behavior of flash, where overlaps of too short amplicons can include rev primer / adaptor
 my $doPhiX			 = 1;
 my $dada2Seed        = 0; #seed for dada2 to produce reproducible results
-my $buildPhylo       = 1; #iqtree(1), fastree (0)
+my $buildPhylo       = 2; #iqtree(1), fastree (2)
 
 
 #my $combineSamples = 0; #controls if samples are combined
@@ -2400,7 +2400,7 @@ sub prepLtsOptions{
 	if ($greengAnno) {
 		$pseudoRefOTU   = 1;
 		$refDBwanted    = "GG";
-		$doBlasting_pre = "4";
+		$doBlasting_pre = "2";
 		print "Greengenes ID as species ID requested (for integration with software that requires greengenes ID).\nUsing Lambda OTU similarity search and greengenes ref DB\n";
 	}    #
 	if ( -f $refDBwanted ) {
@@ -4819,6 +4819,7 @@ sub systemL {
 		if ($stat && $throwWarn){#something went wrong..
 			print "$descr CMD failed: $subcmd \n" ;
 			$retStat = $stat;
+			exit(9);
 		}
 	}
     return $retStat;
@@ -5294,6 +5295,7 @@ sub buildOTUs($) {
 		$cmd .= "cp $sdmDemultiDir/uniqueSeqs.fna $OTUfastaTmp;";
 		$cmd .= "cp $sdmDemultiDir/uniqueSeqs.fna $outdir/primary/;gzip $outdir/primary//uniqueSeqs.fna;";
 		$cmd .= "rm -r $sdmDemultiDir;";
+		#die "$cmd\n";
 		$citations .= "DADA2 ASV clustering - Callahan BJ, McMurdie PJ, Rosen MJ, et al. DADA2: High-resolution sample inference from Illumina amplicon data. Nat Methods 2016;13:581–3. doi:10.1038/nmeth.3869\n";
 	}
     elsif ( $ClusterPipe == 6 ) { #unoise3
