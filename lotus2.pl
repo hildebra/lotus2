@@ -4458,7 +4458,7 @@ sub runRDP{
 		if ( systemL($cmd) ) {
 			printL "FAILED RDP classifier execution:\n$cmd\n", 2;
 		}
-		if ($TaxOnly ne "0" && -f $TaxOnly){
+		if ($TaxOnly ne "0" && -e $TaxOnly && -e "$lotus_tempDir/RDPotus.tax"){
 			systemL "cp $lotus_tempDir/RDPotus.tax $TaxOnly.rdp";
 		}
 		$citations .= "RDP ${OTU_prefix} taxonomy: Wang Q, Garrity GM, Tiedje JM, Cole JR. 2007. Naive Bayesian classifier for rapid assignment of rRNA sequences into the new bacterial taxonomy. Appl Env Microbiol 73: 5261–5267.\n";
@@ -5452,7 +5452,7 @@ sub buildOTUs($) {
             $citations .=
 "uchime chimera detection deNovo: Edgar RC, Haas BJ, Clemente JC, Quince C, Knight R. 2011. UCHIME improves sensitivity and speed of chimera detection. Bioinformatics 27: 2194–200.\n";
         }
-        systemL("ls -lh $lotus_tempDir/tmp1.fa");
+        #systemL("ls -lh $lotus_tempDir/tmp1.fa");
     }
 
     #die "NN\n";
