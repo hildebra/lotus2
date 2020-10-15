@@ -728,7 +728,7 @@ my $treeF = "";
 $treeF = buildTree( $OTUfa, $outdir );
 
 #citations file
-open O, ">$logDir/citations.txt";
+open O, ">$logDir/citations.txt" or printL" Failed opening $logDir/citations.txt\n",0;
 print O $citations;
 close O;
 
@@ -3094,8 +3094,10 @@ sub calcHighTax($ $ $ $ $) {
 sub buildTree($ $) {
     my ( $OTUfa, $outdir ) = @_;
 	return "" if ($buildPhylo==0);
+	my $treePrg = "iqtree2";
+	$treePrg = "fasttree" if ($buildPhylo == 2);
 	if ( -f $mafftBin && (-f $fasttreeBin || -f $iqTreeBin) ) {
-		printL( frame("Building tree and aligning OTUs"),0 );
+		printL( frame("Building tree ($treePrg) and aligning (mafft) OTUs"),0 );
 	} else {
 		printL(frame("Skipping tree building and multiple alignment: \nafftBin or fasttreeBin/iqTreeBin are not defined"),0);
 	}
@@ -3132,7 +3134,7 @@ sub buildTree($ $) {
 		}
         #die($cmd."\n");
         if ( $exec == 0 ) {
-            printL "Building tree..\n";
+            #printL "Building tree..\n";
             if ( systemL($cmd) != 0 ) {
                 printL "FAILED tree building command: " . $cmd . "\n", 5;
             }
@@ -3140,7 +3142,7 @@ sub buildTree($ $) {
 			$citations .= "Nguyen, L.-T., Schmidt, H. A., von Haeseler, A. & Minh, B. Q. IQ-TREE: A Fast and Effective Stochastic Algorithm for Estimating Maximum-Likelihood Phylogenies. Mol. Biol. Evol. 32, 268–274 (2015)."
         }
     } elsif ($onlyTaxRedo) { 
-		printL "Skipping Tree building step\n", 0; 
+		printL frame("Skipping Tree building step\n"), 0; 
 	}
 	return $outTree;
 }
