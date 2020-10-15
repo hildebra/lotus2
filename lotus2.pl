@@ -4463,7 +4463,7 @@ sub runRDP{
 		}
 		$citations .= "RDP ${OTU_prefix} taxonomy: Wang Q, Garrity GM, Tiedje JM, Cole JR. 2007. Naive Bayesian classifier for rapid assignment of rRNA sequences into the new bacterial taxonomy. Appl Env Microbiol 73: 5261–5267.\n";
 	} elsif ( $rdpjar ne "" || exists( $ENV{'RDP_JAR_PATH'} ) ) {
-		if ($extendedLogs) { systemL "cp $lotus_tempDir/RDPotus.tax $extendedLogD/;"; }
+		if ($extendedLogs && -e "$lotus_tempDir/RDPotus.tax" && -d $extendedLogD) { systemL "cp $lotus_tempDir/RDPotus.tax $extendedLogD/;"; }
 		if ( $RDPTAX > 0 ) {                #move confusing files
 			if ($extendedLogs) {
 				systemL "mv $outdir/hierachy_cnt.tax $outdir/cnadjusted_hierachy_cnt.tax $extendedLogD/;";
