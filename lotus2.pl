@@ -147,7 +147,7 @@ my $versionOut=0;
 my $rmOutDir = 0;
 my $lotusCfg  = "$RealBin/lOTUs.cfg";
 
-my $ClusterPipe_pre = "1";
+my $ClusterPipe_pre = "?"; #default is unknown..
 my $ClusterPipe     = 1; #use UPARSE (1) or otupipe(0) or SWARM (2) or cd-hit(3), dnaclust (4), micca (5)
 my $clusteringNameStr = "otupipe";
 my $lotus_tempDir    = "";
@@ -267,7 +267,7 @@ GetOptions(
     "exe|executionMode=i"   => \$exec,
     "keepTmpFiles=i"          => \$keepTmpFiles,
     "extendedLogs=i"        => \$extendedLogs,
-    "CL|clustering|UP|UPARSE=s" => \$ClusterPipe_pre,
+    "cl|CL|clustering|UP|UPARSE=s" => \$ClusterPipe_pre,
     "t|thr|threads=i"       => \$uthreads,
 	"v"                     => \$versionOut,
 	"verbosity=i"           => \$verbosity,
@@ -287,8 +287,8 @@ GetOptions(
     "chim_skew=f"           => \$chimera_absskew,		#miSeq,hiSeq,pacbio
     "p|platform=s"          => \$platform,
     "tolerateCorruptFq=i"   => \$damagedFQ,
-    "keepUnclassified=i"      => \$keepUnclassified,
-	"keepOfftargets=i"        => \$keepOfftargets,
+    "keepUnclassified=i"    => \$keepUnclassified,
+	"keepOfftargets=i"      => \$keepOfftargets,
     "derepMin=s"            => \$dereplicate_minsize,
     "doBlast|simBasedTaxo|taxAligner=s"=> \$doBlasting_pre,
     "refDB=s"               => \$refDBwanted,
@@ -833,7 +833,7 @@ sub sdmStep1{
 	if ( $saveDemulti == 2 || $saveDemulti == 1 || $ClusterPipe == 7 ) { #dada2 also requires filtered raw reads
 		$sdmDemultiDir = "$outdir/demultiplexed/";
 		if ( $saveDemulti == 1 ) {
-			printL "Demultiplexed input files into single samples, no quality filtering done\n";
+			printL frame("Demultiplexed input files into single samples, no quality filtering done\nWill abort after demultiplexing (mode \"1\" is only for preparing publication ready, raw sequences)!\n"),0;
 			$sdmOptStr = "";
 		}
 		if ($ClusterPipe == 7){ #dada2.. no rd pair info in head!
@@ -896,8 +896,7 @@ sub sdmStep1{
 
 	if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 		$duration = time - $start;
-		printL( frame("Demultiplexing input files"),
-			0 );
+		printL( frame("Demultiplexing input files"),0 );
 		systemL("cp $map $outdir/primary\n cp $sdmOpt $outdir/primary");
 		if ( systemL($sdmcmd) != 0 ) {
 			printL "FAILED sdm demultiplexing step: " . $sdmcmd . "\n";
@@ -921,7 +920,7 @@ sub sdmStep1{
 			systemL "gzip $sdmDemultiDir/*.fq;";
 		}
 		if ( $saveDemulti == 1 ) {
-			printL "Demultiplexed intput files with not quality filtering to:\n$sdmDemultiDir\nFinished task, if you want to have a complete LotuS run, change option \"-saveDemultiplex\"\n";
+			printL frame("Demultiplexed intput files with not quality filtering to:\n$sdmDemultiDir\nFinished task, if you want to have a complete LotuS run, change option \"-saveDemultiplex 0\".\n"),0;
 			exit(0);
 		}
 		if ( $saveDemulti == 3 && $exec == 0 )
@@ -2411,8 +2410,13 @@ sub prepLtsOptions{
 		print "$refDBwanted not recognized. Aborting..\n";
 		exit(5);
 	}
+	if ( $platform eq "hiseq" ) {
+		$linesPerFile = 8000000;
+	}
+
 	if ( $platform eq "pacbio" ) {
 		$dereplicate_minsize_def = 0;
+		$ClusterPipe_pre = "CDHIT" if ($ClusterPipe_pre eq "?");
 	}
 	if ( $dereplicate_minsize !~ m/\D/ && $dereplicate_minsize == -1 ){
 		$dereplicate_minsize = $dereplicate_minsize_def ;
@@ -2447,9 +2451,6 @@ sub prepLtsOptions{
 	
 	#----- part 2 ----------
 		
-	if ( $platform eq "hiseq" ) {
-		$linesPerFile = 8000000;
-	}
 	my $defDBset = 0;
 	if ( $refDBwanted eq "" ) {
 		$refDBwanted = "GG";
@@ -2546,6 +2547,9 @@ sub prepLtsOptions{
 		if ( !-e $dnaclustBin ) {
 			printL "No valid DNA clust binary found at $dnaclustBin\n", 88;
 		}
+	} else {#default pipeline
+		$ClusterPipe = 6; $clusteringNameStr = "UNOISE3";
+		${OTU_prefix} = "Zotu";
 	}
 	if ( $platform eq "pacbio" && $ClusterPipe != 3 ) {
 		printL("CD-HIT clustering is strongly recommended with PacBio reads (unless you know what you are doing).","w");
@@ -5294,7 +5298,7 @@ sub buildOTUs($) {
 		$cmd .= "mv -f $sdmDemultiDir/*.pdf $logDir;";
 		$cmd .= "cp $sdmDemultiDir/uniqueSeqs.fna $OTUfastaTmp;";
 		$cmd .= "cp $sdmDemultiDir/uniqueSeqs.fna $outdir/primary/;gzip $outdir/primary//uniqueSeqs.fna;";
-		$cmd .= "rm -r $sdmDemultiDir;";
+		$cmd .= "rm -r $sdmDemultiDir;" if ($saveDemulti==0);
 		#die "$cmd\n";
 		$citations .= "DADA2 ASV clustering - Callahan BJ, McMurdie PJ, Rosen MJ, et al. DADA2: High-resolution sample inference from Illumina amplicon data. Nat Methods 2016;13:581–3. doi:10.1038/nmeth.3869\n";
 	}
