@@ -3,13 +3,13 @@ if(!require("dada2",quietly=TRUE,warn.conflicts =FALSE)){
 	if (!requireNamespace("BiocManager", quietly = TRUE)){
 		install.packages("BiocManager",repos="https://cloud.r-project.org")
 	}
-	BiocManager::install("dada2", version = "3.11")
+	BiocManager::install("dada2")
 }
 #packageVersion("dada2")
 
 #ARGS parsing
-args = commandArgs(trailingOnly=TRUE)
 #args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//demultiplexed/","0","12","/hpc-home/hildebra/dev/lotus/maps/AngeTest1.16S.sm.map")
+args = commandArgs(trailingOnly=TRUE)
 # test if all the arguments are there: 
 if (length(args) <= 4) {
 	stop("All the arguments must be supplied: pathF path_output seed_num ncores map_path.\n", call.=FALSE)
@@ -34,11 +34,12 @@ if ("SequencingRun" %in% colnames(mapping)){ #explicitly defined groups of seque
 #	}
 } else if ("fastqFile" %in% colnames(mapping) ){ #1)check if different BCs 2)check if different folders to impute seq runs
 	tfqFs = table(mapping[,"fastqFile"])
+	hasSlash=grepl("/",names(tfqFs))
 	if (any(tfqFs) > 1){ #demultiplexing included
 		subset_map = mapping[,"fastqFile"]
 		cat(paste("Found ",length(tfqFs)," unique fastqFile's, assumming each represents a sequencing run\n\n",sep=""))
-	} else {
-		leastS=function (x){lx=length(x);paste(x[1:(lx-1)],collapse="/")}
+	} else if (any(hasSlash)) {
+		leastS=function (x){lx=length(x);if (lx==1){""} else {paste(x[1:(lx-1)],collapse="/")}}
 		fastqP = unlist(lapply(strsplit(mapping[,"fastqFile"],"/"),leastS))
 		tfqFs=table(fastqP)
 		if (length(tfqFs) > 1){
@@ -51,7 +52,6 @@ if ("SequencingRun" %in% colnames(mapping)){ #explicitly defined groups of seque
 }
 
 
-cat("\n\nStarting DADA2 ASV clustering... please be patient\n\n");
 
 # File parsing
 listF=list();listR=list()
@@ -59,16 +59,19 @@ tSuSe = table(subset_map)
 for (i in names(tSuSe)){
 	#forward read error pattern
 	idx = subset_map == i
-	pattern1 = paste0(mapping[idx,"#SampleID"],".1.fq.gz",sep="")
+	pattern1 = paste0(mapping[idx,"#SampleID"],".1.fq[.gz]?",sep="")
 	listF[[i]] = list.files(pathF, pattern=paste0(pattern1, collapse="|"),full.names = TRUE)
 	#reverse read
-	pattern1 = paste0(mapping[idx,"#SampleID"],".2.fq.gz",sep="")
+	pattern1 = paste0(mapping[idx,"#SampleID"],".2.fq[.gz]?",sep="")
 	listR[[i]] = list.files(pathF, pattern=paste0(pattern1, collapse="|"),full.names = T)
 }   
 
+cat("\n\nStarting DADA2 ASV clustering... please be patient\n\n");
 
 list_seqtabs=list()
 list_seqtabs.nochim=list()
+i=1
+
 for (i in 1:length(listR)){
 	sampleNames <- sapply(strsplit(basename(listF[[i]]), ".1.fq"),`[`, 1) # 
 	sampleNamesR <- sapply(strsplit(basename(listR[[i]]), ".2.fq"),`[`, 1) #
@@ -78,6 +81,7 @@ for (i in 1:length(listR)){
 	set.seed(seed_num)
 	filtFs <- file.path(path_output, "matched_IDs", paste0(sampleNames, "_F_matched.fastq.gz"))
 	filtRs <- file.path(path_output, "matched_IDs", paste0(sampleNames, "_R_matched.fastq.gz"))
+	#filtFs <- file.path(listF[[i]])
 	names(filtFs) <- sampleNames
 	names(filtRs) <- sampleNames 
 
@@ -86,12 +90,25 @@ for (i in 1:length(listR)){
 
 	# Learn forward error rates
 	cat(paste0("Learning error profiles for the forward reads:\n"));
-	errF <- learnErrors(filtFs, multithread=ncores)
-
-	cat(paste0("Learning error profiles for the reverse reads:\n"));
+	
+	try( #dada2 is too instable
+		errF <- learnErrors(filtFs, multithread=ncores)
+	)
+	if (is.null(errF)) {
+		errF <- learnErrors(filtFs, multithread=1)
+	}
+	
+	
 
 	# Learn reverse error rates
-	errR <- learnErrors(filtRs, multithread=ncores)
+	cat(paste0("Learning error profiles for the reverse reads:\n"));	
+	#dada2 is too instable
+	try( 
+		errR <- learnErrors(filtRs, multithread=ncores)
+	)
+	if (is.null(errF)) {
+		errR <- learnErrors(filtRs, multithread=1)
+	}
 
 	# Save the plots of error profiles, for a sanity check:
 	pdf(paste0(path_output,"/dada2_p",i,"_errF.pdf"),useDingbats = FALSE)
@@ -106,13 +123,17 @@ for (i in 1:length(listR)){
 	mergers <- vector("list", length(sampleNames))
 	names(mergers) <- sampleNames
 	for(sam in sampleNames) {
-	cat("Processing:", sam, "\n")
-	derepF <- derepFastq(filtFs[[sam]])
-	ddF <- dada(derepF, err=errF, multithread=ncores)
-	derepR <- derepFastq(filtRs[[sam]])
-	ddR <- dada(derepR, err=errR, multithread=ncores)
-	merger <- mergePairs(ddF, derepF, ddR, derepR)
-	mergers[[sam]] <- merger
+		cat("Processing:", sam, "\n")
+		derepF <- derepFastq(filtFs[[sam]])
+		
+		try ( ddF <- dada(derepF, err=errF, multithread=ncores) )
+		if (is.null(ddF)){ddF <- dada(derepF, err=errF, multithread=1)}
+		derepR <- derepFastq(filtRs[[sam]])
+		
+		try(ddR <- dada(derepR, err=errR, multithread=ncores))
+		if (is.null(ddR)){ddR <- dada(derepR, err=errR, multithread=1)}
+		merger <- mergePairs(ddF, derepF, ddR, derepR)
+		mergers[[sam]] <- merger
 	}
 	rm(derepF); rm(derepR)
 
@@ -128,8 +149,13 @@ for (i in 1:length(listR)){
 
 
 ##Merge the tables:
-mergetab <- mergeSequenceTables(tables=list_seqtabs)
-mergetab.nochim <- mergeSequenceTables(tables=list_seqtabs.nochim)
+if (length(list_seqtabs)>1){
+	mergetab <- mergeSequenceTables(tables=list_seqtabs)
+	mergetab.nochim <- mergeSequenceTables(tables=list_seqtabs.nochim)
+} else {
+	mergetab = list_seqtabs[[1]]
+	mergetab.nochim = list_seqtabs.nochim[[1]]
+}
 
 cat("%",(1-sum(mergetab.nochim)/sum(mergetab))*100,"of the reads were assigned to be chimeric and removed (DADA2)")
 uniquesToFasta(getUniques(mergetab.nochim), fout=paste0(path_output,"/uniqueSeqs.fna"), ids=paste0("ASV", seq(length(getUniques(mergetab.nochim)))))
