@@ -4824,7 +4824,7 @@ sub systemL {
 		if ($subcmd =~ m/>/) {$attach = "";}
 		my $stat = system("$subcmd $attach");
 		if ($stat && $throwWarn){#something went wrong..
-			print "$descr CMD failed: $subcmd \n" ;
+			print "$descr CMD failed: $subcmd \nsee $progOutPut for error log\n" ;
 			$retStat = $stat;
 			exit(9);
 		}
