@@ -837,7 +837,7 @@ sub sdmStep1{
 			$sdmOptStr = "";
 		}
 		if ($ClusterPipe == 7){ #dada2.. no rd pair info in head!
-			$sdmOptStr .= "-pairedRD_HD_out 0 ";
+			$sdmOptStr .= "-pairedRD_HD_out 0 -pairedDemulti 1 ";
 		}
 	}
 
@@ -903,15 +903,16 @@ sub sdmStep1{
 			exit(4);
 		}
 		my $fileNum = `ls -1 $mainSDMlog* | wc -l`;
-		if ( $fileNum > 0 ) {
+		my @sdmOfiles = glob("${mainSDMlog}0*");
+
+		if ( $fileNum > 0 && @sdmOfiles>0) {
 			systemL "mkdir -p $logDir/SDMperFile/; mv $mainSDMlog". "0* $logDir/SDMperFile/";
 		}
 		if ( $fileNum > 10 ) {
 			systemL "tar zcf $logDir/SDMperFile.tar.gz $logDir/SDMperFile/; rm -r $logDir/SDMperFile/;";
 		}
 		if ( `cat $mainSDMlog` =~ m/binomial est\. errors/ ) {
-			$citations .=
-	"Poisson binomial model based read filtering: Fernando Puente-Sánchez, Jacobo Aguirre, Víctor Parro (2015).A novel conceptual approach to read-filtering in high-throughput amplicon sequencing studies. Nucleic Acids Res.(2015).\n";
+			$citations .= "Poisson binomial model based read filtering: Fernando Puente-Sánchez, Jacobo Aguirre, Víctor Parro (2015).A novel conceptual approach to read-filtering in high-throughput amplicon sequencing studies. Nucleic Acids Res.(2015).\n";
 		}
 
 		#postprocessing of output files
