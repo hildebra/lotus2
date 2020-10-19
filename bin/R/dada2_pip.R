@@ -79,14 +79,15 @@ for (i in 1:length(listR)){
 	cat(paste0("Detected ",length(sampleNames)," samples .. Computing error profiles\n"));
 	#start of dada2 learning
 	set.seed(seed_num)
-	filtFs <- file.path(path_output, "matched_IDs", paste0(sampleNames, "_F_matched.fastq.gz"))
-	filtRs <- file.path(path_output, "matched_IDs", paste0(sampleNames, "_R_matched.fastq.gz"))
-	#filtFs <- file.path(listF[[i]])
+	#filtFs <- file.path(path_output, "matched_IDs", paste0(sampleNames, "_F_matched.fastq.gz"))
+	#filtRs <- file.path(path_output, "matched_IDs", paste0(sampleNames, "_R_matched.fastq.gz"))
+	filtFs <- file.path(listF[[i]])
+	filtRs <- file.path(listR[[i]])
 	names(filtFs) <- sampleNames
 	names(filtRs) <- sampleNames 
 
 	#Not doing any filtering but just to match the IDs of reverse and forward reads:
-	filterAndTrim(fwd=listF[[i]], filt=filtFs, rev=listR[[i]], filt.rev=filtRs,matchIDs=TRUE,multithread=ncores)
+	#filterAndTrim(fwd=listF[[i]], filt=filtFs, rev=listR[[i]], filt.rev=filtRs,matchIDs=TRUE,multithread=ncores)
 
 	# Learn forward error rates
 	cat(paste0("Learning error profiles for the forward reads:\n"));
