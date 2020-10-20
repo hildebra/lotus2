@@ -265,7 +265,7 @@ GetOptions(
     "tmp|tmpDir=s"          => \$lotus_tempDir,
     "c|config=s"            => \$lotusCfg,
     "exe|executionMode=i"   => \$exec,
-    "keepTmpFiles=i"          => \$keepTmpFiles,
+    "keepTmpFiles=i"        => \$keepTmpFiles,
     "extendedLogs=i"        => \$extendedLogs,
     "cl|CL|clustering|UP|UPARSE=s" => \$ClusterPipe_pre,
     "t|thr|threads=i"       => \$uthreads,
@@ -500,14 +500,11 @@ if ($sdmDerepDo) {
 } else {
     $sdmcmd = "$sdmBin $sdmIn $sdmOut2 $upVer -optimalRead2Cluster $ucFinalFile -paired $numInput -sample_sep $sep_smplID -map $map -options $sdmOpt $qualOffset -log $logDir/SeedExtensionStats.txt -mergedPairs $didMerge -OTU_fallback $tmpOTU -otu_matrix $OTUmFile -ucAdditionalCounts $ucFinalFile.ADD -ucAdditionalCounts1 $ucFinalFile.REST -count_chimeras $chimCnt $refClusSDM";
 }
-#die;
 my $status = 0;
 
 #die $sdmcmd."\n";
-#systemL "$sdmcmd";
 if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
     printL (frame("Extending ${OTU_prefix} Seeds"), 0);
-	#die "$sdmcmd\n";
     $status = systemL($sdmcmd);
 
     #print "\n\n".$status."\n\n";
@@ -583,7 +580,7 @@ if ($TaxOnly ne "0" && -f $TaxOnly){
 	$OTUfa = $TaxOnly;
 	if ($TaxOnly =~ m/\.gz$/){$OTUfa =~ s/\.gz//; systemL "gunzip -c $TaxOnly >$OTUfa "; }
 }
-#die "$OTUfa\n";
+#die "$OTUSEED\n";
 #
 #merge not combined reads & check for reverse adaptors/primers
 #do this also in case no pairs were found at all.. Singletons need to be fq->fna translated into $OTUSEED
@@ -620,6 +617,7 @@ if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 	
 	#finalize OTU file;
 	systemL "cp $OTUSEED $OTUfa";
+	#die "$OTUfa\n";
 
     #but OTU matrix already written, need to remove these
     my $XtalkRef = checkXtalk( $OTUfa, $OTUmFile );
@@ -673,6 +671,7 @@ my ( $OTUmatref, $avOTUsR ) = readOTUmat($OTUmFile);
 #my %retMat = %{$OTUmatref};my @hdss = keys %retMat;my @fdfd = keys %{$retMat{bl21}};die "@hdss\n@fdfd\n$retMat{bl14}{OTU_1} $retMat{bl14}{OTU_2} $retMat{bl14}{OTU_3}\n";
 
 #this subroutine also has blast/LCA algo inside
+#die $OTUfa."\n";
 my ($failsR) = makeAbundTable2( "$lotus_tempDir/RDPotus.tax", $OTUmatref );    #,\@avSmps);
 
 if ( !-d $highLvlDir ) {
@@ -2461,6 +2460,11 @@ sub prepLtsOptions{
 	#read primary paths to binaries
 	readPaths_aligners($lotusCfg);
 	#version checks
+	my $LCAver = `$LCABin -v`;
+	chomp ($LCAver); 
+	if ($LCAver !~ m/[\d\.]/ || $LCAver < 0.21){
+		printL "LCA is ver $LCAver. Require at least ver 0.21. $LCABin\n",823;
+	}
 	my $usvstr = `$usBin --version`;
 	$usvstr =~ m/usearch v(\d+\.\d+)\.(\d+)/;
 	$usearchVer = $1;$usearchsubV = $2;
@@ -4555,11 +4559,13 @@ sub makeAbundTable2($ $) {
         ($fullBlastTaxR) = extractTaxoForRefs( $OTUrefDBlnk, $fullBlastTaxR, \%GG );
         die "TODO ref assign of denove OTUs\n";
     }
-    if ( $doBlasting == 3 ) {
+    
+	if ( $doBlasting == 3 ) { #utax
         my $utaxRaw = "$lotus_tempDir/tax.blast";
         my $utout   = utaxTaxAssign( $OTUfa, $utaxRaw );
         $failsR = writeUTAXhiera( $utout, $avOTUsR, $failsR );
-    }     elsif ( $blastFlag && $maxHitOnly != 1 ) {
+    
+	} elsif ( $blastFlag && $maxHitOnly != 1 ) {
 		#TODO: maxHitOnly
         my @blOuts = ();
         for ( my $DBi = 0 ; $DBi < @TAX_REFDB ; $DBi++ ) {
