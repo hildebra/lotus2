@@ -506,8 +506,6 @@ my $status = 0;
 if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
     printL (frame("Extending ${OTU_prefix} Seeds"), 0);
     $status = systemL($sdmcmd);
-
-    #print "\n\n".$status."\n\n";
 }
 elsif ($onlyTaxRedo) { printL "Skipping Seed extension step\n", 0; }
 if ($status) {
