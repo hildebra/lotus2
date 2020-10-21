@@ -2,6 +2,7 @@
 sqLOGs
 myTestRun
 DB
+test/
 rtk_src
 lotus.pl
 bin/rdp_classifier_2.12

@@ -238,8 +238,8 @@ my $UPARSEfilter = 0
   ; #use additional quality filter from uparse (1) or use sdm only for filtering (0) # Default: 0
 #### DEPRECEATED ###
 
-my $input;
-my $outdir;
+my $input = "";
+my $outdir = "";
 my $inq         = "";
 my $barcodefile = "";
 my $map;
@@ -335,13 +335,30 @@ $mainLogFile = $logDir . "LotuS_run.log";
 my $cmdLogFile = $logDir . "LotuS_cmds.log";
 my $progOutPut = $logDir . "LotuS_progout.log";
 #create dirs
-system("rm -f -r $outdir") if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" );
+if ($TaxOnly eq "0" ){
+	system("rm -f -r $outdir") if ( $exec == 0 && $onlyTaxRedo == 0 );
+	system "rm -f $progOutPut\n"; #from here log systemL
+	
+} else {
+	unless (-d $outdir && -d $logDir){
+		if (-f $TaxOnly){
+			$outdir = $TaxOnly;$outdir =~ s/[^\/]+$//;
+			print "TaxOnly option specified, but not an output dir. Assumming: $outdir\n" ;
+		} else {
+			die "No output dir defined, only possible if -taxOnly argument is a file\n";
+		}
+		
+		$logDir       = $outdir . "/LotuSLogS/";
+		$mainLogFile = $logDir . "LotuS_run.log";
+		$extendedLogD = $outdir . "/ExtraFiles/" ;
+		$cmdLogFile = $logDir . "LotuS_cmds.log";
+		$progOutPut = $logDir . "LotuS_progout.log";
+	}
+}
+#reset logfile
 system("mkdir -p $outdir") unless ( -d $outdir );
 system("mkdir -p $logDir") unless ( -d $logDir );
-system "rm -f $progOutPut\n"; #from here log systemL
-system("mkdir -p $extendedLogD;") unless ( -d $extendedLogs && $extendedLogs);
-die "TaxOnly option specified, but not an output dir: $outdir\n" unless (-d $outdir && -d $logDir);
-#reset logfile
+system("mkdir -p $extendedLogD;") if ( !-d $extendedLogs && $extendedLogs);	
 open LOG, ">", $mainLogFile or die "Can't open Logfile $mainLogFile\n";
 open cmdLOG , ">$cmdLogFile" or die "Can't open cmd log $cmdLogFile\n";
 
@@ -2249,14 +2266,14 @@ sub readPaths {    #read tax databases and setup correct usage
 
 
 sub announce_options{
-	if ( !$onlyTaxRedo && !$TaxOnly ) {
+	if ( !$onlyTaxRedo && $TaxOnly eq "0" ) {
 	printL "$clustMode sequence clustering with $clusteringNameStr into ${OTU_prefix}'s\n",0;
 		if ( $ClusterPipe == 7 ) {
 			die "Incorrect dada2 script defined $dada2Scr" unless (-f $dada2Scr);
 			die "Incorrect R installation (can't find Rscript)" unless (-f $Rscript);
 		}
 		#if   ($sdmDerepDo) { printL ("Running fast LotuS mode..\n",0); }else{ printL ("Running low-mem LotuS mode..\n",0); }
-	} else {    #prep for redoing tax, save previous tax somehwere
+	} elsif ($TaxOnly eq "1") {    #prep for redoing tax, save previous tax somehwere
 		printL "Re-Running only tax assignments, no de novo clustering\n", 0;
 		my $k       = 0;
 		my $newLDir = "$outdir/prevLtsTax_$k";
