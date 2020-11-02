@@ -54,35 +54,7 @@ sub checkLtsVer;
 sub check_exists;
 sub check_version;
 
-# Check if Rscript is installed
-my $install_dada = 1;
-if (check_exists('Rscript')) {
-  my $v = check_version 'Rscript';
-  if ($v < 4) {
-    print("$0 requires Rscript version > 4.0.0\nThe found version is < 4.\nType\n  \'continue\' to install LotuS2 without dada2 and phyloseq\n  \'try\' to continue and try to install dada2 and phyloseq\n  \'abort\' to abort installation process\n");
-    my $instr = <STDIN>;
-    chomp $instr;
-    if ($instr eq "continue") {
-      $install_dada = 0;
-    } elsif ($instr eq "try") {
-      $install_dada = 1;
-    } else {
-      print("Abort installation.\n");
-      exit(0);
-    }
-  }
-} else {
-  print("$0 requires Rscript version > 4.0.0");
-  exit(0);
-}
-#check_exists 'usearch' or die "$0 requires usearch";
-#my $rscript_output = `Rscript autoInstall.R`;
 
-if ($install_dada) {
-  print("Install dada");
-  my $r_output = `Rscript autoInstall.R 2>&1`;
-  print($r_output);
-}
 
 my $forceUpdate=0;
 if (@ARGV > 0 && $ARGV[0] eq "-forceUpdate"){$forceUpdate=1};
@@ -121,72 +93,9 @@ if (@ARGV > 0 && $ARGV[0] eq "-link_usearch"){
 
 
 
-###DEBUG
-#minimap2
-print "Downloading minimap2 executables..\n";
-my $dtar = "$bdir/minimap2-2.17_x64-linux.tar.bz2";
-my $dexe = "$bdir/minimap2-2.17_x64-linux/minimap2";
-if ($isMac){
-	#getS2("http://lotus2.earlham.ac.uk/lotus/packs/dnaclust/dnaclust_OSX_release3.zip",$dtar);
-	#$dexe = "$bdir/dnaclust_OSX_release3/dnaclust";
-	print "please natively install minimap2 for MAC users\n";
-} else {
-	getS2("https://github.com/lh3/minimap2/releases/download/v2.17/minimap2-2.17_x64-linux.tar.bz2",$dtar);
-}
-system("tar -xjf $dtar -C $bdir");
-unlink($dtar);
-if (-e $dexe){ #not essential
-	system("chmod +x $dexe");
-	@txt = addInfoLtS("minimap2",$dexe,\@txt,1);
-} else {
-	print "minimap2 exe did not exist at $dexe\n Therefore minimap2 was not installed (please manually install).\n";
-}
 
-## iqtree2
-print "Downloading IQ-TREE 2 executables..\n";
-$dtar = "$bdir/iqtree-2.1.1-Linux.tar.gz";
-$dexe = "$bdir/iqtree-2.1.1-Linux/bin/iqtree2";
-if ($isMac){
-	getS2("https://github.com/iqtree/iqtree2/releases/download/v2.1.1/iqtree-2.1.1-MacOSX.zip",$dtar);
-	$dexe = "$bdir/iqtree-2.1.1-MacOSX/bin/iqtree2";
-} else {
-	getS2("https://github.com/iqtree/iqtree2/releases/download/v2.1.1/iqtree-2.1.1-Linux.tar.gz",$dtar);
-}
-system("tar -xzf $dtar -C $bdir");
-unlink($dtar);
 
-if (-e $dexe){ #not essential
-	system("chmod +x $dexe");
-	@txt = addInfoLtS("iqtree",$dexe,\@txt,1);
-} else {
-	print "iqtree2 exe did not exist at $dexe\n Therefore iqtree2 was not installed (please manually install).\n";
-}
 
-##mafft
-print "Downloading MAFFT 7 executables..\n";
-$dtar = "$bdir/mafft-7.471-linux.tgz";
-$dexe = "$bdir/mafft-linux64/mafft.bat";
-if ($isMac){
-	getS2("https://mafft.cbrc.jp/alignment/software/mafft-7.471-mac.zip",$dtar);
-	$dexe = "$bdir/mafft-mac/mafft.bat";
-	system("tar -xzf $dtar -C $bdir");
-
-} else {
-	getS2("https://mafft.cbrc.jp/alignment/software/mafft-7.471-linux.tgz",$dtar);
-	system("tar -xzf $dtar -C $bdir");
-}
-unlink($dtar);
-
-if (-e $dexe){ #not essential
-	system("chmod +x $dexe");
-  
-	@txt = addInfoLtS("mafft",$dexe,\@txt,1);
-} else {
-	print "MAFFT exe did not exist at $dexe\n Therefore MAFFT was not installed (please manually install).\n";
-}
-
-exit(0);
-####DEBUG
 
 
 my ($lver,$sver) = getInstallVer("");
@@ -279,7 +188,7 @@ if ( ($UID ne "??" && -f $uspath) || $forceUpdate || $usearchInstall ne ""){#set
 if ($onlyDbinstall){
 	print "Installing LotuS tax databases anew.. \nplease choose which databases to install in the following dialogs\n\n";
 }else{
-	print "Total space required will be 0.3 - 2.3 Gb. \nSome programs require a recent version of the C++ compiler gcc. Please update (esp. Mac users) your gcc if there are compilation problems.\nWARNING: removes all files in $bdir and $ddir, rewrittes the local lotus.cfg file.\n Continue (y/n)?\n Answer: ";
+	print "Total space required will be 0.3 - 5 Gb. \nSome programs require a recent version of the C++ compiler gcc. Please update (esp. Mac users) your gcc if there are compilation problems.\nWARNING: removes all files in $bdir and $ddir, rewrittes the local lotus.cfg file.\n Continue (y/n)?\n Answer: ";
 	while (<>){
 		chomp($_);
 		if ($_ eq "y" || $_ eq "Y" || $_ eq "yes"){
@@ -371,7 +280,7 @@ if (!-e $uspath){
 
 if ($usearch_reset==1){
 	print "\n\n#######################################################################################";
-	print "\nUSEARCH ver 7, 8 or 9 has to be installed manually (due to licensing). Please download & install from http://www.drive5.com/usearch/download.html  \n";
+	print "\nUSEARCH ver 7, 8, 9 or 10 has to be installed manually (due to licensing). Please download & install from http://www.drive5.com/usearch/download.html  \n";
 	print "If you have already installed it on this system, please enter the absolute path to usearch below.\nOr continue by entering \"0\" (you have to add it later via \"./autoInstall.pl -link_usearch [path to usearch]\"\n\nAnswer:";
 	#print "Once downloaded, rename the binary userachXXX to usearch_bin, make it executable (chmod +x usearch_bin) and copy/link it to this directory:\n$bdir \n";
 	#print "\nLotuS is almost ready to run (usearch).\n\n";
@@ -391,6 +300,41 @@ if ($usearch_reset==1){
 }
 
 print "Several Software packages have to be downloaded and this can take some time. Please be patient & grab a tea.\n\n";
+
+
+
+# Check if Rscript is installed
+my $install_dada = 1;
+if (check_exists('Rscript')) {
+  my $v = check_version 'Rscript';
+  if ($v < 4) {
+    print("$0 requires Rscript version > 4.0.0\nThe found version is < 4.\nType\n  \'c\' to install LotuS2 without dada2 and phyloseq\n  \'t\' to continue and try to install phyloseq only\n  \'a\' to abort installation process\n");
+    my $instr = <STDIN>;
+    chomp $instr;
+    if (lc($instr) eq "c") {
+      $install_dada = 0;
+    } elsif (lc($instr) eq "t") {
+      $install_dada = 1;
+    } else {
+      print("Abort installation.\n");
+      exit(0);
+    }
+  }
+} else {
+  print("$0 requires Rscript version > 4.0.0");
+  exit(0);
+}
+
+if ($install_dada) {
+  print("Install dada");
+  my $r_output = `Rscript autoInstall.R 2>&1`;
+  print($r_output);
+}
+
+#check_exists 'usearch' or die "$0 requires usearch";
+#my $rscript_output = `Rscript autoInstall.R`;
+
+
 
 
 if ($UID eq "??"){
@@ -632,7 +576,7 @@ if ($isMac){
 } else {
 	getS2("https://github.com/lh3/minimap2/releases/download/v2.17/minimap2-2.17_x64-linux.tar.bz2",$dtar);
 }
-system("tar -xzf $dtar -C $bdir");
+system("tar -xjf $dtar -C $bdir");
 unlink($dtar);
 if (-e $dexe){ #not essential
 	system("chmod +x $dexe");
@@ -642,8 +586,7 @@ if (-e $dexe){ #not essential
 }
 
 ## iqtree2
-print "Downloading IQ-TREE 2 executables..(test)\n";
-exit(0);
+print "Downloading IQ-TREE 2 executables..\n";
 $dtar = "$bdir/iqtree-2.1.1-Linux.tar.gz";
 $dexe = "$bdir/iqtree-2.1.1-Linux/bin/iqtree2";
 if ($isMac){
@@ -683,16 +626,6 @@ if (-e $dexe){ #not essential
 } else {
 	print "MAFFT exe did not exist at $dexe\n Therefore MAFFT was not installed (please manually install).\n";
 }
-
-
-
-#dnaclust
-#http://lotus2.earlham.ac.uk/lotus/packs/dnaclust_linux_release3.zip
-#http://lotus2.earlham.ac.uk/lotus/packs/dnaclust_OSX_release3.zip
-# dnaclust
-#system("chmod +x $exe\nchmod +x $exe-ref\n");
-#@txt = addInfoLtS("dnaclust",$exe,\@txt,1);
-
 
 #fasttree
 print "Downloading FastTree executables..\n";
