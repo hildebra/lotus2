@@ -51,7 +51,38 @@ sub compile_sdm;
 sub compile_LCA;
 sub compile_rtk;
 sub checkLtsVer;
+sub check_exists;
+sub check_version;
 
+# Check if Rscript is installed
+my $install_dada = 1;
+if (check_exists('Rscript')) {
+  my $v = check_version 'Rscript';
+  if ($v < 4) {
+    print("$0 requires Rscript version > 4.0.0\nThe found version is < 4.\nType\n  \'continue\' to install LotuS2 without dada2 and phyloseq\n  \'try\' to continue and try to install dada2 and phyloseq\n  \'abort\' to abort installation process\n");
+    my $instr = <STDIN>;
+    chomp $instr;
+    if ($instr eq "continue") {
+      $install_dada = 0;
+    } elsif ($instr eq "try") {
+      $install_dada = 1;
+    } else {
+      print("Abort installation.\n");
+      exit(0);
+    }
+  }
+} else {
+  print("$0 requires Rscript version > 4.0.0");
+  exit(0);
+}
+#check_exists 'usearch' or die "$0 requires usearch";
+#my $rscript_output = `Rscript autoInstall.R`;
+
+if ($install_dada) {
+  print("Install dada");
+  my $r_output = `Rscript autoInstall.R 2>&1`;
+  print($r_output);
+}
 
 my $forceUpdate=0;
 if (@ARGV > 0 && $ARGV[0] eq "-forceUpdate"){$forceUpdate=1};
@@ -102,7 +133,7 @@ if ($isMac){
 } else {
 	getS2("https://github.com/lh3/minimap2/releases/download/v2.17/minimap2-2.17_x64-linux.tar.bz2",$dtar);
 }
-system("tar -xzf $dtar -C $bdir");
+system("tar -xjf $dtar -C $bdir");
 unlink($dtar);
 if (-e $dexe){ #not essential
 	system("chmod +x $dexe");
@@ -148,6 +179,7 @@ unlink($dtar);
 
 if (-e $dexe){ #not essential
 	system("chmod +x $dexe");
+  
 	@txt = addInfoLtS("mafft",$dexe,\@txt,1);
 } else {
 	print "MAFFT exe did not exist at $dexe\n Therefore MAFFT was not installed (please manually install).\n";
@@ -529,7 +561,6 @@ if ($installBlast == 0){
 
 #-------BLAST LAMBDA INSTALL END
 
-
 #swarm
 print "Downloading swarm executables..\n";
 my $swarmdir = $bdir."swarm-master/";
@@ -567,8 +598,6 @@ if (-e $vexe){ #not essential
 	print "vsearch exe did not exist at $vexe\n Therefore vsearch was not installed (fallback to usearch).\n";
 }
 
-
-
 #infernal
 print "Downloading infernal executables..\n";
 my $iexe = "$bdir/inf112.tar.gz";
@@ -585,7 +614,6 @@ if (-d $iexe){ #not essential
 	print "infernal binary dir did not exist at $iexe\n Therefore infernal was not installed (fallback to de novo clustal omega).\n";
 }
 system "rm -f $iexe" if (-e $iexe);
-
 
 #die "$vexe\n";
 
@@ -614,7 +642,8 @@ if (-e $dexe){ #not essential
 }
 
 ## iqtree2
-print "Downloading IQ-TREE 2 executables..\n";
+print "Downloading IQ-TREE 2 executables..(test)\n";
+exit(0);
 $dtar = "$bdir/iqtree-2.1.1-Linux.tar.gz";
 $dexe = "$bdir/iqtree-2.1.1-Linux/bin/iqtree2";
 if ($isMac){
@@ -809,6 +838,7 @@ sub addInfoLtS($ $ $ $){
 	#print $txt[$i]."\n";
 	return @txt;
 }
+               
 sub getInfoLtS($ $){
 	my ($cmd,$aref) = @_;
 	my @txt = @{$aref};
@@ -1350,3 +1380,19 @@ sub compile_sdm($){
 	system("chmod +x $ldir/sdm");
 	return "$bdir/sdm";
 }
+
+sub check_exists {
+  my $check = `sh -c 'command -v $_[0]'`;
+  return $check;
+}
+
+sub check_version {
+  my $check = `$_[0] --version 2>&1`;
+  
+  my @vstr = split /\./, $check, 2;
+  
+  my $v = substr $vstr[0], -1;
+  
+  return $v;
+}
+
