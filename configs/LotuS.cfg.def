@@ -1,0 +1,108 @@
+# -------------------- lOTUs configuration file
+# Progams Pathways  -- have to be set before first use
+# /YY/ is an abbreviation for the complete system path to specific program, if the program is in the system path, no absolute path needs to be set
+# only usearch and rdp are required - usearch binaries (e.g. "usearch	/home/user/bin/usearch/./usearch7.0.959_i86linux64")
+
+#sdm - essential C++ part of the LotuS pipeline
+sdm bin/sdm
+#LCA implementation in C++, not essential
+LCA bin/LCA
+#rarefaction toolkit
+rtk bin/rtk
+#R helper scripts
+dada2R bin/R/dada2_pip.R
+phyloLnk bin/R/l2phyloseq.R
+
+
+#usearch clustering & chimera checking program
+usearch usearch_11
+#swarm clustering program
+swarm swarm
+#cd-hit-est clustering program
+cd-hit cd-hit-est
+#vsearch chimera checking, OTU clustering and mapping
+vsearch vsearch
+#dnaclust ref based OTU clustering
+dnaclust dnaclust
+minimap2 minimap2
+
+
+#RDP multiclassifier java archieve (e.g. /YY/MultiClassifier.jar)
+#alternatively leave this "" and set environmental variable to RDP_JAR_PATH, as described in RDP documentary
+multiRDPjar MultiClassifier.jar
+RDPjar classifier.jar
+
+
+#Blastn+ binary (e.g. /YY/ncbi-blast-2.2.XX+/bin/blastn)
+blastn blastn
+makeBlastDB makeblastdb
+#lambda binaries used for ref taxa searches
+lambda_index lambda_indexer
+lambda lambda
+
+#clustalo multiple alignment binary (e.g. /YY/clustaloBin-1.2.0-OS-x86_64)
+clustalo clustalo-1.2.0-Ubuntu-x86_64
+mafft mafft.bat
+
+#FastTree binary - for speed improvements /YY/FastTReeMP recommended -- requires clustalo
+fasttree FastTreeMP
+#iqTree binary - more precise than fasttree at almost equal speeds
+iqtree iqtree2
+
+#flash - required for merging big fastq files
+flashBin flash
+
+#ITSX - required to only retain OTU's matching an ITS
+itsx ITSx
+#hmmsearch
+hmmsearch hmmscan
+
+# --------------------
+#   databases
+#reference database for ref chimera filtering - suggested is gold.fa for bacteria SSU and UNITE resources for fungal ITS
+UCHIME_REFDB DB//rdp_gold.fa
+UCHIME_REFDB_LSU DB//SLV_119_LSU.fa
+UCHIME_REFDB_ITS DB//ITS_chimera/uchime_sh_refs_dynamic_original_985_11.03.2015.fasta
+UCHIME_REFDB_ITS2 DB//ITS_chimera/ITS1_ITS2_datasets/uchime_sh_refs_dynamic_develop_985_11.03.2015.ITS2.fasta
+UCHIME_REFDB_ITS1 DB//ITS_chimera/ITS1_ITS2_datasets/uchime_sh_refs_dynamic_develop_985_11.03.2015.ITS1.fasta
+#greengenes fasta ref database - requires blastn
+TAX_REFDB_GG DB//gg_13_5.fasta
+#greengenes taxnomic assignments for ref fasta database - requires blastn
+TAX_RANK_GG DB//gg_13_5_taxonomy
+#SILVA SSU fasta ref database - requires blastn
+TAX_REFDB_SSU_SLV DB//SLV_138_SSU.fasta
+#SILVA SSU taxnoomic assignments for ref fasta database - requires blastn
+TAX_RANK_SSU_SLV DB//SLV_138_SSU.tax
+#SILVA LSU fasta ref database - requires blastn
+TAX_REFDB_LSU_SLV DB//SLV_138_LSU.fasta
+#SILVA LSU taxonomic assignments for ref fasta database - requires blastn
+TAX_RANK_LSU_SLV DB//SLV_138_LSU.tax
+#UNITE ITS fasta ref database - requires blastn
+TAX_REFDB_ITS_UNITE DB//UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta
+#UNITE ITS fasta ref tax - requires blastn
+TAX_RANK_ITS_UNITE DB//UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt
+#reference database with phiX, to check for illumina platform phiX remainders
+REFDB_PHIX DB//phiX.fasta
+#HITdb SSU database
+TAX_REFDB_HITdb DB//HITdb/HITdb_sequences.fna
+TAX_RANK_HITdb DB//HITdb/HITdb_taxonomy.txt
+#PR2 LSU database
+TAX_REFDB_PR2 DB//PR2/gb203_pr2_all_10_28_99p.fasta
+TAX_RANK_PR2 DB//PR2/PR2_taxonomy.txt
+#ref DB for utax ITS + 16S
+TAX_REFDB_SSU_UTAX DB//utaxref/rdp_16s_trainset15/
+TAX_REFDB_ITS_UTAX DB//utaxref/unite_v7/
+TAX_REFDB_BEE DB//beeTax/beeTax.fna
+TAX_RANK_BEE DB//beeTax/beeTax.txt
+infernal bin//infernal-1.1.2-linux-intel-gcc/binaries/
+
+
+# --------------------
+#  LotuS parameters
+#unique identifier, can be used for debugging support
+UID ??
+#Threshold used in blast LCA algorithm to delimit taxonomic assignments, if OTU sequence is below %id to reference sequence. This can be delimited to 5 taxanomic levels (separated by ","): species, genus, family, class, order, phylum. E.g.: 97,95,92,90,88,85
+IdentityThresholds 97,95,93,91,88,78
+
+#This will check for more & less important updates each time lotus is run. Note that we will never track your LotuS usuage in any way, this is purely a convenience option if desired.
+CheckForUpdates 0

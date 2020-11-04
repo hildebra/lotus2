@@ -34,7 +34,6 @@ sub frame;sub printL;
 sub announce_options;
 sub buildOTUs;
 sub mergeUCs;sub delineateUCs;sub cutUCstring;sub uniq;
-sub cdhitOTUs;
 sub prepLtsOptions;
 
 sub makeAbundTable2;
@@ -4781,27 +4780,6 @@ sub delineateUCs($ $) {
 sub uniq {
     my %seen;
     return grep { !$seen{$_}++ } @_;
-}
-
-sub cdhitOTUs() {
-
-    #my ($outfile) = @_;
-    my $BlastCores  = 8;
-    my $nseqs_input = `grep \">\" $input | wc -l`;
-    printL $nseqs_input. " reads\n", 0;
-
-    my $cdh454 = "/home/falhil/bin/cd-hit_v461/./cd-hit-454";
-    my $cmd =
-      $cdh454 . " -i $input -o $lotus_tempDir/OTUs.fa -c .$id_OTU -M 0 -T $BlastCores";
-    print $cmd. "\n";
-    my $OTUfa = "$lotus_tempDir/OTUs.fa";
-
-    my $cdhConBin = "/home/falhil/bin/cdhit-clcon/./cdhit-cluster-consensus";
-    $cmd = $cdhConBin . " $OTUfa $input $lotus_tempDir/Consensus.fa";
-    print $cmd. "\n";
-    die();
-    my $UCfil = "";
-    return ( $UCfil, $OTUfa );
 }
 
 sub print_nseq($) {
