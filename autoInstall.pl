@@ -143,12 +143,12 @@ if ( ($UID ne "??" && -f $uspath) || $forceUpdate || $usearchInstall ne ""){#set
 			getS2("http://lotus2.earlham.ac.uk/lotus/lotus/updates/$lsv/files.tar.gz","files.tar.gz");
 			system("tar -xzf files.tar.gz");
 			if (-s "autoInstall.pl" != -s "updates/autoInstall.pl" && !$forceUpdate){#at this point call autoupdate again
-				$rerun=1; print "Updated autoinstall.pl..\nAttempting to rerun autinstall.pl\n";
+				$rerun=1; print "Updated autoInstall.pl..\nAttempting to rerun autoInstall.pl\n";
 				system("rm autoInstall.pl\ncp updates/autoInstall.pl . \n");
 				if (system("perl autoInstall.pl -forceUpdate")==0){
 					print "sucessfully secondary autoupdating, all steps finished, lotus pipeline is ready to be used.\nTo install new databases/programs that were not installed in the first lotus installation, please rerun installation (skipping the check for updates step).\n"; 
 					exit(0);
-				} else {print "Failed to rerun autoinstall.pl, please rerun manually after install\n";}
+				} else {print "Failed to rerun autoInstall.pl, please rerun manually after install\n";}
 			}
 			system("rm autoInstall.pl\ncp updates/autoInstall.pl . \nrm lotus2.pl\ncp updates/lotus2.pl .;rm -rf sdm_src;mv updates/sdm_src . ;rm -rf LCA_src;mv updates/LCA_src . ;rm -rf rtk_src;mv updates/rtk_src ."); 
 			my $nsdmp = compile_sdm("sdm_src"); 
