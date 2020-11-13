@@ -95,6 +95,7 @@ my $usBin       = ""; #absolute path to usearch binary
 my $dada2Scr    = ""; #absolute path to dada2 pipeline script
 my $phyloLnk    = ""; #R helper script to create phyloSeq objects
 my $Rscript     = ""; #absolute path to Rscript -> also serves as check that Rscript exists on cluster..
+my $defRscriptOpt  = "";
 my $swarmBin    = "";
 my $VSBin       = "";
 my $VSBinOri    = "";
@@ -509,6 +510,8 @@ my $upVer = "";
 $upVer = "-uparseVer $usearchVer " if ($ClusterPipe == 1);
 $upVer = "-uparseVer N11 "if ($ClusterPipe == 6);
 my $sdmcmd="";
+
+#sdm based Seed extension of OTU clusters
 if ($sdmDerepDo) {
     $sdmIn = "-i_fastq $derepOutHQ";
     if ( $numInput == 2 ) { $sdmIn = "-i_fastq $derepOutHQ,$derepOutHQ2"; }
@@ -903,13 +906,14 @@ sub sdmStep1{
 		}
 	}
 
+	#primary sequence filtering + demultiplexing + dereplication
 	$sdmcmd = "$sdmBin $sdmIn $sdmOut -sample_sep $sep_smplID  -log $mainSDMlog -map $map $sdmOptStr $demultiSaveCmd $derepCmd $dmgCmd $qualOffset -paired $paired $paired_sdm -maxReadsPerOutput $linesPerFile -oneLineFastaFormat 1";    #4000000
 	#die $sdmcmd."\n";
 
 
 	if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
-		$duration = time - $start;
-		printL( frame("Demultiplexing input files"),0 );
+		#$duration = time - $start;
+		printL( frame("Demultiplexing, filtering, dereplicating input files, this might take some time",1,0),0 );
 		systemL("cp $map $outdir/primary\n cp $sdmOpt $outdir/primary");
 		if ( systemL($sdmcmd) != 0 ) {
 			printL "FAILED sdm demultiplexing step: " . $sdmcmd . "\n";
@@ -924,7 +928,8 @@ sub sdmStep1{
 		if ( $fileNum > 10 ) {
 			systemL "tar zcf $logDir/SDMperFile.tar.gz $logDir/SDMperFile/; rm -r $logDir/SDMperFile/;";
 		}
-		if ( `cat $mainSDMlog` =~ m/binomial est\. errors/ ) {
+		my $readSdmLog = `cat $mainSDMlog`;
+		if ( $readSdmLog =~ m/binomial est\. errors/ ) {
 			$citations .= "Poisson binomial model based read filtering: Fernando Puente-Sánchez, Jacobo Aguirre, Víctor Parro (2015).A novel conceptual approach to read-filtering in high-throughput amplicon sequencing studies. Nucleic Acids Res.(2015).\n";
 		}
 
@@ -959,6 +964,16 @@ sub sdmStep1{
 				systemL "gzip -c $_* > $outdir/demultiplexed/$1.gz; rm -f $_*;";
 			}
 		}
+		
+		#final report
+		$readSdmLog =~ m/(Reads processed:.*)/;
+		my $shrtRpt = $1;
+		$readSdmLog =~ m/(Rejected:.*)/;
+		$shrtRpt .= "\n".$1;
+		$readSdmLog =~ m/(Accepted \(Mid\+High qual\):.*)/;
+		$shrtRpt .= "\n".$1;
+		printL( frame("Finished primary read processing with sdm:\n".$shrtRpt."\nFor an extensive report see $mainSDMlog\n",1,1),0 );
+
 	} elsif ($onlyTaxRedo) {
 		printL("Skipping Quality Filtering & demultiplexing & dereplication step\n",0);
 	}
@@ -973,7 +988,7 @@ sub runPhyloObj{
 	return 0 if (!-f $phyloLnk || !-f $Rscript);
 	die "Incorrect phyloLnk script defined $phyloLnk" unless (-f $phyloLnk);
 	die "Incorrect R installation (can't find Rscript)" unless (-f $Rscript);
-	my $cmd = "$Rscript $phyloLnk $OTUmFile $SIM_hierFile $map $treeF;";
+	my $cmd = "$Rscript $defRscriptOpt $phyloLnk $OTUmFile $SIM_hierFile $map $treeF;";
 	#die "$cmd\n";
 	if (!(systemL $cmd)){
 		printL "Could not create phyloseq object\n","w";
@@ -2848,6 +2863,7 @@ sub parse_duration {
 sub frame {
     my ($txt) = $_[0];
 	my $showT=1; $showT = $_[1] if (@_ > 1);
+	my $showFrame=1; $showFrame = $_[2] if (@_ > 2);
 	my $dur = " ". parse_duration(time - $start) . "";
     my @txtarrT = split( /\n/, $txt );
 	my @txtarr; 
@@ -2870,7 +2886,8 @@ sub frame {
 	}
 
     my $repStr = '-' x $width;#"=========================================================================\n";
-    my $ret = $repStr."\n";
+    my $ret = "";
+	$ret .= $repStr."\n" if ($showFrame);
 	
     for ( my $i = 0 ; $i < scalar(@txtarr) ; $i++ ) {
 		my $pre = "";
@@ -2881,7 +2898,7 @@ sub frame {
 		}
         $ret .= $pre . $txtarr[$i] . "\n";
     }
-    $ret .= $repStr."\n";
+    $ret .= $repStr."\n" if ($showFrame);
 }
 
 sub firstXseqs($ $ $) {
@@ -5295,7 +5312,7 @@ sub buildOTUs($) {
 		printL(frame("DADA2 ASV clustering\nDereplication of reads"),0);
         #printL("\n =========================================================================\n DADA2 ASV clustering\n Dereplication of reads\n=========================================================================\n",0);
 		die "incorrect dada2 script defined" unless (-f $dada2Scr);
-		$cmd = "$Rscript $dada2Scr $sdmDemultiDir $sdmDemultiDir $dada2Seed $uthreads $map;";
+		$cmd = "$Rscript $defRscriptOpt $dada2Scr $sdmDemultiDir $sdmDemultiDir $dada2Seed $uthreads $map;";
 		#cleanup of important dada2 files
 		$cmd .= "mv -f $sdmDemultiDir/*.pdf $logDir;";
 		$cmd .= "cp $sdmDemultiDir/uniqueSeqs.fna $OTUfastaTmp;";

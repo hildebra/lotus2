@@ -9,6 +9,7 @@ if(!require("dada2",quietly=TRUE,warn.conflicts =FALSE)){
 
 #ARGS parsing
 #args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//demultiplexed/","0","12","/hpc-home/hildebra/dev/lotus/maps/AngeTest1.16S.sm.map")
+#args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//demultiplexed/","0","12","/hpc-home/hildebra/dev/lotus/maps/Lucas_16S__map2.txt")
 args = commandArgs(trailingOnly=TRUE)
 # test if all the arguments are there: 
 if (length(args) <= 4) {
@@ -35,35 +36,46 @@ if ("SequencingRun" %in% colnames(mapping)){ #explicitly defined groups of seque
 } else if ("fastqFile" %in% colnames(mapping) ){ #1)check if different BCs 2)check if different folders to impute seq runs
 	tfqFs = table(mapping[,"fastqFile"])
 	hasSlash=grepl("/",names(tfqFs))
-	if (any(tfqFs) > 1){ #demultiplexing included
+	if (any(tfqFs > 1)){ #demultiplexing included
 		subset_map = mapping[,"fastqFile"]
-		cat(paste("Found ",length(tfqFs)," unique fastqFile's, assumming each represents a sequencing run\n\n",sep=""))
+		write(paste("Found ",length(tfqFs)," unique fastqFile's, assumming each represents a sequencing run\n\n",sep=""),stderr())
 	} else if (any(hasSlash)) {
 		leastS=function (x){lx=length(x);if (lx==1){""} else {paste(x[1:(lx-1)],collapse="/")}}
 		fastqP = unlist(lapply(strsplit(mapping[,"fastqFile"],"/"),leastS))
 		tfqFs=table(fastqP)
 		if (length(tfqFs) > 1){
-			cat(paste("Found ",length(tfqFs)," unique path's to fastq's, assumming each path represents a sequencing run\n\n",sep=""))
+			write(paste("Found ",length(tfqFs)," unique path's to fastq's, assumming each path represents a sequencing run\n\n",sep=""),stderr())
 			subset_map = fastqP
 		}
+	} else {
+		write("No sample run information, samples are considered as sequenced in the same run\n\n",stderr())
 	}
 } else {
-	cat("No sample run information, samples are considered as sequenced in the same run\n\n")
+	write("No sample run information, samples are considered as sequenced in the same run\n\n",stderr())
 }
 
 
 
 # File parsing
 listF=list();listR=list()
+maxReg=500
 tSuSe = table(subset_map)
 for (i in names(tSuSe)){
 	#forward read error pattern
-	idx = subset_map == i
-	pattern1 = paste0(mapping[idx,"#SampleID"],".1.fq[.gz]?",sep="")
-	listF[[i]] = list.files(pathF, pattern=paste0(pattern1, collapse="|"),full.names = TRUE)
-	#reverse read
-	pattern1 = paste0(mapping[idx,"#SampleID"],".2.fq[.gz]?",sep="")
-	listR[[i]] = list.files(pathF, pattern=paste0(pattern1, collapse="|"),full.names = T)
+	idx = which(subset_map == i)
+	lIdx=length(idx);
+	rCnt=1;maxIdx = min(rCnt*maxReg,lIdx);minIdx=1+(rCnt-1)*maxReg;
+	
+	while (minIdx<lIdx && rCnt < 10){ #fix for limited regex
+		idx1=idx[minIdx:maxIdx]
+		pattern1 = paste0(mapping[idx1,"#SampleID"],".1.fq[.gz]?",sep="")
+		listF[[i]] = c(listF[[i]],list.files(pathF, pattern=paste0(pattern1, collapse="|"),full.names = TRUE))
+		#reverse read
+		pattern1 = paste0(mapping[idx1,"#SampleID"],".2.fq[.gz]?",sep="")
+		listR[[i]] = c(listR[[i]],list.files(pathF, pattern=paste0(pattern1, collapse="|"),full.names = T))
+		minIdx=1+rCnt*maxReg
+		rCnt=rCnt+1;maxIdx = min(rCnt*maxReg,lIdx);minIdx=1+(rCnt-1)*maxReg;
+	}
 }   
 
 cat("\n\nStarting DADA2 ASV clustering... please be patient\n\n");
