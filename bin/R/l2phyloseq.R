@@ -26,17 +26,20 @@ if(!(file.exists(path_TAX))) {
 # Test if phylogenetic tree is produced:
 # If the phylogenetic tree exists, require the "ape" package and read the tree:
 if((file.exists(path_TREE))) {
-  if(!require("ape",quietly=TRUE,warn.conflicts =FALSE)){
-    install.packages("ape",repos="https://cloud.r-project.org",quiet=TRUE);require(ape)}
-  tree=read.tree(path_TREE)}
-
-
+	if(!require("ape",quietly=TRUE,warn.conflicts =FALSE)){
+		install.packages("ape",repos="https://cloud.r-project.org",quiet=TRUE);require(ape)
+	}
+	tree=read.tree(path_TREE)
+}
 
 # Require the pyloseq package:
-if(!require("phyloseq",quietly=TRUE,warn.conflicts =FALSE)){source("https://raw.githubusercontent.com/joey711/phyloseq/master/inst/scripts/installer.R",local=TRUE);require("phyloseq")}
+if(!require("phyloseq",quietly=TRUE,warn.conflicts =FALSE)){
+	source("https://raw.githubusercontent.com/joey711/phyloseq/master/inst/scripts/installer.R",local=TRUE);
+	require("phyloseq")
+}
 
 library("phyloseq")
-packageVersion("phyloseq")
+#packageVersion("phyloseq")
 # â1.30.0'
 
 

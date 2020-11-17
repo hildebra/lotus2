@@ -73,9 +73,10 @@ sub systemL;
 sub swarmClust;
 sub swarm4us_size;
 sub dnaClust2UC;
-sub chimera_rem;
+sub chimera_ref_rem;
 sub checkLtsVer;
 sub ITSxOTUs;
+sub lulu;
 sub checkXtalk;
 sub annotateFaProTax;
 sub systemW;
@@ -93,6 +94,7 @@ my $LCABin      = "";
 my $sdmBin      = "./sdm";
 my $usBin       = ""; #absolute path to usearch binary
 my $dada2Scr    = ""; #absolute path to dada2 pipeline script
+my $LULUscript  = ""; #script for LULU OTU matrix cleanup
 my $phyloLnk    = ""; #R helper script to create phyloSeq objects
 my $Rscript     = ""; #absolute path to Rscript -> also serves as check that Rscript exists on cluster..
 my $defRscriptOpt  = "";
@@ -174,6 +176,7 @@ my $platform         = "miSeq";        #454, miSeq, hiSeq, PacBio
 my $keepUnclassified = 1;
 my $keepOfftargets   = 0;
 my $doITSx           = 1;            #run itsx in its mode?
+my $doLULU           = 0;   #run LULU post matrix filter?
 my $ITSpartial       = 0;            #itsx --partial parameter
 my $finalWarnings    = "";
 my $remFromEnd       = ""; #fix for strange behavior of flash, where overlaps of too short amplicons can include rev primer / adaptor
@@ -212,7 +215,7 @@ my $lowMemLambI       = 0;
 
 # --------------------
 #uparse / otupipe / cdhit / swarm options
-my $useVsearch=0; # 1(vsearch) or 0(usearch) for chim check are being used, searching, matching tasks
+my $useVsearch=1; # 1(vsearch) or 0(usearch) for chim check are being used, searching, matching tasks
 #my $preferVsearch   = 0;      #0=use usearch always; 1=use vesarch always
 my $chimera_absskew = 2;      # Abundance skew for de novo chimera filtering # 2
 my $id_OTU          = .97;    # Id threshold for OTU clustering  #Default: .97
@@ -279,7 +282,8 @@ GetOptions(
     "xtalk=i"               => \$doXtalk,
     "saveDemultiplex=i"     => \$saveDemulti,        #1=yes, 0=not, 2=yes,unfiltered
     "rdp_thr=f"             => \$RDPCONF,
-    "itsextraction=i"       => \$doITSx,
+    "ITSx|itsextraction=i"       => \$doITSx,
+	"lulu=i"                => \$doLULU,
     "itsx_partial=i"        => \$ITSpartial,
     "utax_thr=f"            => \$utaxConf,
     "LCA_frac=f"            => \$LCAfraction,
@@ -613,21 +617,17 @@ if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 
 
     #remove chimeras on longer merged reads
-    my $refChims = chimera_rem( $OTUSEED);
+    my $refChims = chimera_ref_rem( $OTUSEED);
     #ITSx
     my $nonITShref = ITSxOTUs($OTUSEED);
-
     #phiX
-    
-	
 	my $phiXhref = contamination_rem( $OTUSEED, $CONT_REFDB_PHIX, "phiX" );
-	
-
     #custom DB for contamination - off-target
 	
 	my $xtraConthref = contamination_rem( $OTUSEED, $custContamCheckDB, "offTarget" );
 	#merge contamination results..
 	${$xtraConthref}{"phiX"} = ${$phiXhref}{"phiX"} ;
+	${$xtraConthref}{"ITSx"} = $nonITShref;
 
     #link between OTU and refDB seq - replace with each other
     $OTUrefDBlnk = readLinkRefFasta( $OTUrefSEED . ".lnks" );
@@ -638,15 +638,19 @@ if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 
     #but OTU matrix already written, need to remove these
     my $XtalkRef = checkXtalk( $OTUfa, $OTUmFile );
-	${$xtraConthref}{"phiX"} = $XtalkRef;
-	${$xtraConthref}{"ITSx"} = $nonITShref;
+	${$xtraConthref}{"Xtalk"} = $XtalkRef;
+	
+	my $luluref= lulu($OTUfa,$OTUmFile);
+	${$xtraConthref}{"LULU"} = $luluref;
 	
 	#integrate all these filters now
     $OTUrefDBlnk = clean_otu_mat($OTUfa,$OTUrefSEED, $OTUmFile,
         $OTUrefDBlnk,$xtraConthref) if ($seedExtDone);    #&& $otuRefDB ne "ref_closed" );
         # $OTUfa.ref contains reference Seqs only, needs to be merged later..
         #and last check for cross talk in remaining OTU match
-#die "$OTUfa,$OTUrefSEED, $OTUmFile, $OTUrefDBlnk\n";
+		
+	
+		
 } elsif ($onlyTaxRedo) {
     printL "Skipping removal of contaminated OTUs step\n", 0;
 }
@@ -1257,7 +1261,7 @@ sub contamination_rem($ $ $ ) {
     return $contRemStr;
 }
 
-sub chimera_rem($) {
+sub chimera_ref_rem($) {
     my ( $otusFA ) = @_;
     my $chimOut = "";
 	
@@ -1306,7 +1310,7 @@ sub checkXtalk($ $) {
     #get the OTUs that are not in both tables
     systemL($cmd,"crosstalk",0);
     if ( -z "$logDir/crossTalk_analysis.txt" ) {
-        printL "Cross talk unsuccessful, continuing without\n","w";
+        printL "Cross talk unsuccessful, continue without\n","w";
     } else {
 		my $tmp = `cut -f1 $otuM`; my @prevOTUs = split /\n/,$tmp;
 		$tmp = `cut -f1 $otuM1`; my @newOTUs = split /\n/,$tmp;
@@ -1319,6 +1323,35 @@ sub checkXtalk($ $) {
 	systemL "rm -f $otuM1;";
 	return \%ret;
 }
+
+sub lulu{
+	my %ret;
+	return \%ret if (!$doLULU);
+	my ($otuFas,$otuM) = @_;
+	my $idMin = 0.84;
+	my $cmd = "$VSBin --usearch_global $otuFas --db $otuFas --self --id $idMin --iddef 1 --userout $lotus_tempDir/lulu_match_list.txt -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits 10;";
+	systemL $cmd,"vsearch for LULU",1;
+	$cmd = "$Rscript $defRscriptOpt $LULUscript $lotus_tempDir/lulu_match_list.txt $otuM $logDir;";
+	
+	#die $cmd."\n";
+	
+	
+	systemL $cmd,"LULU Rscript",1;
+	my $rmLst = `cat $lotus_tempDir/lulu_match_list.txt.rm`;
+	chomp $rmLst;
+	my $LULUcnt=0;
+	foreach my $x (split /\n/,$rmLst){
+		$ret{$x} = 1;
+		$LULUcnt ++;
+	}
+	
+	printL(frame( "$LULUcnt ${OTU_prefix}'s removed with LULU\n"),0);
+
+	$citations .= "LULU: Frøslev, T. G., Kjøller, R., Bruun, H. H., Ejrnæs, R., Brunbjerg, A. K., Pietroni, C., & Hansen, A. J. (2017). Algorithm for post-clustering curation of DNA amplicon data yields reliable biodiversity estimates. Nature Communications, 8(1), 1188.\n";
+	systemL "rm $lotus_tempDir/lulu_match_list.txt*";
+	return \%ret;
+}
+
 
 #remove entries from OTU matrix
 sub clean_otu_mat($ $ $ $) {
@@ -1863,12 +1896,14 @@ sub readPaths_aligners($) {
 		if ( $line =~ m/^usearch\s(\S+)/ ) {
 			$usBin = truePath($1);
 		} elsif ( $line =~ m/^dada2R\s+(\S+)/ ) {
-			$dada2Scr = $1;
+			$dada2Scr = truePath($1);
 		} elsif ( $line =~ m/^phyloLnk\s+(\S+)/ ) {
-			$phyloLnk = $1;
+			$phyloLnk = truePath($1);
+		} elsif ( $line =~ m/^LULUR\s+(\S+)/ ) {
+			$LULUscript = truePath($1);
 		} elsif ( $line =~ m/^vsearch\s+(\S+)/ ) {
 			$VSBin = truePath($1);
-			$VSBinOri = truePath($1);  #deactivate default vsearch again.. prob with chimera finder.
+			$VSBinOri = $VSBin;  #deactivate default vsearch again.. prob with chimera finder.
 		}
 		elsif ( $line =~ m/^LCA\s+(\S+)/ ) {
 			$LCABin = truePath($1);
@@ -2264,13 +2299,10 @@ sub readPaths {    #read tax databases and setup correct usage
     if ( !-f $VSBin ||  $useVsearch == 0) {
         $VSBin  = $usBin;
         $VSused = 0;
-        finWarn(
-"Could not find vsearch binaries at\n$VSBin\n, switching to usearch binaries instead\n"
-        ) if ( !-f $VSBin );
+        finWarn("Could not find vsearch binaries at\n$VSBin\n, switching to usearch binaries instead\n") if ( !-f $VSBin );
     }
     else {
-        $citations .=
-"VSEARCH 1.13 (chimera de novo / ref; ${OTU_prefix} alignments): Rognes T (2015) https://github.com/torognes/vsearch\n";
+        $citations .= "VSEARCH 1.13 (chimera de novo / ref; ${OTU_prefix} alignments): Rognes T (2015) https://github.com/torognes/vsearch\n";
     }
     if ( !-f $mjar && !-f $rdpjar && $doRDPing > 0 ) {
         printL "Could not find rdp jar at\n\"$mjar\"\nor\n\"$rdpjar\"\n.Aborting..\n", 3;
@@ -2489,6 +2521,7 @@ sub prepLtsOptions{
 	#read primary paths to binaries
 	readPaths_aligners($lotusCfg);
 	#version checks
+	#die "$mini2Bin\n";
 	my $LCAver = `$LCABin -v`;
 	chomp ($LCAver); 
 	if ($LCAver !~ m/[\d\.]/ || $LCAver < 0.21){
@@ -2722,8 +2755,9 @@ my %taxonomy_options = (
   '-LCA_cover <0-1>', 'Min horizontal coverage of an OTU sequence against ref DB. (Default: 0.5)',
   '-LCA_frac <0-1>', 'Min fraction of reads with identical taxonomy. (Default: 0.9)',
   '-greengenesSpecies <0|1>', '(1) Create greengenes output labels instead of OTU (to be used with greengenes specific programs such as BugBase). (Default: 0)',
-  '-itsextraction <0|1>', '(1) use ITSx to only retain OTUs fitting to ITS1/ITS2 hmm models; (0) deactivate. (Default: 1)',
-  '-itsx_partial <0-100>', 'Parameters for ITSx to extract partial (%) ITS regions as well. (0) deactivate. (Default: 0)'
+  '-ITSx <0|1>', '(1) use ITSx to only retain OTUs fitting to ITS1/ITS2 hmm models; (0) deactivate. (Default: 1)',
+  '-itsx_partial <0-100>', 'Parameters for ITSx to extract partial (%) ITS regions as well. (0) deactivate. (Default: 0)',
+  '-lulu <0|1>', '(1) use LULU (https://github.com/tobiasgf/lulu) to merge OTUs based on their occurence. (Default: 1)',
 );
 
 my $clustering_heading = "Clustering Options";
@@ -4347,7 +4381,7 @@ sub doDBblasting($ $ $) {
 			$simMethod = "USEARCH";
 			$citations .= "USEARCH taxonomic database search: \n" unless ( $citations =~ m/USEARCH taxonomic database search/ );
 		}
-		$cmd .= "--usearch_global $query --db $udbDB  --id 0.75 --query_cov 0.5 -userfields $outCols -userout $taxblastf --maxaccepts 200 --maxrejects 100 -strand both --threads $BlastCores;";
+		$cmd .= "--usearch_global $query --db $udbDB  --id 0.75 --query_cov 0.5 -userfields $outCols -userout $taxblastf --maxaccepts 100 --maxrejects 100 -strand both --threads $BlastCores;";
 		#--blast6out $taxblastf
 		#die "$cmd\n";
     } elsif ( $doBlasting == 2 ) {    #lambda
@@ -5481,9 +5515,9 @@ sub buildOTUs($) {
     #backmap reads to OTUs/ASVs/zOTUs
     my $cnt = 0;
     my @allUCs;
-    my $userachDffOpt = "-maxhits 1 --maxrejects 200 -top_hits_only -strand both -id $id_OTU -threads $uthreads";
-    my $vsearchSpcfcOpt = " --minqt 0.8 ";
-    $vsearchSpcfcOpt = " --minqt 0.3 " if ( $platform eq "454" );
+    my $userachDffOpt = "--maxhits 1 --query_cov 0.8 --maxrejects 200 -top_hits_only -strand both -id $id_OTU -threads $uthreads";
+    my $vsearchSpcfcOpt = "";#" --minqt 0.8 ";
+    #$vsearchSpcfcOpt = " --minqt 0.3 " if ( $platform eq "454" );
     $vsearchSpcfcOpt = "" if ( !$VSused );
     $vsearchSpcfcOpt .= " --dbmask none --qmask none";
 
@@ -5493,8 +5527,7 @@ sub buildOTUs($) {
         if (   ( $usearchVer < 8 && $ClusterPipe == 1 )
             || $ClusterPipe == 2 || $ClusterPipe == 6  || $ClusterPipe == 3 || $ClusterPipe == 7 )
         {    #usearch8 has .up output instead
-            $cmd =
-                "$VSBin -usearch_global ". $derepl. " -db $outfile -uc $UCguide[0] $userachDffOpt $vsearchSpcfcOpt;";    #-threads  $BlastCores";
+            $cmd = "$VSBin --usearch_global ". $derepl. " -db $outfile -uc $UCguide[0] $userachDffOpt $vsearchSpcfcOpt;";    #-threads  $BlastCores";
                    #die $cmd."\n";
             if ( systemL($cmd) != 0 ) {
                 printL( "vsearch backmapping command aborted:\n$cmd\n", 1 );
@@ -5502,8 +5535,7 @@ sub buildOTUs($) {
         }
     } else {         #map all qual filtered files to OTUs
         if ( $usearchVer >= 8 ) {
-            printL "\n\nWarning:: usearch v8 can potentially cause decreased lotus performance in seed extension step, when used with option -highMem 0\n\n",
-              0;
+            printL "\n\nWarning:: usearch v8 can potentially cause decreased lotus performance in seed extension step, when used with option -highMem 0\n\n", 0;
             sleep(10);
         }
         my @lotsFiles = ($filtered);
@@ -5515,7 +5547,7 @@ sub buildOTUs($) {
         foreach my $fil (@lotsFiles) {
             my $tmpUC = "$lotus_tempDir/tmpUCs.$cnt.uct";
             push( @allUCs, $tmpUC );
-            $cmd = "$VSBin -usearch_global $fil -db $outfile -uc $tmpUC -strand both -id $id_OTU -threads $uthreads $vsearchSpcfcOpt;";    #-threads  $BlastCores";
+            $cmd = "$VSBin --usearch_global $fil -db $outfile -uc $tmpUC -strand both -id $id_OTU -threads $uthreads $vsearchSpcfcOpt;";    #-threads  $BlastCores";
             if ( systemL($cmd) != 0 ) { exit(1); }
             if ( $cnt > 0 ) {
                 combine( $fil, $filtered );

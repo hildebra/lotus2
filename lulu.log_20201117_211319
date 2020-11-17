@@ -1,0 +1,38 @@
+
+####processing: ASV1 #####
+---hits: ASV3 
+---hits: ASV4
+---potential parent: ASV3 
+---potential parent: ASV4
+------checking: ASV3
+------relative cooccurence: 1 which is sufficient!
+------min avg abundance: 0.533333333333333
+------checking: ASV4
+------relative cooccurence: 1 which is sufficient!
+------min avg abundance: 0.448275862068966
+No parent found!
+
+####processing: ASV2 #####
+---hits: 
+---potential parent: 
+No parent found!
+
+####processing: ASV3 #####
+---hits: ASV4
+---potential parent: ASV4
+------checking: ASV4
+------relative cooccurence: 1 which is sufficient!
+------min avg abundance: 0.684210526315789
+No parent found!
+
+####processing: ASV4 #####
+---hits: ASV3 
+---hits: ASV1
+---potential parent: ASV1 
+---potential parent: ASV3
+------checking: ASV1
+------relative cooccurence: 1 which is sufficient!
+------min avg abundance: 2.14285714285714 which is OK!
+SETTING ASV4 to be an ERROR of ASV1
+
+------checking: ASV3

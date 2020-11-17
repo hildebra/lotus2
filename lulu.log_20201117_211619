@@ -1,0 +1,19 @@
+
+####processing: ASV1 #####
+---hits: ASV3 
+---hits: ASV4
+---potential parent: ASV3
+------checking: ASV3
+------relative cooccurence: 1 which is sufficient!
+------min avg abundance: 0.363636363636364
+No parent found!
+
+####processing: ASV2 #####
+---hits: 
+---potential parent: 
+No parent found!
+
+####processing: ASV3 #####
+---hits: ASV4
+---potential parent: 
+No parent found!

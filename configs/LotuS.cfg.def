@@ -12,6 +12,7 @@ rtk bin/rtk
 #R helper scripts
 dada2R bin/R/dada2_pip.R
 phyloLnk bin/R/l2phyloseq.R
+LULUR bin/R/LULU.R
 
 
 #usearch clustering & chimera checking program
