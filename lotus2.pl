@@ -1876,6 +1876,8 @@ sub biomFmt($ $ $ $ $) {
 
 sub truePath($){
 	my ($tmp) = @_;
+	my $oriTmp = $tmp;
+	return "$RealBin/$tmp" if (-f "$RealBin/$tmp");#relative path thing..
 	$tmp = `which $tmp 2>/dev/null`;chomp($tmp);
 	$tmp="" if ($tmp =~ /^which: no/);
 	return $tmp;
@@ -1896,11 +1898,11 @@ sub readPaths_aligners($) {
 		if ( $line =~ m/^usearch\s(\S+)/ ) {
 			$usBin = truePath($1);
 		} elsif ( $line =~ m/^dada2R\s+(\S+)/ ) {
-			$dada2Scr = truePath($1);
+			$dada2Scr = truePath $1;
 		} elsif ( $line =~ m/^phyloLnk\s+(\S+)/ ) {
-			$phyloLnk = truePath($1);
+			$phyloLnk = truePath $1;
 		} elsif ( $line =~ m/^LULUR\s+(\S+)/ ) {
-			$LULUscript = truePath($1);
+			$LULUscript = truePath $1;
 		} elsif ( $line =~ m/^vsearch\s+(\S+)/ ) {
 			$VSBin = truePath($1);
 			$VSBinOri = $VSBin;  #deactivate default vsearch again.. prob with chimera finder.
