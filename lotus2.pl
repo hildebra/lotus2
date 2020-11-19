@@ -282,7 +282,7 @@ GetOptions(
     "xtalk=i"               => \$doXtalk,
     "saveDemultiplex=i"     => \$saveDemulti,        #1=yes, 0=not, 2=yes,unfiltered
     "rdp_thr=f"             => \$RDPCONF,
-    "ITSx|itsextraction=i"       => \$doITSx,
+    "ITSx|itsextraction=i"  => \$doITSx,
 	"lulu=i"                => \$doLULU,
     "itsx_partial=i"        => \$ITSpartial,
     "utax_thr=f"            => \$utaxConf,
@@ -308,7 +308,8 @@ GetOptions(
     "offtargetDB=s"         => \$custContamCheckDB,
     "flash_param=s"         => \$flashCustom,
     "deactivateChimeraCheck=i" => \$noChimChk,
-	"VsearchChimera=i"		=> \$useVsearch,
+	#"VsearchChimera=i"		=> \$useVsearch,
+	"useVsearch=i"		=> \$useVsearch,
 	"removePhiX=i"			=> \$doPhiX,
 	"buildPhylo=i"          => \$buildPhylo,
 
