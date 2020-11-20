@@ -108,7 +108,7 @@ matchL = args[1]
 otuF = args[2]
 logD = args[3]
 
-matchs = read.table(matchL,header=TRUE,as.is=TRUE)
+matchs = read.table(matchL,header=FALSE,as.is=TRUE)
 otuM = read.table(otuF,header=TRUE,as.is=TRUE,row.names=1)
 
 lulu <- lulu(otuM, matchs)
