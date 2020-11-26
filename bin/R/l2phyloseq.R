@@ -58,7 +58,7 @@ sd=read.table(path_SD,sep="\t",row.names=1,header=FALSE,comment.char="#",as.is=T
 colnames(sd) = sdA[-1]
 
 # Read the taxonomy table:
-tax= as.matrix(read.table(path_TAX, row.names=1,header=TRUE,sep="\t") )
+tax= as.matrix(read.delim(path_TAX, row.names=1,header=TRUE,sep="\t") )
 if (dim(tax)[1] < dim(otu)[1]){
 	taxA = matrix("?", nrow(otu)-nrow(tax), ncol(tax))
 	idx = !dimnames(otu)[[1]] %in% dimnames(tax)[[1]] 
