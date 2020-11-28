@@ -63,6 +63,20 @@ tSuSe = table(subset_map)
 for (i in names(tSuSe)){
 	#forward read error pattern
 	idx = which(subset_map == i)
+	
+	listF[[i]] = paste0(pathF, paste0(mapping[idx,"#SampleID"],".1.fq",sep="") )
+	listR[[i]] = paste0(pathF, paste0(mapping[idx,"#SampleID"],".2.fq",sep="") )
+	
+	for (XX in 1:length(listF[[i]])){
+		if (!file.exists(listF[[i]][XX])){
+			listF[[i]][XX]= paste0(listF[[i]][XX],".gz")
+		}
+		if (!file.exists(listF[[i]][XX])){
+			stop(paste("Could not find expected file", listF[[i]][XX] ))
+		}
+	}
+	next;
+	#old code, don't use
 	lIdx=length(idx);
 	rCnt=1;maxIdx = min(rCnt*maxReg,lIdx);minIdx=1+(rCnt-1)*maxReg;
 	
@@ -84,15 +98,12 @@ list_seqtabs=list()
 list_seqtabs.nochim=list()
 i=1
 
-for (i in 1:length(listR)){
-	sampleNames <- sapply(strsplit(basename(listF[[i]]), ".1.fq"),`[`, 1) # 
-	sampleNamesR <- sapply(strsplit(basename(listR[[i]]), ".2.fq"),`[`, 1) #
-	if(!identical(sampleNames, sampleNamesR)) stop("Forward and reverse files do not match:",sampleNames,sampleNamesR)
-	cat(paste0("Detected ",length(sampleNames)," samples .. Computing error profiles\n"));
+for (i in 1:length(listF)){
+	idx = which(subset_map == names(tSuSe)[i])
+	sampleNames = mapping[idx,"#SampleID"]
+	cat(paste0("Detected ",length(sampleNames)," samples in batch ",i,"/",length(listF), " .. Computing error profiles\n"));
 	#start of dada2 learning
 	set.seed(seed_num)
-	#filtFs <- file.path(path_output, "matched_IDs", paste0(sampleNames, "_F_matched.fastq.gz"))
-	#filtRs <- file.path(path_output, "matched_IDs", paste0(sampleNames, "_R_matched.fastq.gz"))
 	filtFs <- file.path(listF[[i]])
 	filtRs <- file.path(listR[[i]])
 	names(filtFs) <- sampleNames
@@ -110,9 +121,6 @@ for (i in 1:length(listR)){
 	if (is.null(errF)) {
 		errF <- learnErrors(filtFs, multithread=1)
 	}
-	
-	
-
 	# Learn reverse error rates
 	cat(paste0("Learning error profiles for the reverse reads:\n"));	
 	#dada2 is too instable
@@ -133,33 +141,30 @@ for (i in 1:length(listR)){
 
 
 	# Sample inference and merger of paired-end reads
-	mergers <- vector("list", length(sampleNames))
+	mergers = vector("list",length(sampleNames))
 	names(mergers) <- sampleNames
 	for(sam in sampleNames) {
 		cat("Processing:", sam, "\n")
-		derepF <- derepFastq(filtFs[[sam]])
-		
+		derepF <- derepFastq(filtFs[[sam]],n=5e5,verbose=FALSE)
 		try ( ddF <- dada(derepF, err=errF, multithread=ncores) )
 		if (is.null(ddF)){ddF <- dada(derepF, err=errF, multithread=1)}
-		derepR <- derepFastq(filtRs[[sam]])
 		
+		derepR <- derepFastq(filtRs[[sam]],n=5e5,verbose=FALSE)
 		try(ddR <- dada(derepR, err=errR, multithread=ncores))
 		if (is.null(ddR)){ddR <- dada(derepR, err=errR, multithread=1)}
-		merger <- mergePairs(ddF, derepF, ddR, derepR)
+		merger <- mergePairs(ddF, derepF, ddR, derepR,trimOverhang=TRUE,minOverlap=6)
 		mergers[[sam]] <- merger
+		rm(derepF); rm(derepR)
 	}
-	rm(derepF); rm(derepR)
 
 	# Remove the matched_IDs folder:
-	unlink(paste0(path_output,"matched_IDs"),recursive = TRUE)
+	#unlink(paste0(path_output,"matched_IDs"),recursive = TRUE)
 
 
 	# Construct sequence table and remove chimeras
 	list_seqtabs[[i]] <- makeSequenceTable(mergers)
-
 	list_seqtabs.nochim[[i]] <- removeBimeraDenovo(list_seqtabs[[i]], method="consensus", multithread=ncores, verbose=FALSE)
-} 
-
+}
 
 ##Merge the tables:
 if (length(list_seqtabs)>1){
@@ -170,7 +175,7 @@ if (length(list_seqtabs)>1){
 	mergetab.nochim = list_seqtabs.nochim[[1]]
 }
 
-cat("%",(1-sum(mergetab.nochim)/sum(mergetab))*100,"of the reads were assigned to be chimeric and removed (DADA2)")
+cat(paste0("%",round((1-sum(mergetab.nochim)/sum(mergetab))*100,2)," of reads (",dim(mergetab)[2]-dim(mergetab.nochim)[2]," of ",dim(mergetab)[2]," ASVs) were chimeric and will be removed (DADA2)"))
 uniquesToFasta(getUniques(mergetab.nochim), fout=paste0(path_output,"/uniqueSeqs.fna"), ids=paste0("ASV", seq(length(getUniques(mergetab.nochim)))))
 #saveRDS(seqtab, path_output) 
 cat("\nDADA2 clustering finished\n")
