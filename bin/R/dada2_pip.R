@@ -96,6 +96,8 @@ cat("\n\nStarting DADA2 ASV clustering... please be patient\n\n");
 
 list_seqtabs=list()
 list_seqtabs.nochim=list()
+mergers = list()
+
 i=1
 
 for (i in 1:length(listF)){
@@ -141,8 +143,9 @@ for (i in 1:length(listF)){
 
 
 	# Sample inference and merger of paired-end reads
-	mergers = vector("list",length(sampleNames))
-	names(mergers) <- sampleNames
+	#mergers = vector("list",length(sampleNames))
+	#names(mergers) <- sampleNames
+	
 	for(sam in sampleNames) {
 		cat("Processing:", sam, "\n")
 		derepF <- derepFastq(filtFs[[sam]],n=5e5,verbose=FALSE)
@@ -162,18 +165,22 @@ for (i in 1:length(listF)){
 
 
 	# Construct sequence table and remove chimeras
-	list_seqtabs[[i]] <- makeSequenceTable(mergers)
-	list_seqtabs.nochim[[i]] <- removeBimeraDenovo(list_seqtabs[[i]], method="consensus", multithread=ncores, verbose=FALSE)
+#	list_seqtabs[[i]] <- makeSequenceTable(mergers)
+#	list_seqtabs.nochim[[i]] <- removeBimeraDenovo(list_seqtabs[[i]], method="consensus", multithread=ncores, verbose=FALSE)
 }
 
 ##Merge the tables:
-if (length(list_seqtabs)>1){
-	mergetab <- mergeSequenceTables(tables=list_seqtabs)
-	mergetab.nochim <- mergeSequenceTables(tables=list_seqtabs.nochim)
-} else {
-	mergetab = list_seqtabs[[1]]
-	mergetab.nochim = list_seqtabs.nochim[[1]]
-}
+#if (length(list_seqtabs)>1){
+#	mergetab <- mergeSequenceTables(tables=list_seqtabs)
+#	mergetab.nochim <- mergeSequenceTables(tables=list_seqtabs.nochim)
+#} else {
+#	mergetab = list_seqtabs[[1]]
+#	mergetab.nochim = list_seqtabs.nochim[[1]]
+#}
+mergetab = makeSequenceTable(mergers)
+mergetab.nochim <- removeBimeraDenovo(mergetab, method="consensus", multithread=ncores, verbose=FALSE)
+
+
 
 cat(paste0("%",round((1-sum(mergetab.nochim)/sum(mergetab))*100,2)," of reads (",dim(mergetab)[2]-dim(mergetab.nochim)[2]," of ",dim(mergetab)[2]," ASVs) were chimeric and will be removed (DADA2)"))
 uniquesToFasta(getUniques(mergetab.nochim), fout=paste0(path_output,"/uniqueSeqs.fna"), ids=paste0("ASV", seq(length(getUniques(mergetab.nochim)))))

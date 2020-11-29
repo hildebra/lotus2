@@ -5244,6 +5244,13 @@ sub dnaClust2UC($ $) {
     return ( \%cluster, \%clSize, \%clus_denovo, \%clDNSize );
 }
 
+sub parseLastVUsearch($){
+	my ($tarF) = @_;
+	my $d2rep = `tail $progOutPut | grep 'Matching unique query sequence' `;
+	$d2rep =~ s/Matching unique query sequence://; chomp $d2rep;
+	return $d2rep;
+}
+
 ##################################################
 # Core cluster routing on quality filtered files #
 ##################################################
@@ -5386,8 +5393,7 @@ sub buildOTUs($) {
 #create OTU fasta ($OTUfastaTmp)
 #$cmd .= "\ncut -d \" \" -f 1 $lotus_tempDir/otus.swarm | sed -e 's/^/>/' > $lotus_tempDir/tmp_seeds.txt";
 #$cmd.= "\ngrep -A 1 -F -f $lotus_tempDir/tmp_seeds.txt $derepl | sed -e '/^--\$/d' > $OTUfastaTmp";
-    }
-    elsif ( $ClusterPipe == 3 ) {
+    } elsif ( $ClusterPipe == 3 ) {
         if ( !-e $cdhitBin ) {printL "No valid CD-Hit binary found at $cdhitBin\n", 88;}
 		printL(frame("CD-HIT ${OTU_prefix} clustering\n Cluster at ". 100 * $id_OTU ),0);
         #printL("\n =========================================================================\n CD-HIT ${OTU_prefix} clustering\n Cluster at ". 100 * $id_OTU . "%\n=========================================================================\n", 0 );
@@ -5434,6 +5440,13 @@ sub buildOTUs($) {
         if ( systemL($cmd) != 0 ) {
             printL( "Failed core ${OTU_prefix} clustering command:\n$cmd\n", 1 );
         }
+		
+		#post cluster parsing
+		if  ( $ClusterPipe == 7 ) {
+			#%7.65 of reads (143 of 700 ASVs) were chimeric and will be removed (DADA2)
+			my $d2rep = `grep 'were chimeric and will be removed (DADA2)' $progOutPut`;
+			printL frame("$d2rep"),0;
+		}
     }
 	
 	#die $cmd;
@@ -5505,8 +5518,7 @@ sub buildOTUs($) {
             $citations .= "Vsearch chimera detection deNovo: \n";
         }
         else {
-            $citations .=
-"uchime chimera detection deNovo: Edgar RC, Haas BJ, Clemente JC, Quince C, Knight R. 2011. UCHIME improves sensitivity and speed of chimera detection. Bioinformatics 27: 2194–200.\n";
+            $citations .= "uchime chimera detection deNovo: Edgar RC, Haas BJ, Clemente JC, Quince C, Knight R. 2011. UCHIME improves sensitivity and speed of chimera detection. Bioinformatics 27: 2194–200.\n";
         }
         #systemL("ls -lh $lotus_tempDir/tmp1.fa");
     }
@@ -5523,7 +5535,8 @@ sub buildOTUs($) {
     #$vsearchSpcfcOpt = " --minqt 0.3 " if ( $platform eq "454" );
     $vsearchSpcfcOpt = "" if ( !$VSused );
     $vsearchSpcfcOpt .= " --dbmask none --qmask none";
-
+	my $backMapRep = "";
+	
     if ($sdmDerepDo) {
         #only HQ derep need to be mapped, and uparse v8 has this already done
         #my @lotsFiles = ($derepl); #these are dereplicated files
@@ -5535,6 +5548,8 @@ sub buildOTUs($) {
             if ( systemL($cmd) != 0 ) {
                 printL( "vsearch backmapping command aborted:\n$cmd\n", 1 );
             }
+			$backMapRep .= "Backmapping unique reads: ".parseLastVUsearch($progOutPut)."\n"; 
+			
         }
     } else {         #map all qual filtered files to OTUs
         if ( $usearchVer >= 8 ) {
@@ -5584,13 +5599,14 @@ sub buildOTUs($) {
             while (<T>) { $lcnt++; last if ( $lcnt > 5 ); }
             close T;
             if ( $lcnt > 2 ) {    #file contains reads, so map
-                printL frame("Searching with mid qual reads..\n"), 0;
+                #printL frame("Searching with mid qual reads..\n"), 0;
                 my $tmpUC = "$lotus_tempDir/add.uc";
                 $cmd ="$VSBin -usearch_global $subF -db $OTUfastaTmp -uc ". $tmpUC. " $userachDffOpt $vsearchSpcfcOpt;"; #-threads  $BlastCores";
                 if ( -s $OTUfastaTmp ) {
                     if ( systemL($cmd) != 0 ) { printL( "Failed: $cmd\n", 1 ); }
-                }
-                else { systemL("touch $tmpUC"); }
+                } else { systemL("touch $tmpUC"); }
+				$backMapRep .= "Backmapping  mid qual reads: ".parseLastVUsearch($progOutPut)."\n"; 
+
                 systemL( "cat $tmpUC >> " . $UCguide[0] . ".ADD" );
                 unlink $tmpUC;
 
@@ -5622,8 +5638,12 @@ sub buildOTUs($) {
             if ( systemL($cmd) != 0 ) { printL( "Failed: $cmd\n", 1 ); }
             systemL( "cat $restUC >> " . $UCguide[0] . ".RESTREF;" );
             unlink $restUC;
+			$backMapRep .= "Backmapping  low count unique reads: ".parseLastVUsearch($progOutPut)."\n"; 
+
         }
     }
+	
+	printL frame($backMapRep),0;
 
 #if (systemL("cat ".join(" ",@allUCs)." >> ".$UCguide[0]) != 0){printL "Merge of UC subfiles failed.\n",1;};
 #foreach (@allUCs){unlink;}
