@@ -483,19 +483,16 @@ my $OTUrefSEED = "$lotus_tempDir/otu_seeds.fna.ref";
 #uc additions have to be in matrix creation (>0.96 through sdm)
 #my $UCadditions = $ucFinalFile.".ADD";
 my $OTUmFile = "$outdir/OTU.txt";
-my $OTUmRefFile =
-  "$outdir/OTU_psRef.txt";    #diff to OTU.txt: collapse entries with same ref
+my $OTUmRefFile =   "$outdir/OTU_psRef.txt";    #diff to OTU.txt: collapse entries with same ref
 $OTUmRefFile = "" unless ($pseudoRefOTU);
 my $seedExtDone = 1;
 my $refClusSDM  = "";
 my $didMerge = 0; #were reads already merged before this step? -> so far always no
 
 
-if ($REFflag)
-{ #these need to be treated extra, as no new optimal ref seq needs to be identified..
+if ($REFflag){ #these need to be treated extra, as no new optimal ref seq needs to be identified..
     $refClusSDM .="-optimalRead2Cluster_ref $ucFinalFile.ref -OTU_fallback_refclust $tmpOTU.ref";
     $refClusSDM .=" -ucAdditionalCounts_refclust $ucFinalFile.ADDREF -ucAdditionalCounts_refclust1 $ucFinalFile.RESTREF";
-
     #systemL "cat $UCadditions"."REF"." >> $UCadditions"
 }
 
@@ -508,14 +505,14 @@ if ( $numInput == 2 ) {
 
     $sdmOut2    = "-o_fastq " . $mergeSeedsFiles[0] . "," . $mergeSeedsFiles[1];
     $OTUrefSEED = "$lotus_tempDir/otu_seeds.1.fq.ref";
-
     #TODO : $sdmIn
 }
 my $upVer = "";
-$upVer = "-uparseVer $usearchVer " if ($ClusterPipe == 1);
+$upVer = "-uparseVer $usearchVer " if ($ClusterPipe == 1 || $ClusterPipe == 7); #use same format for .uc file in uparse and dada2 mode
 $upVer = "-uparseVer N11 "if ($ClusterPipe == 6);
 my $sdmcmd="";
 
+#----------------  SEED extension -------------------
 #sdm based Seed extension of OTU clusters
 if ($sdmDerepDo) {
     $sdmIn = "-i_fastq $derepOutHQ";
@@ -858,7 +855,7 @@ sub sdmStep1{
 			$sdmOptStr = "";
 		}
 		if ($ClusterPipe == 7){ #dada2.. no rd pair info in head!
-			$sdmOptStr .= "-pairedRD_HD_out 0 -pairedDemulti 1 ";
+			$sdmOptStr .= "-pairedRD_HD_out 0 -pairedDemulti 1 -derep_format fq ";
 		}
 	}
 
@@ -869,7 +866,7 @@ sub sdmStep1{
 		}
 		else { $derepCmd .= "-dere_size_fmt 0 "; }
 		$derepCmd .= " -min_derep_copies $dereplicate_minsize ";
-		$derepOutHQ  = "$lotus_tempDir/derep.hq.fq";
+		$derepOutHQ  = "$lotus_tempDir/derep.1.hq.fq";
 		$derepOutMap = "$lotus_tempDir/derep.map";
 		$derepOutHQ2 = "$lotus_tempDir/derep.2.hq.fq";
 		if ( $saveDemulti == 3 ) {   #temp deactivated, since I have  $sdmDemultiDir
@@ -918,7 +915,7 @@ sub sdmStep1{
 
 	if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 		#$duration = time - $start;
-		printL( frame("Demultiplexing, filtering, dereplicating input files, this might take some time",1,0),0 );
+		printL( frame("Demultiplexing, filtering, dereplicating input files, this might take some time",1,2),0 );
 		systemL("cp $map $outdir/primary\n cp $sdmOpt $outdir/primary");
 		if ( systemL($sdmcmd) != 0 ) {
 			printL "FAILED sdm demultiplexing step: " . $sdmcmd . "\n";
@@ -937,6 +934,15 @@ sub sdmStep1{
 		if ( $readSdmLog =~ m/binomial est\. errors/ ) {
 			$citations .= "Poisson binomial model based read filtering: Fernando Puente-Sánchez, Jacobo Aguirre, Víctor Parro (2015).A novel conceptual approach to read-filtering in high-throughput amplicon sequencing studies. Nucleic Acids Res.(2015).\n";
 		}
+		
+		#final report
+		$readSdmLog =~ m/(Reads processed:.*)/;
+		my $shrtRpt = $1;
+		$readSdmLog =~ m/(Rejected:.*)/;
+		$shrtRpt .= "\n".$1;
+		$readSdmLog =~ m/(Accepted \(Mid\+High qual\):.*)/;
+		$shrtRpt .= "\n".$1;
+		printL( frame("Finished primary read processing with sdm:\n".$shrtRpt."\nFor an extensive report see $mainSDMlog\n",1,3),0 );
 
 		#postprocessing of output files
 		if ( $saveDemulti == 1 || $saveDemulti == 2 ) {    #gzip stuff
@@ -944,7 +950,7 @@ sub sdmStep1{
 			systemL "gzip $sdmDemultiDir/*.fq;";
 		}
 		if ( $saveDemulti == 1 ) {
-			printL frame("Demultiplexed intput files with not quality filtering to:\n$sdmDemultiDir\nFinished task, if you want to have a complete LotuS run, change option \"-saveDemultiplex 0\".\n"),0;
+			printL frame("Demultiplexed intput files with no quality filtering to:\n$sdmDemultiDir\nFinished task, if you want to have a complete LotuS run, change option \"-saveDemultiplex 0\".\n",1),0;
 			exit(0);
 		}
 		if ( $saveDemulti == 3 && $exec == 0 )
@@ -970,14 +976,7 @@ sub sdmStep1{
 			}
 		}
 		
-		#final report
-		$readSdmLog =~ m/(Reads processed:.*)/;
-		my $shrtRpt = $1;
-		$readSdmLog =~ m/(Rejected:.*)/;
-		$shrtRpt .= "\n".$1;
-		$readSdmLog =~ m/(Accepted \(Mid\+High qual\):.*)/;
-		$shrtRpt .= "\n".$1;
-		printL( frame("Finished primary read processing with sdm:\n".$shrtRpt."\nFor an extensive report see $mainSDMlog\n",1,1),0 );
+
 
 	} elsif ($onlyTaxRedo) {
 		printL("Skipping Quality Filtering & demultiplexing & dereplication step\n",0);
@@ -2735,7 +2734,7 @@ my %further_options = (
 
 my $workflow_heading = "Workflow Options";
 my %workflow_options = (
-  '-verbosity <0-3>', 'Level of verbosity from printing all program calls and program output (3) to not even printing errors (0). Default?',
+  '-verbosity <0-3>', 'Level of verbosity from printing all program calls and program output (3) to not even printing errors (0). Default: 1',
   '-saveDemultiplex <0|1|2|3>', '(1) Saves all demultiplexed reads (unfiltered) in the [outputdir]/demultiplexed folder, for easier data upload. (2) Only saves quality filtered demultiplexed reads and continues LotuS2 run subsequently. (3) Saves demultiplexed file into a single fq, saving sample ID in fastq/a header. (0) No demultiplexed reads are saved. (Default: 0)',
   '-taxOnly <file>', 'Skip most of the lotus pipeline and only run a taxonomic classification on a fasta file. E.g. ./lotus2.pl -taxOnly <some16S.fna> -refDB SLV',
   '-redoTaxOnly <0|1>', '(1) Only redo the taxonomic assignments (useful for replacing a DB used on a finished lotus run). (0) Normal lotus run. (Default: 0)',
@@ -2753,7 +2752,7 @@ my %taxonomy_options = (
   '-tax_group <bacteria|fungi>', '(bacteria) bacterial 16S rDNA annnotation, (fungi) fungal 18S/23S/ITS annotation. (Default: bacteria)',
   '-rdp_thr <0-1>', 'Confidence thresshold for RDP.(Default: 0.8)',
   '-utax_thr <0-1>', 'Confidence thresshold for UTAX. (Default: 0.8)',
-  '-taxAligner <0|1|2|3|4|5>', 'Previously doBlast. (0) deavtivated (just use RDP); (1) or (blast) use Blast; (2) or (lambda) use LAMBDA to search against a 16S reference database for taxonomic profiling of OTUs; (3) or (utax): use UTAX with custom databases; (4) or (vsearch) use VSEARCH to align OTUs to custom databases; (5) or (usearch) use USEARCH to align OTUs to custom databases. (Default: 0)',
+  '-taxAligner <0|blast|lambda|utax|vsearch|usearch>', 'Previously doBlast. (0) deavtivated (just use RDP); (1) or (blast) use Blast; (2) or (lambda) use LAMBDA to search against a 16S reference database for taxonomic profiling of OTUs; (3) or (utax): use UTAX with custom databases; (4) or (vsearch) use VSEARCH to align OTUs to custom databases; (5) or (usearch) use USEARCH to align OTUs to custom databases. (Default: 0)',
   '-useBestBlastHitOnly <0|1>', '(1) do not use LCA (lowest common ancestor) to determine most likely taxnomic level (not recommended), instead just use the best blast hit. (0) LCA algorithm. (Default: 0)',
   '-LCA_cover <0-1>', 'Min horizontal coverage of an OTU sequence against ref DB. (Default: 0.5)',
   '-LCA_frac <0-1>', 'Min fraction of reads with identical taxonomy. (Default: 0.9)',
@@ -2765,15 +2764,14 @@ my %taxonomy_options = (
 
 my $clustering_heading = "Clustering Options";
 my %clustering_options = (
-  '-CL|-clustering <1|2|3|6|7>', 'Sequence clustering algorithm: (1) UPARSE, (2) swarm, (3) cd-hit, (6) unoise3, (7) dada2. (Default: 1)',
+  '-CL|-clustering <uparse|swarm|cdhit|unoise|dada2>', 'Sequence clustering algorithm: (1) UPARSE, (2) swarm, (3) cd-hit, (6) unoise3, (7) dada2. Short keyword or number can be used to indicate clustering (Default: uparse)',
   '-id <0-1>', 'Clustering threshold for OTUs. (Default: 0.97)',
   '-swarm_distance <0-1> ', 'Clustering threshold for OTUs when using swarm clustering. (Default: 1)',
   '-chim_skew <num>', 'Skew in chimeric fragment abundance (uchime option). (Default: 2)',
   '-count_chimeras', 'Minimum size of dereplicated clustered, one form of noise removal. Can be complex terms like "10:1,3:3" -> meaning at least 10x in 1 sample or 3x in 3 different samples. (Default: 2)',
   '-deactivateChimeraCheck <0|1|2|3>', '(0) do OTU chimera checks. (1) no chimera check at all. (2) Deactivate deNovo chimera check. (3) Deactivate ref based chimera check. (Default: 0)',
   '-readOverlap <num>', 'The maximum number of basepairs that two reads are overlapping. (Default: 300)',
-  '-flash_param <string>', 'custom flash parameters, since this contains spaces the command needs to be in parentheses: e.g. -flash_param "-r 150 -s 20". Note that this option completely replaces the default -m and -M flash options (i.e. need to be reinserted, if wanted)]
- -endRem [DNA sequence, usually reverse primer or reverse adaptor; all sequence beyond this point will be removed from OTUs. This is redundant with the "ReversePrimer" option from the mapping file, but gives more control (e.g. there is a problem with adaptors in the OTU output). (Default: "")',
+  '-flash_param <string>', 'custom flash parameters, since this contains spaces the command needs to be in parentheses: e.g. -flash_param "-r 150 -s 20". Note that this option completely replaces the default -m and -M flash options (i.e. need to be reinserted, if wanted)]',
   '-endRem <string>', 'DNA sequence, usually reverse primer or reverse adaptor; all sequence beyond this point will be removed from OTUs. This is redundant with the "ReversePrimer" option from the mapping file, but gives more control (e.g. there is a problem with adaptors in the OTU output). (Default: "")',
   '-xtalk <0|1>', '(1) check for crosstalk. Note that this requires in most cases 64bit usearch. (Default: 0)'
 );
@@ -2899,6 +2897,7 @@ sub parse_duration {
 }
 sub frame {
     my ($txt) = $_[0];
+	if (length($txt)==0){return "";}
 	my $showT=1; $showT = $_[1] if (@_ > 1);
 	my $showFrame=1; $showFrame = $_[2] if (@_ > 2);
 	my $dur = " ". parse_duration(time - $start) . "";
@@ -2924,7 +2923,7 @@ sub frame {
 
     my $repStr = '-' x $width;#"=========================================================================\n";
     my $ret = "";
-	$ret .= $repStr."\n" if ($showFrame);
+	$ret .= $repStr."\n" if ($showFrame==1 || $showFrame==2);
 	
     for ( my $i = 0 ; $i < scalar(@txtarr) ; $i++ ) {
 		my $pre = "";
@@ -2935,7 +2934,8 @@ sub frame {
 		}
         $ret .= $pre . $txtarr[$i] . "\n";
     }
-    $ret .= $repStr."\n" if ($showFrame);
+    $ret .= $repStr."\n" if ($showFrame==1 || $showFrame==3);
+	return $ret;
 }
 
 sub firstXseqs($ $ $) {
@@ -5267,30 +5267,29 @@ sub buildOTUs($) {
     #print_nseq("$filterOut");
     my $filtered = "$lotus_tempDir/filtered.fa";
 
-    if ($UPARSEfilter) {
-        printL("\n =========================================================================\n Secondary uparse filter\n",0  );
-        my $cmd = "$usBin -fastq_filter $filterOut -fastaout $filtered -fastq_trunclen $truncLfwd -threads $uthreads;";
+	if ($UPARSEfilter) {
+		printL("\n =========================================================================\n Secondary uparse filter\n",0  );
+		my $cmd = "$usBin -fastq_filter $filterOut -fastaout $filtered -fastq_trunclen $truncLfwd -threads $uthreads;";
 
-        #-fastq_truncqual $truncQual
-        #die($cmd."\n");
-        if ( systemL($cmd) != 0 ) { exit(1); }
-    }
-    else {
-        $filtered = $filterOut;
-    }
+		#-fastq_truncqual $truncQual
+		#die($cmd."\n");
+		if ( systemL($cmd) != 0 ) { exit(1); }
+	}  else {
+		$filtered = $filterOut;
+	}
 
-    my $derepl = "$lotus_tempDir/derep.fas";    #,$totSeqs,$arL)
-    my ( $totSeqs, $SeqLength ) = parseSDMlog("$logDir/demulti.log");
-    if ( !$sdmDerepDo ) {
-        my ($derepl) = usearchDerepSort($filtered);
-    }
-    else {
-        if ( !-f $derepl || -z $derepl ) {
-            printL "The sdm dereplicated output file was either empty or not existing, aborting lotus.\n$derepl\n",1;
-        }
+	my $derepl = "$lotus_tempDir/derep.fas";    #,$totSeqs,$arL)
+	my ( $totSeqs, $SeqLength ) = parseSDMlog("$logDir/demulti.log");
+	if ( !$sdmDerepDo ) {
+		my ($derepl) = usearchDerepSort($filtered);
+	}
+	else {
+		if ( !-f $derepl || -z $derepl ) {
+			printL "The sdm dereplicated output file was either empty or not existing, aborting lotus.\n$derepl\n",1;
+		}
 
-#my @lotsFiles = ($filtered); my $dcnt=1; while (-f $filtered.".".$dcnt){	push(@lotsFiles,$filtered.".".$dcnt);$dcnt++}
-    }
+	#my @lotsFiles = ($filtered); my $dcnt=1; while (-f $filtered.".".$dcnt){	push(@lotsFiles,$filtered.".".$dcnt);$dcnt++}
+	}
     my $OTUfastaTmp = $outfile;                 #"$lotus_tempDir/uparse.fa";
     my $dnaclustOut = "$lotus_tempDir/clusters_pre.dncl";
 
@@ -5303,157 +5302,154 @@ sub buildOTUs($) {
             revComplFasta($derepl);
         }
     }
-
-    if ( $ClusterPipe == 1 ) { #UPARSE clustering
-        my $maxhot  = 62;
-        my $maxdrop = 12;
-        #too many files need a more thorough clustering process
-        if ( $totSeqs > 12000000 && $totSeqs < 24000000 ) {
-            $maxhot  = 72;
-            $maxdrop = 15;
-        }
-        elsif ( $totSeqs >= 24000000 ) {
-            $maxhot  = 92;
-            $maxdrop = 18;
-        }
-        my $id_OTUup    = $id_OTU;
-        my $outputLab   = "-output";
-        my $idLabel     = "-id";
-        my $xtraOptions = "";
-        if ( $usearchVer >= 10 ) {    #just to control id percentage
-            $idLabel  = "";
-            $id_OTUup = "";
-            if ( $id_OTU != 0.97 ) {
-                printL "UPARSE 10 does only support 97% id ${OTU_prefix} clusters\n", "w";
-            }
-        }
-        elsif ( $usearchVer >= 8 ) {
-            $idLabel  = "-otu_radius_pct";
-            $id_OTUup = 100 - ( $id_OTU * 100 );
-            if ( $id_OTUup < 0 || $id_OTUup > 50 ) {
-                printL
-                  "UPARSE cluster radius $id_OTUup not valid, aborting..\n", 54;
-            }
-        }
-        if ( $usearchVer >= 8 ) {
-            $xtraOptions .= " -uparseout $UCguide[0] ";    #-sizeout sizein
-            $outputLab = "-fastaout";
-        }
-        if ( $usearchVer >= 8 && $usearchVer < 9 ) {       #8 specific commands
-            $xtraOptions .=" -sizeout -sizein -uparse_maxhot $maxhot -uparse_maxdrop $maxdrop ";
-        }
-        if ( $noChimChk == 1 || $noChimChk == 2 ) {  #deactivate chimera de novo
-            $xtraOptions .= " -uparse_break -999 ";
-        }
-        printL(frame("UPARSE core routine\nCluster at ". 100 * $id_OTU),0);
+	my $entrMessage=""; my $exitMsg="Finished";
+	if ( $ClusterPipe == 1 ) { #UPARSE clustering
+		my $maxhot  = 62;
+		my $maxdrop = 12;
+		#too many files need a more thorough clustering process
+		if ( $totSeqs > 12000000 && $totSeqs < 24000000 ) {
+			$maxhot  = 72;
+			$maxdrop = 15;
+		}
+		elsif ( $totSeqs >= 24000000 ) {
+			$maxhot  = 92;
+			$maxdrop = 18;
+		}
+		my $id_OTUup    = $id_OTU;
+		my $outputLab   = "-output";
+		my $idLabel     = "-id";
+		my $xtraOptions = "";
+		if ( $usearchVer >= 10 ) {    #just to control id percentage
+			$idLabel  = "";
+			$id_OTUup = "";
+			if ( $id_OTU != 0.97 ) {
+				printL "UPARSE 10 does only support 97% id ${OTU_prefix} clusters\n", "w";
+			}
+		}
+		elsif ( $usearchVer >= 8 ) {
+			$idLabel  = "-otu_radius_pct";
+			$id_OTUup = 100 - ( $id_OTU * 100 );
+			if ( $id_OTUup < 0 || $id_OTUup > 50 ) {
+				printL
+				  "UPARSE cluster radius $id_OTUup not valid, aborting..\n", 54;
+			}
+		}
+		if ( $usearchVer >= 8 ) {
+			$xtraOptions .= " -uparseout $UCguide[0] ";    #-sizeout sizein
+			$outputLab = "-fastaout";
+		}
+		if ( $usearchVer >= 8 && $usearchVer < 9 ) {       #8 specific commands
+			$xtraOptions .=" -sizeout -sizein -uparse_maxhot $maxhot -uparse_maxdrop $maxdrop ";
+		}
+		if ( $noChimChk == 1 || $noChimChk == 2 ) {  #deactivate chimera de novo
+			$xtraOptions .= " -uparse_break -999 ";
+		}
+		$entrMessage = "UPARSE core routine\nCluster at ". 100 * $id_OTU ;
 		#"\n =========================================================================\n UPARSE core routine\n Cluster at ". 100 * $id_OTU. "%\n=========================================================================\n",0);
 
-        $cmd = "$usBin -cluster_otus $derepl -otus $OTUfastaTmp $idLabel $id_OTUup -log $logDir/UPARSE.log $xtraOptions;";    # -threads $uthreads"; # -uc ".$UCguide[2]."
-        $citations .= "UPARSE ${OTU_prefix} clustering - Edgar RC. 2013. UPARSE: highly accurate OTU sequences from microbial amplicon reads. Nat Methods.\n";
+		$cmd = "$usBin -cluster_otus $derepl -otus $OTUfastaTmp $idLabel $id_OTUup -log $logDir/UPARSE.log $xtraOptions;";    # -threads $uthreads"; # -uc ".$UCguide[2]."
+		$citations .= "UPARSE ${OTU_prefix} clustering - Edgar RC. 2013. UPARSE: highly accurate OTU sequences from microbial amplicon reads. Nat Methods.\n";
 		#die $cmd."\n";
-    }
-    elsif ( $ClusterPipe == 7 ) { #dada2
-		printL(frame("DADA2 ASV clustering\nDereplication of reads"),0);
-        #printL("\n =========================================================================\n DADA2 ASV clustering\n Dereplication of reads\n=========================================================================\n",0);
+	}
+	elsif ( $ClusterPipe == 7 ) { #dada2
 		die "incorrect dada2 script defined" unless (-f $dada2Scr);
-		$cmd = "$Rscript $defRscriptOpt $dada2Scr $sdmDemultiDir $sdmDemultiDir $dada2Seed $uthreads $map;";
+		$cmd = "$Rscript $defRscriptOpt $dada2Scr $sdmDemultiDir $lotus_tempDir $dada2Seed $uthreads $map $derepl;";
 		#cleanup of important dada2 files
-		$cmd .= "mv -f $sdmDemultiDir/*.pdf $logDir;";
-		$cmd .= "cp $sdmDemultiDir/uniqueSeqs.fna $OTUfastaTmp;";
-		$cmd .= "cp $sdmDemultiDir/uniqueSeqs.fna $outdir/primary/;gzip $outdir/primary//uniqueSeqs.fna;";
+		$cmd .= "mv -f $lotus_tempDir/*.pdf $logDir;";
+		
+		$cmd .= "cp $lotus_tempDir/dada2.uc $UCguide[0];";
+		$cmd .= "cp $lotus_tempDir/uniqueSeqs.fna $OTUfastaTmp;";
+		#$cmd .= "cp $sdmDemultiDir/uniqueSeqs.fna $outdir/primary/;gzip $outdir/primary//uniqueSeqs.fna;";
 		$cmd .= "rm -r $sdmDemultiDir;" if ($saveDemulti==0);
 		#die "$cmd\n";
 		$citations .= "DADA2 ASV clustering - Callahan BJ, McMurdie PJ, Rosen MJ, et al. DADA2: High-resolution sample inference from Illumina amplicon data. Nat Methods 2016;13:581–3. doi:10.1038/nmeth.3869\n";
+		$entrMessage = "DADA2 ASV clustering";
 	}
-    elsif ( $ClusterPipe == 6 ) { #unoise3
-		printL(frame("UNOISE core routine\n Cluster at ". 100 * $id_OTU . "%"),0);
-        #printL("\n =========================================================================\n UNOISE core routine\n Cluster at ". 100 * $id_OTU . "%\n=========================================================================\n",0);
-	
-        $cmd = "$usBin -unoise3 $derepl -zotus $OTUfastaTmp -tabbedout $logDir/unoise3_longreport.txt -log $logDir/unoise3.log;";    # -threads $uthreads"; # -uc ".$UCguide[2]."
-        $citations .= "UNOISE ASV (zOTU) clustering - R.C. Edgar (2016), UNOISE2: improved error-correction for Illumina 16S and ITS amplicon sequencing, https://doi.org/10.1101/081257 \n";
+	elsif ( $ClusterPipe == 6 ) { #unoise3
+		$entrMessage = "UNOISE core routine\n Cluster at ". 100 * $id_OTU . "%";
+		#printL("\n =========================================================================\n UNOISE core routine\n Cluster at ". 100 * $id_OTU . "%\n=========================================================================\n",0);
+
+		$cmd = "$usBin -unoise3 $derepl -zotus $OTUfastaTmp -tabbedout $logDir/unoise3_longreport.txt -log $logDir/unoise3.log;";    # -threads $uthreads"; # -uc ".$UCguide[2]."
+		$citations .= "UNOISE ASV (zOTU) clustering - R.C. Edgar (2016), UNOISE2: improved error-correction for Illumina 16S and ITS amplicon sequencing, https://doi.org/10.1101/081257 \n";
 		#die $cmd."\n";
-    } elsif ( $ClusterPipe == 2 ) {
+	} elsif ( $ClusterPipe == 2 ) {
 
-#prelim de novo OTU filter
-#$cmd="$usBin -uchime_denovo  $derepl -chimeras $lotus_tempDir/chimeras_denovo.fa -nonchimeras $lotus_tempDir/tmp1.fa -abskew $chimera_absskew -log $logDir/uchime_dn.log";
-#if (systemL($cmd) != 0){exit(1);}	systemL("ls -lh $lotus_tempDir/tmp1.fa");
-        if ( !-e $swarmBin ) {printL "No valid swarm binary found at $swarmBin\n", 88;}
-		printL(frame("SWARM ${OTU_prefix} clustering\n Cluster with d = ". $swarmClus_d ),0);
-        #printL("\n =========================================================================\n SWARM ${OTU_prefix} clustering\n Cluster with d = ". $swarmClus_d. "\n=========================================================================\n",0);
+	#prelim de novo OTU filter
+		if ( !-e $swarmBin ) {printL "No valid swarm binary found at $swarmBin\n", 88;}
+		$entrMessage = "SWARM ${OTU_prefix} clustering\n Cluster with d = ". $swarmClus_d ;
+		#printL("\n =========================================================================\n SWARM ${OTU_prefix} clustering\n Cluster with d = ". $swarmClus_d. "\n=========================================================================\n",0);
 
-        #-z: unsearch size output. -u uclust result file
-        my $uclustFile = "$lotus_tempDir/clusters.uc";
-        my $dofasti    = "-f ";
-        if ( $swarmClus_d > 1 ) { $dofasti = ""; }
-        $cmd = "$swarmBin -z $dofasti -u $uclustFile -t $uthreads -w $OTUfastaTmp --ceiling 4024 -s $logDir/SWARMstats.log -l $logDir/SWARM.log -o $lotus_tempDir/otus.swarm -d $swarmClus_d < $derepl;";
-        $citations .= "swarm v2 ${OTU_prefix} clustering - Mahé F, Rognes T, Quince C, de Vargas C, Dunthorn M. 2015. Swarm v2: highly-scalable and high-resolution amplicon clustering. PeerJ. DOI: 10.7717/peerj.1420\n";
+		#-z: unsearch size output. -u uclust result file
+		my $uclustFile = "$lotus_tempDir/clusters.uc";
+		my $dofasti    = "-f ";
+		if ( $swarmClus_d > 1 ) { $dofasti = ""; }
+		$cmd = "$swarmBin -z $dofasti -u $uclustFile -t $uthreads -w $OTUfastaTmp --ceiling 4024 -s $logDir/SWARMstats.log -l $logDir/SWARM.log -o $lotus_tempDir/otus.swarm -d $swarmClus_d < $derepl;";
+		$citations .= "swarm v2 ${OTU_prefix} clustering - Mahé F, Rognes T, Quince C, de Vargas C, Dunthorn M. 2015. Swarm v2: highly-scalable and high-resolution amplicon clustering. PeerJ. DOI: 10.7717/peerj.1420\n";
 
-#perl script to replace swarm size with usearch size
-#print $cmd."\n";
-#create OTU fasta ($OTUfastaTmp)
-#$cmd .= "\ncut -d \" \" -f 1 $lotus_tempDir/otus.swarm | sed -e 's/^/>/' > $lotus_tempDir/tmp_seeds.txt";
-#$cmd.= "\ngrep -A 1 -F -f $lotus_tempDir/tmp_seeds.txt $derepl | sed -e '/^--\$/d' > $OTUfastaTmp";
-    } elsif ( $ClusterPipe == 3 ) {
-        if ( !-e $cdhitBin ) {printL "No valid CD-Hit binary found at $cdhitBin\n", 88;}
-		printL(frame("CD-HIT ${OTU_prefix} clustering\n Cluster at ". 100 * $id_OTU ),0);
-        #printL("\n =========================================================================\n CD-HIT ${OTU_prefix} clustering\n Cluster at ". 100 * $id_OTU . "%\n=========================================================================\n", 0 );
-        if ($REFflag) {  #$otuRefDB eq "ref_closed" || $otuRefDB eq "ref_open"){
-            printL "CD-HIT ref DB clustering not supported!\n", 55;
-            #die();
-            $cmd = "$cdhitBin-2d -T $uthreads -o $OTUfastaTmp.2 -c $id_OTU -M 0 -i2 $derepl -i $refDB4otus -n 9 -g 1;";#-aL 0.77 -aS 0.98
-            if ( $otuRefDB eq "ref_open" ) {
-                $cmd .= "$cdhitBin -T $uthreads -i $OTUfastaTmp.2 -c $id_OTU -M 0 -o $OTUfastaTmp.3 -n 9 -g 1 -aS 0.98;";#.3 are the denovo clusters
-                die $cmd . "\n";
-                $OTUfastaTmp = removeNonValidCDhits( $refDB4otus, "$OTUfastaTmp.2", "$OTUfastaTmp.3" );
-            }
-        }
-        else {           #de novo
-            $cmd = "$cdhitBin -T $uthreads -o $OTUfastaTmp -c $id_OTU -G 0 -M 0 -i $derepl -n 9 -g 0 -r 0 -aL 0.0 -aS 0.9;";          #-aL 0.77 -aS 0.98
-        }
+	} elsif ( $ClusterPipe == 3 ) {
+		if ( !-e $cdhitBin ) {printL "No valid CD-Hit binary found at $cdhitBin\n", 88;}
+		$entrMessage = "CD-HIT ${OTU_prefix} clustering\n Cluster at ". 100 * $id_OTU ;
+		#printL("\n =========================================================================\n CD-HIT ${OTU_prefix} clustering\n Cluster at ". 100 * $id_OTU . "%\n=========================================================================\n", 0 );
+		if ($REFflag) {  #$otuRefDB eq "ref_closed" || $otuRefDB eq "ref_open"){
+			printL "CD-HIT ref DB clustering not supported!\n", 55;
+			#die();
+			$cmd = "$cdhitBin-2d -T $uthreads -o $OTUfastaTmp.2 -c $id_OTU -M 0 -i2 $derepl -i $refDB4otus -n 9 -g 1;";#-aL 0.77 -aS 0.98
+			if ( $otuRefDB eq "ref_open" ) {
+				$cmd .= "$cdhitBin -T $uthreads -i $OTUfastaTmp.2 -c $id_OTU -M 0 -o $OTUfastaTmp.3 -n 9 -g 1 -aS 0.98;";#.3 are the denovo clusters
+				die $cmd . "\n";
+				$OTUfastaTmp = removeNonValidCDhits( $refDB4otus, "$OTUfastaTmp.2", "$OTUfastaTmp.3" );
+			}
+		}
+		else {           #de novo
+			$cmd = "$cdhitBin -T $uthreads -o $OTUfastaTmp -c $id_OTU -G 0 -M 0 -i $derepl -n 9 -g 0 -r 0 -aL 0.0 -aS 0.9;";          #-aL 0.77 -aS 0.98
+		}
 		$citations .= "CD-HIT ${OTU_prefix} clustering - Fu L, Niu B, Zhu Z, Wu S, Li W. 2012. CD-HIT: Accelerated for clustering the next-generation sequencing data. Bioinformatics 28: 3150–3152.\n";
-    }
-    elsif ( $ClusterPipe == 4 ) {    #dnaclust-ref
-        my $dnaClOpt = "";
-        if ($REFflag) {
-            $dnaClOpt .="-l --approximate-filter --predetermined-cluster-centers $refDB4otus ";
-            $dnaClOpt .= "--recruit-only " if ( $otuRefDB eq "ref_closed" );
-        }
-        else {
-            printL "DNACLUST de novo clustering not supported in LotuS.\n", 34;
-        }
+	}elsif ( $ClusterPipe == 4 ) {    #dnaclust-ref
+		my $dnaClOpt = "";
+		if ($REFflag) {
+			$dnaClOpt .="-l --approximate-filter --predetermined-cluster-centers $refDB4otus ";
+			$dnaClOpt .= "--recruit-only " if ( $otuRefDB eq "ref_closed" );
+		}
+		else {
+			printL "DNACLUST de novo clustering not supported in LotuS.\n", 34;
+		}
 
-        #ref_closed
-        $cmd ="$dnaclustBin -i $derepl -s $id_OTU -t $uthreads --assign-ambiguous $dnaClOpt > $dnaclustOut ;";
+		#ref_closed
+		$cmd ="$dnaclustBin -i $derepl -s $id_OTU -t $uthreads --assign-ambiguous $dnaClOpt > $dnaclustOut ;";
 
-        #die $cmd."\n";
-        $citations .="DNACLUST - Ghodsi, M., Liu, B., & Pop, M. (2011). DNACLUST: accurate and efficient clustering of phylogenetic marker genes. BMC Bioinformatics, 12, 271. \n";
-    }
-    elsif ( $ClusterPipe == 5 ) {    #micca
-         #"$otuclustBin $derepl -s $id_OTU  --out-clust $otuclust_clust --out-rep $OTUfastaTmp -f fasta -c"; #-d: fast
-         #$citations.= "MICCA";
-    }
-    else {
-        printL "Unkown \$ClusterPipe $ClusterPipe\n", 7;
-    }
+		#die $cmd."\n";
+		$citations .="DNACLUST - Ghodsi, M., Liu, B., & Pop, M. (2011). DNACLUST: accurate and efficient clustering of phylogenetic marker genes. BMC Bioinformatics, 12, 271. \n";
+	}elsif ( $ClusterPipe == 5 ) {    #micca
+		die "-CL 5 not supported\n";
+		 #"$otuclustBin $derepl -s $id_OTU  --out-clust $otuclust_clust --out-rep $OTUfastaTmp -f fasta -c"; #-d: fast
+		 #$citations.= "MICCA";
+	}else {
+		printL "Unkown \$ClusterPipe $ClusterPipe\n", 7;
+	}
 	#actual excecution
     if ( $exec == 0 ) {
+		printL(frame($entrMessage,1,2),0);
         if ( systemL($cmd) != 0 ) {
             printL( "Failed core ${OTU_prefix} clustering command:\n$cmd\n", 1 );
         }
 		
 		#post cluster parsing
-		if  ( $ClusterPipe == 7 ) {
-			#%7.65 of reads (143 of 700 ASVs) were chimeric and will be removed (DADA2)
-			my $d2rep = `grep 'were chimeric and will be removed (DADA2)' $progOutPut`;
-			printL frame("$d2rep"),0;
+		my $d2rep;
+		if  ( $ClusterPipe == 7 ) {#report within dada2 R script
+			$d2rep = `grep 'Found .* ASVs (dada2)' $progOutPut`;
+			if ($d2rep eq ""){
+				$d2rep = `grep 'were chimeric and will be removed (DADA2)' $progOutPut`;
+			}
+			$exitMsg = "$d2rep";
 		}
+		printL(frame($exitMsg,1,3),0);
+		
+		#die "$progOutPut\n$d2rep\n";
+
     }
 	
 	#die $cmd;
-
-    if ( $ClusterPipe == 2 ) {
-        swarm4us_size($OTUfastaTmp);
-    }
+    if ( $ClusterPipe == 2 ) {swarm4us_size($OTUfastaTmp); }
 
     #--------- ref based clustering ------------
     my ( $refsCL, $refCLSiz, $denovos, $denoSize );
@@ -5466,18 +5462,14 @@ sub buildOTUs($) {
         my $fasRef = extractFastas( $refDB4otus, $refCLSiz, 1 );
         #and get denovo cluster centers separate
         my $fasRefDeno = extractFastas( $refDB4otus, $denoSize, 1 );
-        #print "fast wr";
-        #write fastas out
         writeFasta( $fasRef,     $OTUfastaTmp . ".ref" );
         writeFasta( $fasRefDeno, $OTUfastaTmp );
-
-        #die($OTUfastaTmp."\n");
     }
 
     #do in later loop
     #print "ASD\n$noChimChk\n$OTUfastaTmp\n$ClusterPipe\n";
 	#uparse, unoise, dada2 have their own chimera checks
-    if (   $ClusterPipe != 1 && $ClusterPipe != 6 && $ClusterPipe != 7  && -e $OTUfastaTmp && ( $noChimChk == 0 || $noChimChk == 3 ) ){    #not uparse && actual reads in fasta
+    if (   $ClusterPipe != 1 && $ClusterPipe != 6 && -e $OTUfastaTmp && ( $noChimChk == 0 || $noChimChk == 3 ) ){    #not uparse && actual reads in fasta
             #post OTU-pick de novo OTU filter
             #print "GF";
 
@@ -5541,7 +5533,7 @@ sub buildOTUs($) {
         #only HQ derep need to be mapped, and uparse v8 has this already done
         #my @lotsFiles = ($derepl); #these are dereplicated files
         if (   ( $usearchVer < 8 && $ClusterPipe == 1 )
-            || $ClusterPipe == 2 || $ClusterPipe == 6  || $ClusterPipe == 3 || $ClusterPipe == 7 )
+            || $ClusterPipe == 2 || $ClusterPipe == 6  || $ClusterPipe == 3  )
         {    #usearch8 has .up output instead
             $cmd = "$VSBin --usearch_global ". $derepl. " -db $outfile -uc $UCguide[0] $userachDffOpt $vsearchSpcfcOpt;";    #-threads  $BlastCores";
                    #die $cmd."\n";
