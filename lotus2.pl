@@ -5358,7 +5358,7 @@ sub buildOTUs($) {
 		$cmd .= "mv -f $lotus_tempDir/*.pdf $logDir;";
 		
 		$cmd .= "cp $lotus_tempDir/dada2.uc $UCguide[0];";
-		$cmd .= "cp $lotus_tempDir/uniqueSeqs.fna $OTUfastaTmp;";
+		$cmd .= "rm -f $OTUfastaTmp;cp $lotus_tempDir/uniqueSeqs.fna $OTUfastaTmp;";
 		#$cmd .= "cp $sdmDemultiDir/uniqueSeqs.fna $outdir/primary/;gzip $outdir/primary//uniqueSeqs.fna;";
 		$cmd .= "rm -r $sdmDemultiDir;" if ($saveDemulti==0);
 		#die "$cmd\n";
@@ -5436,16 +5436,14 @@ sub buildOTUs($) {
 		#post cluster parsing
 		my $d2rep;
 		if  ( $ClusterPipe == 7 ) {#report within dada2 R script
-			$d2rep = `grep 'Found .* ASVs (dada2)' $progOutPut`;
+			$d2rep = `grep 'Found .* ASVs.*(dada2)' $progOutPut`;
 			if ($d2rep eq ""){
 				$d2rep = `grep 'were chimeric and will be removed (DADA2)' $progOutPut`;
 			}
 			$exitMsg = "$d2rep";
 		}
 		printL(frame($exitMsg,1,3),0);
-		
 		#die "$progOutPut\n$d2rep\n";
-
     }
 	
 	#die $cmd;
@@ -5469,7 +5467,7 @@ sub buildOTUs($) {
     #do in later loop
     #print "ASD\n$noChimChk\n$OTUfastaTmp\n$ClusterPipe\n";
 	#uparse, unoise, dada2 have their own chimera checks
-    if (   $ClusterPipe != 1 && $ClusterPipe != 6 && -e $OTUfastaTmp && ( $noChimChk == 0 || $noChimChk == 3 ) ){    #not uparse && actual reads in fasta
+    if (   $ClusterPipe != 1 && $ClusterPipe != 6&& $ClusterPipe != 7 && -e $OTUfastaTmp && ( $noChimChk == 0 || $noChimChk == 3 ) ){    #not uparse && actual reads in fasta
             #post OTU-pick de novo OTU filter
             #print "GF";
 

@@ -151,6 +151,7 @@ for (i in 1:length(listF)){
 		pdf(paste0(path_output,"/dada2_p",i,"_errR.pdf"),useDingbats = FALSE)
 		plotErrors(errR, nominalQ=TRUE);	dev.off()
 	}
+	break;#no reason currently to go further..
 }
 
 ##########################################################
@@ -176,7 +177,7 @@ if (length(args)>5){
 		for (j in 1:length(idx)){
 			if (j==1){
 				cat(paste0(Dids[idx[j]],"\t",ASVname,i,"\t*\n"),file=fileUC)
-				cat(paste0(">",ASVname,i,"\n",ASVseq[[i]],"\n"),file=fileFNA) #ASV
+				cat(paste0(">",Dids[idx[j]],"\n",ASVseq[[i]],"\n"),file=fileFNA) #ASV
 			} else {
 				cat(paste0(Dids[idx[j]],"\tmatch\tdqt=1;top=",Dids[idx[1]],"(99%);\n"),file=fileUC)
 			}
@@ -184,7 +185,7 @@ if (length(args)>5){
 	}
 	close(fileUC); close (fileFNA);
 	#write unique sequences
-	cat(paste0("Found ",length(ASVseq)," ASVs (dada2)\n"));
+	cat(paste0("Found ",length(ASVseq)," ASVs, summing to ",sum(ASVab)," reads (dada2)\n"));
 	q("no");
 }
 
