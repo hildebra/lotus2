@@ -53,7 +53,7 @@ derepFastqRead= function (fls, n = 1e+06, verbose = FALSE, qualityType = "Auto")
 
 
 #ARGS parsing
-#args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//tmpFiles//","0","12","/hpc-home/hildebra/dev/lotus/maps/AngeTest1.16S.sm.map","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/derep.hq.fq")
+#args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//tmpFiles//","0","12","/hpc-home/hildebra/dev/lotus/maps/AngeTest1.16S.sm.map","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/derep.fas")
 #args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//demultiplexed/","0","12","/hpc-home/hildebra/dev/lotus/maps/Lucas_16S__map2.txt")
 args = commandArgs(trailingOnly=TRUE)
 # test if all the arguments are there: 
@@ -114,14 +114,17 @@ for (i in names(tSuSe)){
 	for (XX in 1:length(listF[[i]])){
 		if (!file.exists(listF[[i]][XX])){
 			listF[[i]][XX]= paste0(listF[[i]][XX],".gz")
+			listR[[i]][XX]= paste0(listR[[i]][XX],".gz")
 		}
 		if (!file.exists(listF[[i]][XX])){
-			stop(paste("Could not find expected file", listF[[i]][XX] ))
+			cat(paste("Could not find expected file", listF[[i]][XX] ,"\n"))
+			listF[[i]][XX] = ""
+			listR[[i]][XX] = ""
 		}
 	}
-	next;
+	#next;
 }
-
+#listF[[names(tSuSe)[1]]][1] = ""
 
 
 #-------------- pooled clustering --------------
@@ -131,19 +134,22 @@ for (i in 1:length(listF)){
 	cat(paste0("Detected ",length(sampleNames)," samples in batch ",i,"/",length(listF), " .. Computing error profiles\n"));
 	#start of dada2 learning
 	set.seed(seed_num)
-	filtFs <- file.path(listF[[i]]);	filtRs <- file.path(listR[[i]])
-	names(filtFs) <- sampleNames;	names(filtRs) <- sampleNames 
+	filtFs <- file.path(listF[[i]]);	names(filtFs) <- sampleNames;	
+	filtFs = filtFs[file.exists(filtFs)]
 	# Learn forward error rates
 	cat(paste0("Learning error profiles for the forward reads:\n"));
 	#forward read error rates
+	
 	try( errF <- learnErrors(filtFs, multithread=ncores))#dada2 is too instable
 	if (is.null(errF)) {errF <- learnErrors(filtFs, multithread=1)}
 	# Learn reverse error rates
-	cat(paste0("Learning error profiles for the reverse reads:\n"));	
 
 	# Save the plots of error profiles, for a sanity check:
 	pdf(paste0(path_output,"/dada2_p",i,"_errF.pdf"),useDingbats = FALSE)
 	plotErrors(errF, nominalQ=TRUE);	dev.off()
+	
+	#cat(paste0("Learning error profiles for the reverse reads:\n"));	
+	filtRs <- file.path(listR[[i]]);names(filtRs) <- sampleNames 
 	if (0){
 		# second read
 		try( errR <- learnErrors(filtRs, multithread=ncores))

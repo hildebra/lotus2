@@ -435,8 +435,6 @@ systemL("mkdir -p $outdir/primary/;") unless ( -d "$outdir/primary" );
 #=========
 # Pipeline
 
-
-
 # ////////////////////////// sdm 1st time (demult,qual etc) /////////////////////////////////////////////
 #  cmdArgs["-i_MID_fastq"]
 my ($sdmIn,$derepOutHQ,$qualOffset,$filterOutAdd,$filterOut,
@@ -856,6 +854,7 @@ sub sdmStep1{
 		}
 		if ($ClusterPipe == 7){ #dada2.. no rd pair info in head!
 			$sdmOptStr .= "-pairedRD_HD_out 0 -pairedDemulti 1 -derep_format fq ";
+			$sdmDemultiDir = "$lotus_tempDir/demultiplexed/" if ($saveDemulti == 0);
 		}
 	}
 
@@ -2545,7 +2544,9 @@ sub prepLtsOptions{
 	}elsif ( $usearchVer < 8 ) {
 		printL "Usearch ver 7 is outdated, it is recommended to install ver 9.\nDownload from http://drive5.com/ and execute \n\"./autoInstall.pl -link_usearch [path to usearch9]\"\n",0;
 	}
-
+	if ($doLULU && $LULUscript eq "" || !-f $LULUscript){
+		printL "Requested LULU matrix corrections, can't find lulu R script at \"$LULUscript\"\n";
+	}
 	#die "$usearchVer $usearchsubV\n";
 	if ( $doXtalk == -1 ) {
 		if ( $usearchVer >= 11 ) {
