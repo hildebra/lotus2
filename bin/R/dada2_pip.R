@@ -68,11 +68,9 @@ seed_num = as.integer(args[3])
 ncores = as.integer(args[4])
 map_path=args[5]
 
+#read map to get file locations, sampleRuns etc
 mapping=as.matrix(read.delim(map_path,check.names = FALSE,as.is=TRUE,header=TRUE,sep="\t"))
-
-
 #-------------- prep the input (demultiplexed) file paths --------------
-
 subset_map=array("A",dim(mapping)[1])
 if ("SequencingRun" %in% colnames(mapping)){ #explicitly defined groups of sequencing runs
 	subset_map = mapping[,"SequencingRun"]
@@ -126,12 +124,14 @@ for (i in names(tSuSe)){
 }
 #listF[[names(tSuSe)[1]]][1] = ""
 
-
+errorsF = list()
 #-------------- pooled clustering --------------
-for (i in 1:length(listF)){
-	idx = which(subset_map == names(tSuSe)[i])
+cnt = 0
+for (i in names(tSuSe)){
+	idx = which(subset_map == i)
+	cnt = cnt +1
 	sampleNames = mapping[idx,"#SampleID"]
-	cat(paste0("Detected ",length(sampleNames)," samples in batch ",i,"/",length(listF), " .. Computing error profiles\n"));
+	cat(paste0("Detected ",length(sampleNames)," samples in batch ",i," (",cnt,"/",length(listF), ") .. Computing error profiles\n"));
 	#start of dada2 learning
 	set.seed(seed_num)
 	filtFs <- file.path(listF[[i]]);	names(filtFs) <- sampleNames;	
@@ -147,6 +147,7 @@ for (i in 1:length(listF)){
 	# Save the plots of error profiles, for a sanity check:
 	pdf(paste0(path_output,"/dada2_p",i,"_errF.pdf"),useDingbats = FALSE)
 	plotErrors(errF, nominalQ=TRUE);	dev.off()
+	errorsF[[i]] = errF
 	
 	#cat(paste0("Learning error profiles for the reverse reads:\n"));	
 	filtRs <- file.path(listR[[i]]);names(filtRs) <- sampleNames 
@@ -157,35 +158,104 @@ for (i in 1:length(listF)){
 		pdf(paste0(path_output,"/dada2_p",i,"_errR.pdf"),useDingbats = FALSE)
 		plotErrors(errR, nominalQ=TRUE);	dev.off()
 	}
-	break;#no reason currently to go further..
+	#break;#no reason currently to go further..
 }
 
 ##########################################################
 #new implementation relying on sdm derep
 ##########################################################
-if (length(args)>5){ 
-	derepFile=args[6]
-	tDerep = derepFastqRead(derepFile)
-	tdada=dada(tDerep,err=errF,multithread=ncores)
-	ASVseq=as.character(names(tdada$denoised))
-	ASVab=tdada$clustering$abundance
 
-	mapA=tdada$map #links to tDerep
-	tars = table(mapA)
+combineDada = function (samples, orderBy = "abundance") 
+{
+    if (class(samples) %in% c("dada", "derep", "data.frame")) {
+        samples <- list(samples)
+    }
+    if (!is.list(samples)) {
+        stop("Requires a list of samples.")
+    }
+    unqs <- lapply(samples, getUniques) #gets $denoised seqs from dada2
+    unqsqs <- unique(do.call(c, lapply(unqs, names))) #compares them
+	sums = 0;
+	for (x in names(samples)){sums = sums + sum((samples[[x]]$clustering$abundance))}
+    rval <- matrix(0L, nrow = length(unqs), ncol = length(unqsqs))
+    colnames(rval) <- unqsqs
+    for (i in seq_along(unqs)) {
+        rval[i, match(names(unqs[[i]]), colnames(rval))] <- unqs[[i]]
+    }
+    if (!is.null(names(unqs))) {
+        rownames(rval) <- names(unqs)
+    }
+    if (!is.null(orderBy)) {
+        if (orderBy == "abundance") {
+            rval <- rval[, order(colSums(rval), decreasing = TRUE), 
+                drop = FALSE]
+        }
+        else if (orderBy == "nsamples") {
+            rval <- rval[, order(colSums(rval > 0), decreasing = TRUE), 
+                drop = FALSE]
+        }
+    }
+    return(list(rval=rval,sums=sums))
+}
+
+
+if (length(args)>5){ 
+	derepFile1=args[6]
+	xd=strsplit(derepFile1,"\\.")[[1]]
+	derePref = paste(xd[1:(length(xd)-1)],collapse=".")
+	derePost = xd[length(xd)]
+	ldada=list();tDerep=list()
+	for (i in names(tSuSe)){
+		derepFile = paste0(derePref,".",i,".",derePost)
+		cat(derepFile,"\n")
+		tDerep[[i]] = derepFastqRead(derepFile)
+		if (length(tDerep[[i]]$IDs) == 0){
+			ldada[[i]]=NULL
+		} else {
+			ldada[[i]]=dada(tDerep[[i]],err=errorsF[[i]],multithread=ncores)
+		}
+	}
+	for (kk in 1:length(ldada)){
+		tmp =names(ldada[[kk]]$denoised)
+		ldada[[kk]]$denoised = seq(length(ldada[[kk]]$denoised))
+		names(ldada[[kk]]$denoised) = tmp
+	}
+	tdada=ldada[[1]]
+	
+	tdada2 = combineDada(ldada)
+	ASVseq=as.character(colnames(tdada2$rval))
+	#names(ASVseqFnd) = ASVseq
+	ASVab = tdada2$sums
+	
+	#old implementation relying on single dada2 object
+	#ASVseq=as.character(names(tdada$denoised))
+	#ASVab=tdada$clustering$abundance
+
+	#mapA=tdada$map #links to tDerep
+	#tars = table(mapA)
 	#nTs = names(tars)
-	Dids = tDerep$IDs
+	#Dids = tDerep$IDs
 	ASVname="otu"
+	tothits=0
+	ASVseqFnd=array("",length(ASVseq))
 	#create .uc file from dada2
 	fileUC=file(paste0(path_output,"dada2.uc"),open ="wt")
 	fileFNA=file(paste0(path_output,"uniqueSeqs.fna"),open ="wt")
-	for (i in 1:length(ASVseq)){
-		idx = which(mapA == i)
-		for (j in 1:length(idx)){
-			if (j==1){
-				cat(paste0(Dids[idx[j]],"\t",ASVname,i,"\t*\n"),file=fileUC)
-				cat(paste0(">",Dids[idx[j]],"\n",ASVseq[[i]],"\n"),file=fileFNA) #ASV
-			} else {
-				cat(paste0(Dids[idx[j]],"\tmatch\tdqt=1;top=",Dids[idx[1]],"(99%);\n"),file=fileUC)
+	for (i in 1:length(ASVseq)){#OTUs & their original sequencing need to be written out in a block
+		for (kk in 1:length(ldada)){
+			nASV = ldada[[kk]]$denoised[ASVseq[i]]
+			if (is.na(nASV)){next}
+			idx = which(ldada[[kk]]$map == nASV)
+			Dids = tDerep[[kk]]$IDs
+			for (j in 1:length(idx)){
+				if (ASVseqFnd[i] == ""){
+					cat(paste0(Dids[idx[j]],"\t",ASVname,i,"\t*\n"),file=fileUC)
+					cat(paste0(">",Dids[idx[j]],"\n",ASVseq[[i]],"\n"),file=fileFNA) #ASV
+					ASVseqFnd[i]=Dids[idx[j]]
+				} else {
+					cat(paste0(Dids[idx[j]],"\tmatch\tdqt=1;top=",ASVseqFnd[i],"(99%);\n"),file=fileUC)
+				}
+				tothits=tothits+1
 			}
 		}
 	}
