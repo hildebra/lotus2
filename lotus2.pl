@@ -908,9 +908,10 @@ sub sdmStep1{
 			$sdmIn = "-i_fastq $inputArray[0],$inputArray[1]";
 		}
 	}
+	my $mrgOpt = "";#"-merge_pairs 1";
 
 	#primary sequence filtering + demultiplexing + dereplication
-	$sdmcmd = "$sdmBin $sdmIn $sdmOut -sample_sep $sep_smplID  -log $mainSDMlog -map $cpMapFile $sdmOptStr $demultiSaveCmd $derepCmd $dmgCmd $qualOffset -paired $paired $paired_sdm -maxReadsPerOutput $linesPerFile -oneLineFastaFormat 1";    #4000000
+	$sdmcmd = "$sdmBin $sdmIn $sdmOut -sample_sep $sep_smplID  -log $mainSDMlog -map $cpMapFile $sdmOptStr $demultiSaveCmd $derepCmd $dmgCmd $qualOffset -paired $paired $paired_sdm -maxReadsPerOutput $linesPerFile -oneLineFastaFormat 1 $mrgOpt ";    #4000000
 	#die $sdmcmd."\n";
 
 
@@ -1486,8 +1487,11 @@ sub clean_otu_mat($ $ $ $) {
 	my $cnt = -1;
 
 	#my @kkk =  keys %hds; die scalar @kkk ."\n";
-	$hr = readFasta($OTUrefFa);
-	my %refHds = %{$hr};
+	my %refHds;
+	if (-e $OTUrefFa){
+		$hr = readFasta($OTUrefFa);
+		my %refHds = %{$hr};
+	}
 	my %ORDL   = %{$OTUrefDBlnk};
 	my %ORDL2;
 	my $chimRm      = 0; my $chimRdCnt   = 0;
