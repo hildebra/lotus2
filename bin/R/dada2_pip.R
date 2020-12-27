@@ -48,6 +48,39 @@ derepFastqRead= function (fls, n = 1e+06, verbose = FALSE, qualityType = "Auto")
 	derepO <- as(derepO, "derep")
     return(derepO)
 }
+combineDada = function (samples, orderBy = "abundance") 
+{
+    if (class(samples) %in% c("dada", "derep", "data.frame")) {
+        samples <- list(samples)
+    }
+    if (!is.list(samples)) {
+        stop("Requires a list of samples.")
+    }
+    unqs <- lapply(samples, getUniques) #gets $denoised seqs from dada2
+    unqsqs <- unique(do.call(c, lapply(unqs, names))) #compares them
+	sums = 0;
+	for (x in names(samples)){sums = sums + sum((samples[[x]]$clustering$abundance))}
+    rval <- matrix(0L, nrow = length(unqs), ncol = length(unqsqs))
+    colnames(rval) <- unqsqs
+    for (i in seq_along(unqs)) {
+        rval[i, match(names(unqs[[i]]), colnames(rval))] <- unqs[[i]]
+    }
+    if (!is.null(names(unqs))) {
+        rownames(rval) <- names(unqs)
+    }
+    if (!is.null(orderBy)) {
+        if (orderBy == "abundance") {
+            rval <- rval[, order(colSums(rval), decreasing = TRUE), 
+                drop = FALSE]
+        }
+        else if (orderBy == "nsamples") {
+            rval <- rval[, order(colSums(rval > 0), decreasing = TRUE), 
+                drop = FALSE]
+        }
+    }
+    return(list(rval=rval,sums=sums))
+}
+
 
 
 
@@ -127,7 +160,7 @@ for (i in names(tSuSe)){
 errorsF = list()
 #-------------- pooled clustering --------------
 cnt = 0
-for (i in names(tSuSe)){
+for (i in sort(names(tSuSe))){
 	idx = which(subset_map == i)
 	cnt = cnt +1
 	sampleNames = mapping[idx,"#SampleID"]
@@ -165,63 +198,32 @@ for (i in names(tSuSe)){
 #new implementation relying on sdm derep
 ##########################################################
 
-combineDada = function (samples, orderBy = "abundance") 
-{
-    if (class(samples) %in% c("dada", "derep", "data.frame")) {
-        samples <- list(samples)
-    }
-    if (!is.list(samples)) {
-        stop("Requires a list of samples.")
-    }
-    unqs <- lapply(samples, getUniques) #gets $denoised seqs from dada2
-    unqsqs <- unique(do.call(c, lapply(unqs, names))) #compares them
-	sums = 0;
-	for (x in names(samples)){sums = sums + sum((samples[[x]]$clustering$abundance))}
-    rval <- matrix(0L, nrow = length(unqs), ncol = length(unqsqs))
-    colnames(rval) <- unqsqs
-    for (i in seq_along(unqs)) {
-        rval[i, match(names(unqs[[i]]), colnames(rval))] <- unqs[[i]]
-    }
-    if (!is.null(names(unqs))) {
-        rownames(rval) <- names(unqs)
-    }
-    if (!is.null(orderBy)) {
-        if (orderBy == "abundance") {
-            rval <- rval[, order(colSums(rval), decreasing = TRUE), 
-                drop = FALSE]
-        }
-        else if (orderBy == "nsamples") {
-            rval <- rval[, order(colSums(rval > 0), decreasing = TRUE), 
-                drop = FALSE]
-        }
-    }
-    return(list(rval=rval,sums=sums))
-}
-
-
 if (length(args)>5){ 
 	derepFile1=args[6]
 	xd=strsplit(derepFile1,"\\.")[[1]]
 	derePref = paste(xd[1:(length(xd)-1)],collapse=".")
 	derePost = xd[length(xd)]
 	ldada=list();tDerep=list()
-	for (i in names(tSuSe)){
+	cnt=1
+	for (i in sort(names(tSuSe))){
 		derepFile = paste0(derePref,".",i,".",derePost)
-		cat(derepFile,"\n")
+		cat("Running dada on derep fastq ",cnt,"/",length(tSuSe),"(",derepFile,")\n")
 		tDerep[[i]] = derepFastqRead(derepFile)
 		if (length(tDerep[[i]]$IDs) == 0){
 			ldada[[i]]=NULL
 		} else {
 			ldada[[i]]=dada(tDerep[[i]],err=errorsF[[i]],multithread=ncores)
 		}
+		cnt = cnt+1
 	}
 	for (kk in 1:length(ldada)){
 		tmp =names(ldada[[kk]]$denoised)
 		ldada[[kk]]$denoised = seq(length(ldada[[kk]]$denoised))
 		names(ldada[[kk]]$denoised) = tmp
 	}
-	tdada=ldada[[1]]
-	
+	#tdada=ldada[[1]]
+	cat("Finished initial per-subset dada2 clustering\n")
+	cat("Merging dada2 clusters between subsets..\n")
 	tdada2 = combineDada(ldada)
 	ASVseq=as.character(colnames(tdada2$rval))
 	#names(ASVseqFnd) = ASVseq
@@ -239,9 +241,10 @@ if (length(args)>5){
 	tothits=0
 	ASVseqFnd=array("",length(ASVseq))
 	#create .uc file from dada2
+	cat("Converting dada2 clutering to deterministic read mapping..\n")
 	fileUC=file(paste0(path_output,"dada2.uc"),open ="wt")
 	fileFNA=file(paste0(path_output,"uniqueSeqs.fna"),open ="wt")
-	for (i in 1:length(ASVseq)){#OTUs & their original sequencing need to be written out in a block
+	for (i in 1:length(ASVseq)){#OTUs & their original sequencing need to be written out in a block ??
 		for (kk in 1:length(ldada)){
 			nASV = ldada[[kk]]$denoised[ASVseq[i]]
 			if (is.na(nASV)){next}
