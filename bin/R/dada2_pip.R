@@ -100,6 +100,7 @@ path_output = args[2]
 seed_num = as.integer(args[3])
 ncores = as.integer(args[4])
 map_path=args[5]
+bp4error = 1e8
 
 #read map to get file locations, sampleRuns etc
 mapping=as.matrix(read.delim(map_path,check.names = FALSE,as.is=TRUE,header=TRUE,sep="\t"))
@@ -173,8 +174,8 @@ for (i in sort(names(tSuSe))){
 	cat(paste0("Learning error profiles for the forward reads:\n"));
 	#forward read error rates
 	
-	try( errF <- learnErrors(filtFs, multithread=ncores))#dada2 is too instable
-	if (is.null(errF)) {errF <- learnErrors(filtFs, multithread=1)}
+	try( errF <- learnErrors(filtFs, nbases = bp4error, multithread=ncores))#dada2 is too instable
+	if (is.null(errF)) {errF <- learnErrors(filtFs, nbases = bp4error, multithread=1)}
 	# Learn reverse error rates
 
 	# Save the plots of error profiles, for a sanity check:
@@ -186,8 +187,8 @@ for (i in sort(names(tSuSe))){
 	filtRs <- file.path(listR[[i]]);names(filtRs) <- sampleNames 
 	if (0){
 		# second read
-		try( errR <- learnErrors(filtRs, multithread=ncores))
-		if (is.null(errR)) {errR <- learnErrors(filtRs, multithread=1)}
+		try( errR <- learnErrors(filtRs, nbases = bp4error, multithread=ncores))
+		if (is.null(errR)) {errR <- learnErrors(filtRs, nbases = bp4error, multithread=1)}
 		pdf(paste0(path_output,"/dada2_p",i,"_errR.pdf"),useDingbats = FALSE)
 		plotErrors(errR, nominalQ=TRUE);	dev.off()
 	}
@@ -289,8 +290,8 @@ for (i in 1:length(listF)){
 	# Learn forward error rates
 	cat(paste0("Learning error profiles for the forward reads:\n"));
 	#forward read error rates
-	try( errF <- learnErrors(filtFs, multithread=ncores))#dada2 is too instable
-	if (is.null(errF)) {errF <- learnErrors(filtFs, multithread=1)}
+	try( errF <- learnErrors(filtFs,nbases = bp4error,  multithread=ncores))#dada2 is too instable
+	if (is.null(errF)) {errF <- learnErrors(filtFs, nbases = bp4error, multithread=1)}
 	# Learn reverse error rates
 	cat(paste0("Learning error profiles for the reverse reads:\n"));	
 	# second read

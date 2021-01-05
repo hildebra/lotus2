@@ -164,6 +164,7 @@ my $extendedLogs     = 1; #write chimeric OTUs, exact blast/RDP hits to extra di
 my $keepTmpFiles     = 0; #more of a debugging option
 my $checkForUpdates  = 1; #check online if a new lotus version is avaialble
 my $maxReadOverlap   = 250;          #flash parameter
+my $mergePreCluster  = 0;  #merge reads in sdm already (derep, demulti, cleaned reads)?
 my $maxHitOnly       = 0;
 my $greengAnno       = 0;            #if 1, annotate OTUs to best greengenes hit
 my $pseudoRefOTU     = 0;            #replace OTU ids with best hit (LCA)
@@ -299,6 +300,7 @@ GetOptions(
     "amplicon_type=s"       => \$ampliconType,       #SSU LSU ITS ITS1 ITS2
     "tax_group=s"           => \$organism,           #fungi bacteria, euakaryote
     "readOverlap=i"         => \$maxReadOverlap,
+	"mergePreClusterReads=i"     => \$mergePreCluster,
     "endRem=s"              => \$remFromEnd,
     "swarm_distance=i"      => \$swarmClus_d,
 	"dada2seed=i"           => \$dada2Seed,
@@ -846,6 +848,15 @@ sub sdmStep1{
 	my $derepOutHQ2 = "";
 	my $derepOutMap = "";
 
+	#sdm merge options: -merge_pairs_filter -merge_pairs_demulti -merge_pairs_derep
+	my $sdmMergeOpt = "";
+	if ($mergePreCluster){
+		$sdmMergeOpt = "-merge_pairs_derep 1 ";
+		if ($ClusterPipe == 7){#dada2 requires more output..
+		$sdmMergeOpt .= "-merge_pairs_demulti 1 ";
+		}
+	}
+
 	my $sdmDemultiDir = "";
 	my $sdmOptStr     = "-options $sdmOpt ";
 	if ( $saveDemulti == 2 || $saveDemulti == 1 || $ClusterPipe == 7 ) { #dada2 also requires filtered raw reads
@@ -855,7 +866,7 @@ sub sdmStep1{
 			$sdmOptStr = "";
 		}
 		if ($ClusterPipe == 7){ #dada2.. no rd pair info in head!
-			$sdmOptStr .= "-pairedRD_HD_out 0 -pairedDemulti 1 -derep_format fq -derepPerSR 1 ";
+			$sdmOptStr .= "-pairedRD_HD_out 0 -pairedDemulti 1 -derep_format fq -derepPerSR 1 -DemultiBPperSR 1e8";
 			$sdmDemultiDir = "$lotus_tempDir/demultiplexed/" if ($saveDemulti == 0);
 		}
 	}
@@ -911,7 +922,7 @@ sub sdmStep1{
 	my $mrgOpt = "";#"-merge_pairs 1";
 
 	#primary sequence filtering + demultiplexing + dereplication
-	$sdmcmd = "$sdmBin $sdmIn $sdmOut -sample_sep $sep_smplID  -log $mainSDMlog -map $cpMapFile $sdmOptStr $demultiSaveCmd $derepCmd $dmgCmd $qualOffset -paired $paired $paired_sdm -maxReadsPerOutput $linesPerFile -oneLineFastaFormat 1 $mrgOpt ";    #4000000
+	$sdmcmd = "$sdmBin $sdmIn $sdmOut -sample_sep $sep_smplID  -log $mainSDMlog -map $cpMapFile $sdmMergeOpt $sdmOptStr $demultiSaveCmd $derepCmd $dmgCmd $qualOffset -paired $paired $paired_sdm -maxReadsPerOutput $linesPerFile -oneLineFastaFormat 1 $mrgOpt ";    #4000000
 	#die $sdmcmd."\n";
 
 
@@ -5465,12 +5476,9 @@ sub buildOTUs($) {
 
     my ($outfile) = @_;
     my @UCguide = ( "$lotus_tempDir/finalOTU.uc", "$lotus_tempDir/finalOTU2.uc" );    #,"$lotus_tempDir/otus.uc",1);
-
     #if ($exec==1){return(\@UCguide);}
     systemL "rm -f $UCguide[0]*;";
-
     my $refDB4otus = "$TAX_REFDB[0]" if ( @TAX_REFDB > 0 );  #reference database
-
     #print_nseq("$filterOut");
     my $filtered = "$lotus_tempDir/filtered.fa";
 
@@ -5486,6 +5494,9 @@ sub buildOTUs($) {
 	}
 
 	my $derepl = "$lotus_tempDir/derep.fas";    #,$totSeqs,$arL)
+	if ($mergePreCluster){
+		$derepl = "$lotus_tempDir/derep.merg.fas";
+	}
 	my ( $totSeqs, $SeqLength ) = parseSDMlog("$logDir/demulti.log");
 	if ( !$sdmDerepDo ) {
 		my ($derepl) = usearchDerepSort($filtered);
