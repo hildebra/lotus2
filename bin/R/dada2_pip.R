@@ -86,7 +86,7 @@ combineDada = function (samples, orderBy = "abundance")
 
 
 #ARGS parsing
-#args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//tmpFiles//","0","12","/hpc-home/hildebra/dev/lotus/maps/AngeTest1.16S.sm.map","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/derep.fas")
+#args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//tmpFiles//","0","12","/hpc-home/hildebra/dev/lotus/maps/AngeTest1.16S.sm.map","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/derep.merg.fas")
 #args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//demultiplexed/","0","12","/hpc-home/hildebra/dev/lotus/maps/Lucas_16S__map2.txt")
 args = commandArgs(trailingOnly=TRUE)
 # test if all the arguments are there: 
@@ -100,7 +100,7 @@ path_output = args[2]
 seed_num = as.integer(args[3])
 ncores = as.integer(args[4])
 map_path=args[5]
-bp4error = 1e8
+bp4error = 5e7
 
 #read map to get file locations, sampleRuns etc
 mapping=as.matrix(read.delim(map_path,check.names = FALSE,as.is=TRUE,header=TRUE,sep="\t"))
@@ -135,7 +135,7 @@ if ("SequencingRun" %in% colnames(mapping)){ #explicitly defined groups of seque
 
 
 # File parsing
-listF=list();listR=list()
+listF=list();listR=list();listM=list();
 maxReg=500
 tSuSe = table(subset_map)
 for (i in names(tSuSe)){
@@ -143,24 +143,43 @@ for (i in names(tSuSe)){
 	idx = which(subset_map == i)
 	listF[[i]] = paste0(pathF, paste0(mapping[idx,"#SampleID"],".1.fq",sep="") )
 	listR[[i]] = paste0(pathF, paste0(mapping[idx,"#SampleID"],".2.fq",sep="") )
+	listM[[i]] = paste0(pathF, paste0(mapping[idx,"#SampleID"],".merg.fq",sep="") )
 	for (XX in 1:length(listF[[i]])){
 		if (!file.exists(listF[[i]][XX])){
 			listF[[i]][XX]= paste0(listF[[i]][XX],".gz")
 			listR[[i]][XX]= paste0(listR[[i]][XX],".gz")
+			if (!file.exists(listF[[i]][XX])){
+				cat(paste("Could not find expected file", listF[[i]][XX] ,"\n"))
+				listF[[i]][XX] = ""
+				listR[[i]][XX] = ""
+			}
 		}
-		if (!file.exists(listF[[i]][XX])){
-			cat(paste("Could not find expected file", listF[[i]][XX] ,"\n"))
-			listF[[i]][XX] = ""
-			listR[[i]][XX] = ""
+		if (!file.exists(listM[[i]][XX])){
+			listM[[i]][XX]= paste0(listM[[i]][XX],".gz")
+			if (!file.exists(listM[[i]][XX])){
+				listM[[i]][XX] = ""
+			}
 		}
+		
 	}
 	#next;
 }
 #listF[[names(tSuSe)[1]]][1] = ""
 
-errorsF = list()
+#do we deal with merged data? needs to be clear early on
+mergedData=FALSE
+if (length(args)>5){ 
+	derepFile1=args[6]
+	xd=strsplit(derepFile1,"\\.")[[1]]
+	if (xd[length(xd)-1] == "merg"){#working on merged data..
+		mergedData=TRUE
+	}
+}
+
+errorsF = errorsM = list()
 #-------------- pooled clustering --------------
 cnt = 0
+i = sort(names(tSuSe))[1]
 for (i in sort(names(tSuSe))){
 	idx = which(subset_map == i)
 	cnt = cnt +1
@@ -168,20 +187,31 @@ for (i in sort(names(tSuSe))){
 	cat(paste0("Detected ",length(sampleNames)," samples in batch ",i," (",cnt,"/",length(listF), ") .. Computing error profiles\n"));
 	#start of dada2 learning
 	set.seed(seed_num)
-	filtFs <- file.path(listF[[i]]);	names(filtFs) <- sampleNames;	
-	filtFs = filtFs[file.exists(filtFs)]
-	# Learn forward error rates
-	cat(paste0("Learning error profiles for the forward reads:\n"));
-	#forward read error rates
 	
-	try( errF <- learnErrors(filtFs, nbases = bp4error, multithread=ncores))#dada2 is too instable
-	if (is.null(errF)) {errF <- learnErrors(filtFs, nbases = bp4error, multithread=1)}
-	# Learn reverse error rates
-
-	# Save the plots of error profiles, for a sanity check:
-	pdf(paste0(path_output,"/dada2_p",i,"_errF.pdf"),useDingbats = FALSE)
-	plotErrors(errF, nominalQ=TRUE);	dev.off()
-	errorsF[[i]] = errF
+	# Learn forward error rates
+	#forward read error rates
+	if (mergedData){
+		filtMs <- file.path(listM[[i]]);	names(filtMs) <- sampleNames;filtMs = filtMs[file.exists(filtMs)]
+		cat(paste0("Learning error profiles for merged reads:\n"));
+		try( errM <- learnErrors(filtMs, nbases = bp4error, multithread=ncores))#dada2 is too instable
+		if (is.null(errM)) {errM <- learnErrors(filtMs, nbases = bp4error, multithread=1)}
+		# Save the plots of error profiles, for a sanity check:
+		pdf(paste0(path_output,"/dada2_p",i,"_errM.pdf"),useDingbats = FALSE)
+		suppressWarnings(print(plotErrors(errM, nominalQ=TRUE)));
+		dev.off()
+		errorsM[[i]] = errM
+	} 
+	if (!mergedData || 1){
+		filtFs <- file.path(listF[[i]]);	names(filtFs) <- sampleNames;filtFs = filtFs[file.exists(filtFs)]
+		cat(paste0("Learning error profiles for the forward reads:\n"));
+		try( errF <- learnErrors(filtFs, nbases = bp4error, multithread=ncores))#dada2 is too instable
+		if (is.null(errF)) {errF <- learnErrors(filtFs, nbases = bp4error, multithread=1)}
+		# Save the plots of error profiles, for a sanity check:
+		pdf(paste0(path_output,"/dada2_p",i,"_errF.pdf"),useDingbats = FALSE)
+		suppressWarnings(print(plotErrors(errF, nominalQ=TRUE)))
+		dev.off() 
+		errorsF[[i]] = errF
+	}
 	
 	#cat(paste0("Learning error profiles for the reverse reads:\n"));	
 	filtRs <- file.path(listR[[i]]);names(filtRs) <- sampleNames 
@@ -190,7 +220,7 @@ for (i in sort(names(tSuSe))){
 		try( errR <- learnErrors(filtRs, nbases = bp4error, multithread=ncores))
 		if (is.null(errR)) {errR <- learnErrors(filtRs, nbases = bp4error, multithread=1)}
 		pdf(paste0(path_output,"/dada2_p",i,"_errR.pdf"),useDingbats = FALSE)
-		plotErrors(errR, nominalQ=TRUE);	dev.off()
+		suppressWarnings(print(plotErrors(errR, nominalQ=TRUE)));	dev.off()
 	}
 	#break;#no reason currently to go further..
 }
@@ -199,11 +229,17 @@ for (i in sort(names(tSuSe))){
 #new implementation relying on sdm derep
 ##########################################################
 
+
 if (length(args)>5){ 
 	derepFile1=args[6]
 	xd=strsplit(derepFile1,"\\.")[[1]]
-	derePref = paste(xd[1:(length(xd)-1)],collapse=".")
-	derePost = xd[length(xd)]
+	if (mergedData){
+		derePref = paste(xd[1:(length(xd)-2)],collapse=".")
+		derePost = paste(xd[(length(xd)-1):length(xd)],collapse=".")
+	} else {
+		derePref = paste(xd[1:(length(xd)-1)],collapse=".")
+		derePost = xd[length(xd)]
+	}
 	ldada=list();tDerep=list()
 	cnt=1
 	for (i in sort(names(tSuSe))){
@@ -213,7 +249,12 @@ if (length(args)>5){
 		if (length(tDerep[[i]]$IDs) == 0){
 			ldada[[i]]=NULL
 		} else {
-			ldada[[i]]=dada(tDerep[[i]],err=errorsF[[i]],multithread=ncores)
+		if (mergedData){
+			locErr = errorsM[[i]];
+		} else {
+			locErr = errorsF[[i]];
+		}
+			ldada[[i]]=dada(tDerep[[i]],err=locErr,multithread=ncores)
 		}
 		cnt = cnt+1
 	}

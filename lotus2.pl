@@ -165,6 +165,7 @@ my $keepTmpFiles     = 0; #more of a debugging option
 my $checkForUpdates  = 1; #check online if a new lotus version is avaialble
 my $maxReadOverlap   = 250;          #flash parameter
 my $mergePreCluster  = 0;  #merge reads in sdm already (derep, demulti, cleaned reads)?
+my $takeNonMerge     = 1; #also use single end that don't merge
 my $maxHitOnly       = 0;
 my $greengAnno       = 0;            #if 1, annotate OTUs to best greengenes hit
 my $pseudoRefOTU     = 0;            #replace OTU ids with best hit (LCA)
@@ -1016,7 +1017,7 @@ sub runPhyloObj{
 	die "Incorrect R installation (can't find Rscript)" unless (-f $Rscript);
 	my $cmd = "$Rscript $defRscriptOpt $phyloLnk $OTUmFile $SIM_hierFile $cpMapFile $treeF;";
 	#die "$cmd\n";
-	if (!(systemL $cmd)){
+	if ((systemL $cmd)){
 		printL "Could not create phyloseq object\n","w";
 		return 0;
 	}
@@ -5496,6 +5497,9 @@ sub buildOTUs($) {
 	my $derepl = "$lotus_tempDir/derep.fas";    #,$totSeqs,$arL)
 	if ($mergePreCluster){
 		$derepl = "$lotus_tempDir/derep.merg.fas";
+		if ($takeNonMerge && $ClusterPipe != 7){
+			system "cat $lotus_tempDir/derep.fas >> $derepl";
+		}
 	}
 	my ( $totSeqs, $SeqLength ) = parseSDMlog("$logDir/demulti.log");
 	if ( !$sdmDerepDo ) {
