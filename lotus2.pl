@@ -67,7 +67,7 @@ sub readTaxIn;
 sub biomFmt;
 sub finWarn;
 sub printWarnings;    #1 to add warnings, the other to print these
-sub forceMerge_fq2fna;
+sub mergeRds;
 sub clean_otu_mat;
 sub systemL;
 sub swarmClust;
@@ -480,7 +480,7 @@ else {
 
 #/////////////////////////////////////////  SEED extension /////////////////////
 #$derepOutMap,$derepOutHQ
-my @mergeSeedsFiles; my @mergeSeedsFilesSing;
+my @preMergeSeedsFiles; my @mergeSeedsFilesSing;
 my $OTUSEED    = "$lotus_tempDir/otu_seeds.fna";
 my $OTUrefSEED = "$lotus_tempDir/otu_seeds.fna.ref";
 
@@ -502,18 +502,20 @@ if ($REFflag){ #these need to be treated extra, as no new optimal ref seq needs 
 
 my $sdmOut2 = "-o_fna $OTUSEED";
 if ( $numInput == 2 ) {
-    push( @mergeSeedsFiles, "$lotus_tempDir/otu_seeds.1.fq" );
-    push( @mergeSeedsFiles, "$lotus_tempDir/otu_seeds.2.fq" );
-	@mergeSeedsFilesSing = @mergeSeedsFiles; 
+    push( @preMergeSeedsFiles, "$lotus_tempDir/otu_seeds.1.fq" );
+    push( @preMergeSeedsFiles, "$lotus_tempDir/otu_seeds.2.fq" );
+	@mergeSeedsFilesSing = @preMergeSeedsFiles; 
 	$mergeSeedsFilesSing[0] =~ s/\.1\.fq/\.1\.singl\.fq/;$mergeSeedsFilesSing[1] =~ s/\.2\.fq/\.2\.singl\.fq/;
 
-    $sdmOut2    = "-o_fastq " . $mergeSeedsFiles[0] . "," . $mergeSeedsFiles[1];
+    $sdmOut2    = "-o_fastq " . $preMergeSeedsFiles[0] . "," . $preMergeSeedsFiles[1];
     $OTUrefSEED = "$lotus_tempDir/otu_seeds.1.fq.ref";
     #TODO : $sdmIn
 }
 my $upVer = "";
 $upVer = "-uparseVer $usearchVer " if ($ClusterPipe == 1 || $ClusterPipe == 7); #use same format for .uc file in uparse and dada2 mode
 $upVer = "-uparseVer N11 "if ($ClusterPipe == 6);
+#note that -mergedPairs $didMerge refers to old implementation with read merge done before sdm (not supported any longer, legacy option)
+my $mergeOptions = "-merge_pairs_seed 1 ";
 my $sdmcmd="";
 
 #----------------  SEED extension -------------------
@@ -521,15 +523,16 @@ my $sdmcmd="";
 if ($sdmDerepDo) {
     $sdmIn = "-i_fastq $derepOutHQ";
     if ( $numInput == 2 ) { $sdmIn = "-i_fastq $derepOutHQ,$derepOutHQ2"; }
-    $sdmcmd ="$sdmBin $sdmIn $sdmOut2 $upVer -optimalRead2Cluster $ucFinalFile -paired $numInput -sample_sep $sep_smplID -derep_map $derepOutMap -options $sdmOpt $qualOffset -log $logDir/SeedExtensionStats.txt -mergedPairs $didMerge -OTU_fallback $tmpOTU -ucAdditionalCounts $ucFinalFile.ADD -ucAdditionalCounts1 $ucFinalFile.REST -otu_matrix $OTUmFile -count_chimeras $chimCnt $refClusSDM";
+    $sdmcmd ="$sdmBin $sdmIn $sdmOut2 $upVer -optimalRead2Cluster $ucFinalFile -paired $numInput -sample_sep $sep_smplID -derep_map $derepOutMap -options $sdmOpt $mergeOptions $qualOffset -mergedPairs $didMerge -log $logDir/SeedExtensionStats.txt  -OTU_fallback $tmpOTU -ucAdditionalCounts $ucFinalFile.ADD -ucAdditionalCounts1 $ucFinalFile.REST -otu_matrix $OTUmFile -count_chimeras $chimCnt $refClusSDM";
 } else {
-    $sdmcmd = "$sdmBin $sdmIn $sdmOut2 $upVer -optimalRead2Cluster $ucFinalFile -paired $numInput -sample_sep $sep_smplID -map $cpMapFile -options $sdmOpt $qualOffset -log $logDir/SeedExtensionStats.txt -mergedPairs $didMerge -OTU_fallback $tmpOTU -otu_matrix $OTUmFile -ucAdditionalCounts $ucFinalFile.ADD -ucAdditionalCounts1 $ucFinalFile.REST -count_chimeras $chimCnt $refClusSDM";
+    $sdmcmd = "$sdmBin $sdmIn $sdmOut2 $upVer -optimalRead2Cluster $ucFinalFile -paired $numInput -sample_sep $sep_smplID -map $cpMapFile -options $sdmOpt $qualOffset $mergeOptions -mergedPairs $didMerge -log $logDir/SeedExtensionStats.txt -OTU_fallback $tmpOTU -otu_matrix $OTUmFile -ucAdditionalCounts $ucFinalFile.ADD -ucAdditionalCounts1 $ucFinalFile.REST -count_chimeras $chimCnt $refClusSDM";
 }
 my $status = 0;
 
 #die $sdmcmd."\n";
 if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
-    printL (frame("Extending ${OTU_prefix} Seeds"), 0);
+	my $mrgSentence = ""; $mrgSentence = "and merging pairs of " if ($mergeOptions ne "");
+    printL (frame("Extending $mrgSentence${OTU_prefix} Seeds"), 0);
     $status = systemL($sdmcmd);
 }
 elsif ($onlyTaxRedo) { printL "Skipping Seed extension step\n", 0; }
@@ -547,58 +550,8 @@ undef $tmpOTU;
 
 
 #/////////////////////////////////////////  paired read merging /////////////////////
-
-if ( $numInput == 2){
-	my $key = "merged";
-	$input = "$lotus_tempDir/$key";
-	my $single1  = "";my $single2  = "";
-	$input   = "$lotus_tempDir/$key.extendedFrags.fastq";
-	$single1 = "$lotus_tempDir/$key.notCombined_1.fastq";
-	$single2 = "$lotus_tempDir/$key.notCombined_2.fastq";
-	if (@mergeSeedsFiles > 0 && -s $mergeSeedsFiles[0] > 0 #check that file even exists..
-			&& (-f $VSBin || -f $flashBin) #as well as the alignment programs
-			&& $otuRefDB ne "ref_closed" && $onlyTaxRedo == 0  && $TaxOnly eq "0" ) #and otherwise also wanted step..
-	{
-		my $mergCmd = "";
-		
-		#switch to vsearch for lotus2
-		if (-f $VSBin){
-			$mergCmd = "$VSBin  -fastq_mergepairs $mergeSeedsFiles[0]  -reverse  $mergeSeedsFiles[1] --fastqout $input --fastqout_notmerged_fwd $single1 --fastqout_notmerged_rev $single2 --threads $BlastCores;";
-			if ($VSused == 1){
-				$citations .= "VSEARCH read pair merging: Rognes T, Flouri T, Nichols B, Quince C, Mahé F. (2016) VSEARCH: a versatile open source tool for metagenomics. PeerJ 4:e2584. doi: 10.7717/peerj.2584\n";
-			}else{
-				$citations .= "USEARCH read pair merging: R.C. Edgar (2010), Search and clustering orders of magnitude faster than BLAST, Bioinformatics 26(19) 2460-2461\n";
-			}
-			#die "$mergCmd\n"; #find out what the unmerged reads are..
-		} elsif ( -f $flashBin ) {
-			my $flOvOption = "-m 10 -M $maxReadOverlap ";
-			if ( $flashCustom ne "" ) {
-
-				#$flOvOption = "-r $flashLength -s $flashSD";
-				$flashCustom =~ s/\"//g;
-				$flOvOption = " $flashCustom ";
-			}
-			$mergCmd = "$flashBin $flOvOption -o $key -d $lotus_tempDir -t $BlastCores "
-			  . $mergeSeedsFiles[0] . " " . $mergeSeedsFiles[1];
-			$mergCmd .= "cp $lotus_tempDir/$key.hist $logDir/FlashPairedSeedsMerges.hist";
-			$citations .="Flash read pair merging: Magoc T, Salzberg SL. 2011. FLASH: fast length adjustment of short reads to improve genome assemblies. Bioinformatics 27: 2957-63\n";
-		} 
-
-		#print $mergCmd."\n";
-		if ( $exec == 0 ) {
-			#die $mergCmd."\n".$flashCustom."\n";
-			printL (frame("Merging ${OTU_prefix} seed paired reads"), 0);
-			if ( !systemL($mergCmd) == 0 ) {
-				printL( "Merge command failed: \n$mergCmd\n", 3 );
-			}
-		}
-		$didMerge = 1;
-	} elsif ( $onlyTaxRedo && $numInput == 2 ) {
-		printL "Skipping paired end merging step\n", 0;
-	}
-	#needs to be run in any case for paired input, just to make sure all reads are correctly listed in $OTUSEED
-	forceMerge_fq2fna( $single1, $single2, $input,$mergeSeedsFilesSing[0], $OTUSEED );
-}
+mergeRds();
+#die "$OTUSEED\n";
 if ($TaxOnly ne "0" && -f $TaxOnly){
 	$OTUfa = $TaxOnly;
 	if ($TaxOnly =~ m/\.gz$/){$OTUfa =~ s/\.gz//; systemL "gunzip -c $TaxOnly >$OTUfa "; }
@@ -709,7 +662,6 @@ if (0 && !-d $FunctOutDir ) { #currently not used, deactivate
 systemL("cp $OTUmFile $highLvlDir;");
 
 #higher taxonomy & bioms
-$duration = time - $start;
 if ( $REFTAX || $RDPTAX ) {
 	my $taxRefHR;
     my $table_dir = "$outdir/Tables";
@@ -728,14 +680,11 @@ if ( $REFTAX || $RDPTAX ) {
         $taxRefHR = calcHighTax( $OTUmatref, $RDP_hierFile, $failsR, 0, "" );
         biomFmt( $OTUmatref, $RDP_hierFile, "$outdir/OTU.biom", 0, {} );
     }
-	
-	
+
 	#   TODO 
 	#annotate OTU's with functions
 	#my $OTU2Funct = annotateFaProTax($taxRefHR,$FaProTax); #TODO
 	#calcHighFunc($OTU2Funct,$FunctOutDir); #TODO
-	
-
 }
 
 #merge in ref seq fastas
@@ -755,13 +704,9 @@ close O;
 
 my $phyloseqCreated=runPhyloObj($treeF);
 
-
-#print"\n".$repStr;
-$duration = time - $start;
-
 systemL("rm -rf $lotus_tempDir;") if ($exec == 0 && !$keepTmpFiles);  #printL "Delete temp dir $lotus_tempDir\n", 0; }
 systemL("rm -rf $outdir;") if ($rmOutDir); #online in extreme cases, keep well defined & controlled
-printL(    frame("Finished after $duration s \nOutput files are in \n\n$outdir\n\- LotuSLogS/ contains run statistics (useful for describing data/amount of reads/quality\n- LotuSLogS/citations.txt: papers of programs used in this run\nNext steps: you can use the rtk program in this pipeline, to generate rarefaction curves and diversity estimates of your samples.\n"    ),0);
+printL(    frame("LotuS2 finished. Output:\n$outdir\n\- LotuSLogS/ contains run statistics (useful for describing data/amount of reads/quality\n- LotuSLogS/citations.txt: papers of programs used in this run\nNext steps: you can use the rtk program in this pipeline, to generate rarefaction curves and diversity estimates of your samples.\n"    ),0);
 my $phyloHlp="";
 $phyloHlp="- Phyloseq: $outdir/phyloseq.Rdata can be directly loaded in R\n" if ($phyloseqCreated);
 printL(frame("          Next steps:          \n- Rarefaction analysis: can be done with rtk (avaialble in R or use bin/rtk)\n$phyloHlp- Phylogeny: ${OTU_prefix} phylogentic tree available in $outdir/tree.nwk\n- .biom: $outdir/OTU.biom contains biom formated output\n- tutorial: Visit http://lotus2.earlham.ac.uk for more tutorials in data analysis\n"));
@@ -929,7 +874,7 @@ sub sdmStep1{
 
 	if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 		#$duration = time - $start;
-		printL( frame("Demultiplexing, filtering, dereplicating input files, this might take some time",1,2),0 );
+		printL( frame("Demultiplexing, filtering, dereplicating input files, this might take some time. For an extensive report see $mainSDMlog",1,2),0 );
 		systemL("cp $sdmOpt $outdir/primary");
 		if ( systemL($sdmcmd) != 0 ) {
 			printL "FAILED sdm demultiplexing step: " . $sdmcmd . "\n";
@@ -956,7 +901,7 @@ sub sdmStep1{
 		$shrtRpt .= "\n".$1;
 		$readSdmLog =~ m/(Accepted \(Mid\+High qual\):.*)/;
 		$shrtRpt .= "\n".$1;
-		printL( frame("Finished primary read processing with sdm:\n".$shrtRpt."\nFor an extensive report see $mainSDMlog\n",1,3),0 );
+		printL( frame("Finished primary read processing with sdm:\n".$shrtRpt."\n",1,3),0 );
 
 		#postprocessing of output files
 		if ( $saveDemulti == 1 || $saveDemulti == 2 ) {    #gzip stuff
@@ -1084,7 +1029,7 @@ sub ITSxOTUs {
 	$cmd .= "cp $outBFile.summary.txt $logDir/ITSx.summary.txt\n";
 	if ( systemL($cmd) != 0 ) { printL( "Failed command:\n$cmd\n", 1 ); }
 
-#die $cmd;
+#die "ITSxdie ".$cmd;
 #if (-z "$outBFile.full.fasta"){printL "Could not find any valid ITS OTU's. Aborting run.\n Remaining OTUs can be found in $outBFile*\n",923;}
 	my $hr;
 	my %ITSo;
@@ -1151,7 +1096,7 @@ sub ITSxOTUs {
 sub contamination_rem($ $ $ ) {
     my ( $otusFA, $refDB1, $nameRDB1 ) = @_;
 	my @refDBs = split /,/,$refDB1;
-	my $contRemStr="";
+	my $contRemStr=0;
 	my $hr = readFasta($otusFA);
 	my %OTUs = %{$hr};
 	my %totHits;
@@ -1252,14 +1197,15 @@ sub contamination_rem($ $ $ ) {
 		} elsif ($required) {
 			my $warnStr = "Could not check for contaminated OTUs, because ";
 			unless ( $refDB ne "" && -f $refDB ) {
-				$warnStr .= "$nameRDB reference database \n\"$refDB\"\ndid not exist.\n";
+				$warnStr .= "\"$nameRDB\" reference database \"$refDB\"did not exist.\n";
 			} else {  $warnStr .= "${OTU_prefix} fasta file was empty\n";
 			}
 			printL $warnStr,"w";
-
+			$contRem=0;
 			#systemL("cp $otusFA $outfile");
 			#$outfile = "$lotus_tempDir/uparse.fa";
 		}
+		#print "CR $contRem\n";
 		$contRemStr += $contRem;
 	}
 	#nothing found? don't bother writing file again..
@@ -1633,7 +1579,7 @@ sub clean_otu_mat($ $ $ $) {
 }
 
 sub forceMerge_fq2fna($ $ $ $ $) {
-    my ( $ifq1, $ifq2, $mfq, $sdms, $out ) = @_; #not merged1, 2, merged, sdm sing, SEEDFNA
+    my ( $ifq1, $ifq2, $mfq, $sdms, $out ) = @_; #not merged1, not m2, merged, sdm sing, SEEDFNA
 	my $seedCnt = 0;
     #print $mfq."\n";
     open O, ">", $out or die "Can't open seedFNA $out\n";
@@ -1655,14 +1601,15 @@ sub forceMerge_fq2fna($ $ $ $ $) {
         #$rawFileSrchStr1 = '.*1\.f[^\.]*q\.gz$';
     }
 #main file with merged reads
-	if (-s $mfq){
-		open I, "<", $mfq;
+	if (-e $mfq){
+		open I, "<", $mfq or die "Couldn't open merge file $mfq\n";
 		while ( my $line = <I> ) {
 			chomp $line;
 			if ( $line =~ m/^@/ && $lnCnt == 0 ) {
 				$line =~ s/^@/>/;
-				$line =~ s/.\d$//;
+				$line =~ s/.\d$// if ($line =~ m/[OTUASV]+_\d+\.\d+/);
 				print O $line . "\n"; $seedCnt++;
+				#print $line . "\n"; 
 			}
 			if ( $lnCnt == 1 ) {
 				$line =~ s/$endRmvs// if ($check4endStr);
@@ -1676,15 +1623,17 @@ sub forceMerge_fq2fna($ $ $ $ $) {
 
     #merge two unmerged reads
     $lnCnt = 0;
+	#die "XX  $mfq\n";
 
     #print $ifq1."\n";
 	if (-s $ifq1){
+		#die"XXXAS\n";
 		open I,  "<", $ifq1;
-		open I2, "<", $ifq2;
+		#open I2, "<", $ifq2;
 		while ( my $line = <I> ) {
-			my $line2 = <I2>;
+			#my $line2 = <I2>;
 			chomp $line;
-			chomp $line2;
+			#chomp $line2;
 			if ( $line =~ m/^@/ && $lnCnt == 0 ) {
 				$line =~ s/^@/>/;
 				$line =~ s/.\d$//;
@@ -1700,29 +1649,95 @@ sub forceMerge_fq2fna($ $ $ $ $) {
 			$lnCnt = 0 if ( $lnCnt == 4 );
 		}
 		close I;
-		close I2;
+		#close I2;
 	}
-    if ( !-f $sdms ) { close O; return; }
-    open I, "<", $sdms;
-    $lnCnt = 0;
-    while ( my $line = <I> ) {
-        chomp $line;
-        if ( $line =~ m/^@/ && $lnCnt == 0 ) {
-            $line =~ s/$endRmvs// if ($check4endStr);
-            $line =~ s/^@/>/;
-            $line =~ s/.\d$//;
-            print O $line . "\n";$seedCnt++;
-        }
-        if ( $lnCnt == 1 ) {
-            print O $line . "\n";
-        }
-        $lnCnt++;
-        $lnCnt = 0 if ( $lnCnt == 4 );
-    }
-
-    close I;
+    if ( -f $sdms ) { 
+	print "sdms $sdms\n";
+		open I, "<", $sdms;
+		$lnCnt = 0;
+		while ( my $line = <I> ) {
+			chomp $line;
+			if ( $line =~ m/^@/ && $lnCnt == 0 ) {
+				$line =~ s/$endRmvs// if ($check4endStr);
+				$line =~ s/^@/>/;
+				$line =~ s/.\d$//;
+				print O $line . "\n";$seedCnt++;
+			}
+			if ( $lnCnt == 1 ) {
+				print O $line . "\n";
+			}
+			$lnCnt++;
+			$lnCnt = 0 if ( $lnCnt == 4 );
+		}
+		close I;
+	}
     close O;
 	printL frame("Found $seedCnt fasta seed sequences based on seed extension and read merging\n"),0;
+}
+
+sub mergeRds{
+	return if ($numInput != 2 );
+	my $single1  = "";my $single2  = "";
+	#print "mergeOptions  $mergeOptions\n";
+	my $mergeFile = "";
+	if($mergeOptions eq ""){#non-sdm merge, use external programs
+		my $key = "merged";
+		#$mergeFile = "$lotus_tempDir/$key";
+		$mergeFile   = "$lotus_tempDir/$key.extendedFrags.fastq";
+		$single1 = "$lotus_tempDir/$key.notCombined_1.fastq";
+		$single2 = "$lotus_tempDir/$key.notCombined_2.fastq";
+		if (@preMergeSeedsFiles > 0 && -s $preMergeSeedsFiles[0] > 0 #check that file even exists..
+				&& (-f $VSBin || -f $flashBin) #as well as the alignment programs
+				&& $otuRefDB ne "ref_closed" && $onlyTaxRedo == 0  && $TaxOnly eq "0" ) #and otherwise also wanted step..
+		{
+			my $mergCmd = "";
+			
+			#switch to vsearch for lotus2
+			if (-f $VSBin){
+				$mergCmd = "$VSBin  -fastq_mergepairs $preMergeSeedsFiles[0]  -reverse  $preMergeSeedsFiles[1] --fastqout $mergeFile --fastqout_notmerged_fwd $single1 --fastqout_notmerged_rev $single2 --threads $BlastCores;";
+				if ($VSused == 1){
+					$citations .= "VSEARCH read pair merging: Rognes T, Flouri T, Nichols B, Quince C, Mahé F. (2016) VSEARCH: a versatile open source tool for metagenomics. PeerJ 4:e2584. doi: 10.7717/peerj.2584\n";
+				}else{
+					$citations .= "USEARCH read pair merging: R.C. Edgar (2010), Search and clustering orders of magnitude faster than BLAST, Bioinformatics 26(19) 2460-2461\n";
+				}
+				#die "$mergCmd\n"; #find out what the unmerged reads are..
+			} elsif ( -f $flashBin ) {
+				my $flOvOption = "-m 10 -M $maxReadOverlap ";
+				if ( $flashCustom ne "" ) {
+
+					#$flOvOption = "-r $flashLength -s $flashSD";
+					$flashCustom =~ s/\"//g;
+					$flOvOption = " $flashCustom ";
+				}
+				$mergCmd = "$flashBin $flOvOption -o $key -d $lotus_tempDir -t $BlastCores "
+				  . $preMergeSeedsFiles[0] . " " . $preMergeSeedsFiles[1];
+				$mergCmd .= "cp $lotus_tempDir/$key.hist $logDir/FlashPairedSeedsMerges.hist";
+				$citations .="Flash read pair merging: Magoc T, Salzberg SL. 2011. FLASH: fast length adjustment of short reads to improve genome assemblies. Bioinformatics 27: 2957-63\n";
+			} 
+
+			#print $mergCmd."\n";
+			if ( $exec == 0 ) {
+				#die $mergCmd."\n".$flashCustom."\n";
+				printL (frame("Merging ${OTU_prefix} seed paired reads"), 0);
+				if ( !systemL($mergCmd) == 0 ) {
+					printL( "Merge command failed: \n$mergCmd\n", 3 );
+				}
+			}
+			$didMerge = 1;
+		} elsif ( $onlyTaxRedo && $numInput == 2 ) {
+			printL "Skipping paired end merging step\n", 0;
+		}
+	} elsif ($numInput == 2) { #so this is from the sdm merge
+#		$single1  = $preMergeSeedsFiles[0]; $single2  = $preMergeSeedsFiles[1];
+		$single1  =""; $single2  = "";
+		$mergeFile = $preMergeSeedsFiles[0];
+		$mergeFile =~ s/\.1\.fq$/\.merg\.fq/;
+	}
+	
+	#needs to be run in any case for paired input, just to make sure all reads are correctly listed in $OTUSEED
+	#die "$single1, $single2, $input,$mergeSeedsFilesSing[0], $OTUSEED\n";
+	#TODO: add option to sdm to give out unmerged r1
+	forceMerge_fq2fna( $single1, $single2, $mergeFile , $mergeSeedsFilesSing[0], $OTUSEED );
 }
 
 sub readTaxIn($ $ $ $ ) {
@@ -1991,7 +2006,7 @@ sub biomFmt($ $ $ $ $) {
     open O, ">", $bioOut;
     print O $biomo;
     close O;
-    printL frame("biom file created: $bioOut"), 0;
+    #printL frame("biom file created: $bioOut"), 0;
 
 #die;
 #my $cmd = "biom convert -i $otutab2 -o $bioOut --table-type \"otu table\" --process-obs-metadata taxonomy";
@@ -2484,6 +2499,9 @@ sub announce_options{
 	}
 	if ( $noChimChk == 1 || $noChimChk == 2 ) {
 		printL "No deNovo Chimera checking\n", 0;
+	}
+	if ($mergePreCluster){
+		printL "Precluster read merging active :)\n", 0;
 	}
 	if ( $doBlasting == 1 ) {
 		printL "Similarity search with Blast\n", 0;
@@ -5585,7 +5603,7 @@ sub buildOTUs($) {
 		$cmd .= "rm -r $sdmDemultiDir;" if ($saveDemulti==0);
 		#die "$cmd\n";
 		$citations .= "DADA2 ASV clustering - Callahan BJ, McMurdie PJ, Rosen MJ, et al. DADA2: High-resolution sample inference from Illumina amplicon data. Nat Methods 2016;13:581–3. doi:10.1038/nmeth.3869\n";
-		$entrMessage = "DADA2 ASV clustering";
+		$entrMessage = "DADA2 ASV clustering\ncheck progress at $progOutPut";
 	}
 	elsif ( $ClusterPipe == 6 ) { #unoise3
 		$entrMessage = "UNOISE core routine\n Cluster at ". 100 * $id_OTU . "%";
@@ -5671,7 +5689,7 @@ sub buildOTUs($) {
 	#die $cmd;
     if ( $ClusterPipe == 2 ) {swarm4us_size($OTUfastaTmp); }
 
-    #--------- ref based clustering ------------
+    #--------- ref based clustering ------------ 
     my ( $refsCL, $refCLSiz, $denovos, $denoSize );
     if ( $ClusterPipe == 4 ) {    #transcribe dnaclust out to .uc
         ( $refsCL, $refCLSiz, $denovos, $denoSize ) =
