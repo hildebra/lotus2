@@ -13,8 +13,9 @@ derepFastqRead= function (fls, n = 1e+06, verbose = FALSE, qualityType = "Auto")
     if (!is.character(fls)) {
         stop("File paths must be provided in character format.")
     }
-    if (!all(file.exists(fls))) {
-        stop("Not all provided files exist.")
+	existFiles=file.exists(fls)
+    if (!all(existFiles)) {
+        stop(paste("Not all provided files exist:",fls[!existFiles]))
     }
     rval <- list()
 	fl <- fls[[1]]#was loop before..
@@ -86,7 +87,7 @@ combineDada = function (samples, orderBy = "abundance")
 
 
 #ARGS parsing
-#args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//tmpFiles//","0","12","/hpc-home/hildebra/dev/lotus/maps/AngeTest1.16S.sm.map","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/derep.merg.fas")
+#args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//tmpFiles//","0","12","/hpc-home/hildebra/dev/lotus/maps/AngeTest1.16S.sm.ngz.map","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/derep.merg.fas")
 #args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//demultiplexed/","0","12","/hpc-home/hildebra/dev/lotus/maps/Lucas_16S__map2.txt")
 args = commandArgs(trailingOnly=TRUE)
 # test if all the arguments are there: 

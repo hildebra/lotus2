@@ -108,8 +108,16 @@ matchL = args[1]
 otuF = args[2]
 logD = args[3]
 
+info = file.info(matchL)
+if (info$size == 0){
+	q("no");
+}
+
 matchs = read.table(matchL,header=FALSE,as.is=TRUE)
 otuM = read.table(otuF,header=TRUE,as.is=TRUE,row.names=1)
+if (dim(otuM)[1] <= 1){
+	q("no");
+}
 
 lulu <- lulu(otuM, matchs)
 write.table(lulu$curated_table,quote =FALSE,sep="\t",file=otuF)
