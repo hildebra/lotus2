@@ -149,7 +149,7 @@ for (i in names(tSuSe)){
 			listF[[i]][XX]= paste0(listF[[i]][XX],".gz")
 			listR[[i]][XX]= paste0(listR[[i]][XX],".gz")
 			if (!file.exists(listF[[i]][XX])){
-				cat(paste("Could not find expected file", listF[[i]][XX] ,"\n"))
+				#cat(paste("Could not find expected file", listF[[i]][XX] ,"\n"))
 				listF[[i]][XX] = ""
 				listR[[i]][XX] = ""
 			}
@@ -164,6 +164,13 @@ for (i in names(tSuSe)){
 	}
 	#next;
 }
+#double check all relevant files
+for (i in names(tSuSe)){
+	if (all(!file.exists(listM[[i]]))) {#length(listM[[i]]) == 0){
+		stop(paste0("Can't find files for block ",i," expected files such as \n",listM[[i]][0],"\n\nAborting dada2 run\n"))
+	}
+}
+
 #listF[[names(tSuSe)[1]]][1] = ""
 
 #do we deal with merged data? needs to be clear early on
@@ -191,7 +198,11 @@ for (i in sort(names(tSuSe))){
 	# Learn forward error rates
 	#forward read error rates
 	if (mergedData){
+		defMergeFile = listM[[i]][0]
 		filtMs <- file.path(listM[[i]]);	names(filtMs) <- sampleNames;filtMs = filtMs[file.exists(filtMs)]
+		if (length(filtMs) == 0){
+			stop(paste0("Can't find derep for block ",i," expected\n",defMergeFile,"\n\nAborting dada2 run\n"))
+		}
 		cat(paste0("Learning error profiles for merged reads:\n"));
 		try( errM <- learnErrors(filtMs, nbases = bp4error, multithread=ncores))#dada2 is too instable
 		if (is.null(errM)) {errM <- learnErrors(filtMs, nbases = bp4error, multithread=1)}
