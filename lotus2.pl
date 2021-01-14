@@ -5515,7 +5515,7 @@ sub buildOTUs($) {
 	my $derepl = "$lotus_tempDir/derep.fas";    #,$totSeqs,$arL)
 	if ($mergePreCluster){
 		$derepl = "$lotus_tempDir/derep.merg.fas";
-		if ($takeNonMerge && $ClusterPipe != 7){
+		if ($takeNonMerge && $ClusterPipe != 7 && $ClusterPipe != 1 ){
 			system "cat $lotus_tempDir/derep.fas >> $derepl";
 		}
 	}

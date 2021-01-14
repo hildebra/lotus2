@@ -88,7 +88,7 @@ combineDada = function (samples, orderBy = "abundance")
 
 #ARGS parsing
 #args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//tmpFiles//","0","12","/hpc-home/hildebra/dev/lotus/maps/AngeTest1.16S.sm.ngz.map","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/derep.merg.fas")
-#args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//demultiplexed/","0","12","/hpc-home/hildebra/dev/lotus/maps/Lucas_16S__map2.txt")
+#args=c("/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/scratch/ltsAponDD2s//demultiplexed/","/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/scratch/ltsAponDD2s/","0","8","/hpc-home/hildebra/grp/data/results/lotus/Apong3mergeDD2s/primary/in.map","/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/scratch/ltsAponDD2s//derep.fas")
 args = commandArgs(trailingOnly=TRUE)
 # test if all the arguments are there: 
 if (length(args) <= 4) {
@@ -165,12 +165,6 @@ for (i in names(tSuSe)){
 	}
 	#next;
 }
-#double check all relevant files
-for (i in names(tSuSe)){
-	if (all(!file.exists(listM[[i]]))) {#length(listM[[i]]) == 0){
-		stop(paste0("Can't find files for block ",i," expected files such as \n",listM[[i]][0],"\n\nAborting dada2 run\n"))
-	}
-}
 
 #listF[[names(tSuSe)[1]]][1] = ""
 
@@ -181,6 +175,20 @@ if (length(args)>5){
 	xd=strsplit(derepFile1,"\\.")[[1]]
 	if (xd[length(xd)-1] == "merg"){#working on merged data..
 		mergedData=TRUE
+	}
+}
+
+
+#double check all relevant files
+for (i in names(tSuSe)){
+	if (!mergedData){
+		if (all(!file.exists(listF[[i]]))) {#length(listM[[i]]) == 0){
+			stop(paste0("Can't find files for block ",i," expected files such as \n",listF[[i]][0],"\n\nAborting dada2 run\n"))
+		}
+	} else {
+		if (all(!file.exists(listM[[i]]))) {#length(listM[[i]]) == 0){
+			stop(paste0("Can't find files for block ",i," expected files such as \n",listM[[i]][0],"\n\nAborting dada2 run\n"))
+		}
 	}
 }
 
