@@ -75,7 +75,7 @@ my $ddir = $ldir."/DB/";
 my $finalWarning="";
 my $onlyDbinstall = 0;
 #options on programs to install..
-my $installBlast = 0; my @refDBinstall = 0 x 10; my $ITSready = 0;my $getUTAX=0;
+my $installBlast = 2; my @refDBinstall = 0 x 10; my $ITSready = 1;my $getUTAX=1;$refDBinstall[8]=1;
 
 #autoinstaller, test if install was done before
 my @txt; my $mainCfg = "$ldir/lOTUs.cfg";
@@ -121,7 +121,6 @@ mkdir $ddir unless (-d $ddir);
 
 
 
-
 #uparse pseudo
 my $usearch_reset=0;
 if (!-e $uspath){
@@ -129,6 +128,8 @@ if (!-e $uspath){
 	$exe = $bdir."usearch_bin";
 	@txt = addInfoLtS("usearch",$exe,\@txt,0);
 }
+#die "@txt\n";
+
 
 if ($usearch_reset==1){
 	print "\n\n#######################################################################################";
@@ -268,7 +269,7 @@ sub addInfoLtS($ $ $ $){
 	print "Installing $cmd:\n$ex\n";
 	if ($reqF ==1 && ! -f $ex){print "Can't find required file $ex\nPlease check if the package was correctly downloaded.\nAborting..\n"; exit(5);}
 	if ($reqF ==2 && ! -d $ex){print "Can't find required directory $ex\nPlease check if the package was correctly downloaded.\nAborting..\n"; exit(5);}
-	my @txt = %{$aref};
+	my @txt = @{$aref};
 	my $ss = quotemeta $cmd;
 	my $i=0; my $tagset=0;
 	while ($txt[$i] !~ m/^$ss\s/){
@@ -1297,7 +1298,7 @@ sub user_options(){
 		}
 	}
 	#auto update END
-
+	my $skipAll = 0 ; #debug option.. nerv
 	if ($onlyDbinstall){
 		print "Installing LotuS tax databases anew.. \nplease choose which databases to install in the following dialogs\n\n";
 	}else{
@@ -1305,6 +1306,9 @@ sub user_options(){
 		while (<>){
 			chomp($_);
 			if ($_ eq "y" || $_ eq "Y" || $_ eq "yes"){
+				last;
+			} elsif ($_ eq "x") {
+				$skipAll=1;
 				last;
 			} else {
 				exit(0);
@@ -1315,7 +1319,7 @@ sub user_options(){
 
 	#decide on blast
 		print "\n\nFor similarity based taxonomic assignments LotuS can either use \n (1) Blastn (slow but very sensitve)\n (2) Lambda (fast, a little less sensitive than Blastn)\n (3) both, decide at runtime which to use or\n (0) none\n Answer:";
-		while (<>){
+		while (!$skipAll && <> ){
 			chomp($_);
 			if ($_ == 1 || $_ == 3 ||$_ == 2 ||$_ == 0){
 				$installBlast = $_;
@@ -1334,7 +1338,7 @@ sub user_options(){
 	print " (5) beeTax (~2 MB) database specialized (and named) on taxonomy specific to the bee gut.\n";
 	print " (8) HITdb + SILVA + greengenes + PR2 + beeTax (one has to be select for each LotuS run)\n (0) no database\n";
 	print "Answer:";
-	while (<>){
+	while (!$skipAll && <>){
 		chomp($_); 
 		if ($_ == 1 ||$_ == 4 || $_ == 3 ||$_ == 2 ||$_ == 5 ||$_ == 0 ||$_ == 8){
 			$refDBinstall[$_] = 1;
@@ -1344,7 +1348,7 @@ sub user_options(){
 	#SILVA license
 	if ($refDBinstall[2] || $refDBinstall[8]){
 		print "Please read and accept the SILVA license: https://www.arb-silva.de/fileadmin/silva_databases/LICENSE.txt\n Accepted it (y/n)? \n";
-		while (<>){
+		while (!$skipAll && <>){
 			chomp($_);
 			if ($_ eq "y" || $_ eq "Y" || $_ eq "yes"){
 				last;
@@ -1356,7 +1360,7 @@ sub user_options(){
 
 	print "\n\nDo you want to\n (1) install databases and programs required to process ITS data (including fungi ITS UNITE database)\n (0) no ITS related packages\n Answer:";
 
-	while (<>){
+	while (!$skipAll && <>){
 		chomp($_); 
 		if ($_ == 1 ||$_ == 0){
 			$ITSready = $_;
@@ -1366,7 +1370,7 @@ sub user_options(){
 
 	#UTAX ref DBs..
 	print "\n\nDo you want to\n (1) install utax taxonomic classification databases (16S, ITS)?\n (0) no utax related databases\n Answer:";
-	while (<>){
+	while (!$skipAll && <>){
 		chomp($_);
 		if ($_ == 1 ||$_ == 0){
 			$getUTAX = $_;
