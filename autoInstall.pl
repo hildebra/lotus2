@@ -78,8 +78,13 @@ my $onlyDbinstall = 0;
 my $installBlast = 0; my @refDBinstall = 0 x 10; my $ITSready = 0;my $getUTAX=0;
 
 #autoinstaller, test if install was done before
-my @txt;
-open I,"<","$ldir/lOTUs.cfg" or die $!;
+my @txt; my $mainCfg = "$ldir/lOTUs.cfg";
+unless (-e $mainCfg){
+	if (-e "configs/LotuS.cfg.def"){
+		system "cp configs/LotuS.cfg.def $mainCfg";
+	}
+}
+open I,"<","$mainCfg" or die $!;
 while (my $line = <I>){	push(@txt,$line);}
 close I;
 my $exe = ""; my $callret;
@@ -92,10 +97,6 @@ my $usearchInstall ="";
 if (@ARGV > 0 && $ARGV[0] eq "-link_usearch"){
 	$usearchInstall =$ARGV[1];
 }
-
-
-
-
 
 
 ###### GET USER OPTIONS ###################
@@ -756,6 +757,11 @@ sub checkLtsVer($){
 
 sub compile_LCA($){
 	my ($ldi2) = @_;
+	my $expPath = "$bdir/LCA";
+	if (-e $expPath){#test if can excecute locally
+		my $sdmV = `$expPath -v`;
+		return $expPath if ($sdmV =~ m/0\.\d+$/);
+	}
 	if (-d $ldi2 && -f "$ldi2/Makefile" ){
 		print "Compiling LCA..\n";
 		system("rm -f $ldi2/*.o");
@@ -775,10 +781,16 @@ sub compile_LCA($){
 		}
 	}
 	system("chmod +x $bdir/LCA");
-	return "$bdir/LCA";
+	return $expPath;#"$bdir/LCA";
 }
 sub compile_rtk($){
 	my ($ldi2) = @_;
+	my $expPath = "$bdir/rtk";
+	if (-e $expPath){#test if can excecute locally
+		my $sdmV = `$expPath -v`;
+		return $expPath if ($sdmV =~ m/rtk \d/);
+	}
+
 	if (-d $ldi2 && -f "$ldi2/Makefile" ){
 		print "Compiling rtk..\n";
 		system("rm -f $ldi2/*.o");
@@ -798,11 +810,16 @@ sub compile_rtk($){
 		}
 	}
 	system("chmod +x $bdir/rtk");
-	return "$bdir/rtk";
+	return $expPath;
 }
 
 sub compile_sdm($){
 	my ($ldi2) = @_;
+	my $expPath = "$bdir/sdm";
+	if (-e $expPath){#test if can excecute locally
+		my $sdmV = `$expPath -v`;
+		return $expPath if ($sdmV =~ m/sdm \d/);
+	}
 	if (-d $ldi2 && -f "$ldi2/Makefile" && -f "$ldi2/DNAconsts.cpp"){
 		print "Compiling sdm..\n";
 		system("rm -f $ldi2/*.o");
@@ -830,7 +847,7 @@ sub compile_sdm($){
 		}
 	}
 	system("chmod +x $ldir/sdm");
-	return "$bdir/sdm";
+	return $expPath;
 }
 
 sub check_exists {
