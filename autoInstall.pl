@@ -250,13 +250,15 @@ sub getInstallVer($){
 	open Q,"<","$ldir/lotus2.pl" or die("Can't find LotuS main script file (lotus2.pl)\n");
 	while(<Q>){if (m/my.*selfID\s*=\s*\"LotuS\s(.*)\".*/){$lver=$1;last;}}
 	close Q;
-	my $sver=0.1;
+	my $sver=1.5;
 	if ($sdmsrc ne ""){
-	my $sdmF = "$sdmsrc/IO.h";
-	open Q,"<",$sdmF or die("Can't open sdm file $sdmF\n");
-	#static const float sdm_version = 0.71f;
-	while(<Q>){if (m/static\s+const\s+float\s+sdm_version\s*=\s*(.*)f;/){$sver=$1;last;}}
-	close Q;
+		my $sdmF = "$sdmsrc/IO.h";
+		if (-e $sdmF){
+			open Q,"<",$sdmF or die("Can't open sdm file $sdmF\n");
+			#static const float sdm_version = 0.71f;
+			while(<Q>){if (m/static\s+const\s+float\s+sdm_version\s*=\s*(.*)f;/){$sver=$1;last;}}
+			close Q;
+		}
 	}
 	return ($lver,$sver);
 }
