@@ -6,20 +6,20 @@ if(!require("dada2",quietly=TRUE,warn.conflicts =FALSE)){
   if (!requireNamespace("dada2", quietly = TRUE))
     BiocManager::install("dada2")
 } else {
-  print("dada2 is already installed.")
+  #print("dada2 is already installed.")
 }
 
 if(!require("phyloseq",quietly=TRUE,warn.conflicts =FALSE)){
-  print("phyloseq")
+  #print("phyloseq")
   source("https://raw.githubusercontent.com/joey711/phyloseq/master/inst/scripts/installer.R",local =TRUE)
 } else {
-  print("phyloseq is already installed.")
+  #print("phyloseq is already installed.")
 }
 
 
 if(!require("dplyr",quietly=TRUE,warn.conflicts =FALSE)){
 	install.packages("dplyr")
-	require("dplyr",warn.conflicts =FALSE)
+	#require("dplyr",warn.conflicts =FALSE)
 }
 
 if(0 && !require("lulu",quietly=TRUE,warn.conflicts =FALSE)){ #no longer needed.. dplyr now
@@ -29,6 +29,7 @@ if(0 && !require("lulu",quietly=TRUE,warn.conflicts =FALSE)){ #no longer needed.
 	library(devtools)
 	install_github("tobiasgf/lulu")  
 }
+
 
 my_packages <- c("phyloseq", "dada2", "dplyr") 
 

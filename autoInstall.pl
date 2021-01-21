@@ -181,9 +181,11 @@ if (check_exists('Rscript')) {
   exit(0);
 }
 
+my $RinstallWarns = "";
 if ($install_dada) {
   print("Install dada");
-  my $r_output = `Rscript bin/autoInstall.R 2>&1`;
+  my $r_output = `Rscript bin/R/autoInstall.R 2>&1`;
+  $RinstallWarns = $r_output;
   print($r_output);
 }
 
@@ -204,8 +206,9 @@ get_DBs();
 get_programs();
 
 if ($onlyDbinstall){
+	print "The following messages were printed by the R installations:\n##########################################\n$RinstallWarns\n##########################################\n";
 	finishAI("d");
-	print "\n\nInstalled databases\nExiting autoinstaller..\n";
+	print "\n\nInstalled LotuS2\nExiting autoinstaller..\n";
 	exit(0);
 }
 
@@ -478,7 +481,7 @@ sub getSLV($){
 #------------------------------ LSU SLV DB --------------------------
 	$DB = "$ddir/$baseLN"."_LSU.fasta";
 	$DB2 = "$ddir/$baseLN"."_LSU.tax";
-	print "Downloading SILVA LSU release $SLVver..\n";
+	print "Downloading SILVA LSU release $SLVver (could be different from SSU version) ..\n";
 	system "rm -f $DB"."*";
 	$locSLBdl=1; $SLVver="132";#change this to local (132 release), since SIVLA doesn't have that yet..
 	if ($locSLBdl){ #in case silva server doesn't work again..

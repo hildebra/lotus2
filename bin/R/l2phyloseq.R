@@ -1,4 +1,14 @@
 
+# Require the pyloseq package:
+if(!require("phyloseq",quietly=TRUE,warn.conflicts =FALSE)){
+	source("https://raw.githubusercontent.com/joey711/phyloseq/master/inst/scripts/installer.R",local=TRUE);
+	require("phyloseq")
+}
+
+library("phyloseq")
+#packageVersion("phyloseq")
+# â1.30.0'
+
 #path_TABLE=$outdir/OTU.txt
 #Classification_method   #phyloseq option needs to have a flag specifying  the output of the classification to use (for ex BLAST)
 #path_TAX=$outdir/*$Classification_method*.txt   
@@ -18,9 +28,15 @@ path_TREE=args[4]
 
 
 # Test if taxonomy table is produced: 
-
+RDPhier=FALSE
 if(!(file.exists(path_TAX))) {
-	stop(paste("Please run the taxonomic classification first:",path_TAX), call.=FALSE)
+	#stop(paste("Please run the taxonomic classification first:",path_TAX), call.=FALSE)
+	path_TAX = gsub("hiera_BLAST.txt","hiera_RDP.txt",path_TAX)
+	RDPhier=TRUE
+	if(!(file.exists(path_TAX))) { #still doesn't exist
+		cat("Could not find taxonomy file.. aborting l2phyloseq\n")
+		q("no")
+	}
 }
 
 # Test if phylogenetic tree is produced:
@@ -31,16 +47,6 @@ if((file.exists(path_TREE))) {
 	}
 	tree=read.tree(path_TREE)
 }
-
-# Require the pyloseq package:
-if(!require("phyloseq",quietly=TRUE,warn.conflicts =FALSE)){
-	source("https://raw.githubusercontent.com/joey711/phyloseq/master/inst/scripts/installer.R",local=TRUE);
-	require("phyloseq")
-}
-
-library("phyloseq")
-#packageVersion("phyloseq")
-# â1.30.0'
 
 
 cat("\nPhyloseq object is being created...\n");
@@ -58,13 +64,23 @@ sd=read.table(path_SD,sep="\t",row.names=1,header=FALSE,comment.char="#",as.is=T
 colnames(sd) = sdA[-1]
 
 # Read the taxonomy table:
-tax= as.matrix(read.delim(path_TAX, row.names=1,header=TRUE,sep="\t") )
+tax= as.matrix(read.delim(path_TAX, row.names=NULL,header=TRUE,sep="\t") )
+if (RDPhier){
+	rownames(tax) = tax[,dim(tax)[2]]
+	tax = tax[,1:(dim(tax)[2]-1)]
+} else {
+	rownames(tax) = tax[,1]
+	tax = tax[,2:(dim(tax)[2])]
+}
+
 if (dim(tax)[1] < dim(otu)[1]){
-	taxA = matrix("?", nrow(otu)-nrow(tax), ncol(tax))
-	idx = !dimnames(otu)[[1]] %in% dimnames(tax)[[1]] 
-	#dimnames(taxA)[[1]] = dimnames(otu)[[1]][idx]
-	rownames(taxA) = dimnames(otu)[[1]][idx]
-	tax=rbind (tax, taxA)
+	taxA = matrix("?", nrow(otu), ncol(tax))
+	rownames(taxA) = dimnames(otu)[[1]]
+	idx = dimnames(otu)[[1]] %in% dimnames(tax)[[1]] 
+	taxA[idx,] = tax[dimnames(otu)[[1]][idx],]
+	tax = taxA
+	#rownames(taxA) = dimnames(otu)[[1]][idx]
+	#tax=rbind (tax, taxA)
 }
 #actual conversion
 sam1 <- sample_data(sd) 

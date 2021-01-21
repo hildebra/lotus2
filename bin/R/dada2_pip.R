@@ -88,7 +88,7 @@ combineDada = function (samples, orderBy = "abundance")
 
 #ARGS parsing
 #args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//tmpFiles//","0","12","/hpc-home/hildebra/dev/lotus/maps/AngeTest1.16S.sm.ngz.map","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/derep.merg.fas")
-#args=c("/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/scratch/ltsAponDD2s//demultiplexed/","/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/scratch/ltsAponDD2s/","0","8","/hpc-home/hildebra/grp/data/results/lotus/Apong3mergeDD2s/primary/in.map","/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/scratch/ltsAponDD2s//derep.fas")
+#args=c("/hpc-home/hildebra/grp/data/results/lotus/Anh//tmpFiles//demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Anh//tmpFiles/","0","14","/hpc-home/hildebra/grp/data/results/lotus/Anh//primary/in.map","/hpc-home/hildebra/grp/data/results/lotus/Anh//tmpFiles//derep.fas")
 args = commandArgs(trailingOnly=TRUE)
 # test if all the arguments are there: 
 if (length(args) <= 4) {
@@ -145,7 +145,15 @@ for (i in names(tSuSe)){
 	listF[[i]] = paste0(pathF, paste0(mapping[idx,"#SampleID"],".1.fq",sep="") )
 	listR[[i]] = paste0(pathF, paste0(mapping[idx,"#SampleID"],".2.fq",sep="") )
 	listM[[i]] = paste0(pathF, paste0(mapping[idx,"#SampleID"],".merg.fq",sep="") )
+
+	if (all(!file.exists(listF[[i]]))){#single file case
+		listF[[i]] = paste0(pathF, paste0(mapping[idx,"#SampleID"],".fq",sep="") )
+	}
 	for (XX in 1:length(listF[[i]])){
+		if (!file.exists(listF[[i]][XX])){
+			listF[[i]][XX]= paste0(listF[[i]][XX],".gz")
+			listR[[i]][XX]= paste0(listR[[i]][XX],".gz")
+		}
 		if (!file.exists(listF[[i]][XX])){
 			listF[[i]][XX]= paste0(listF[[i]][XX],".gz")
 			listR[[i]][XX]= paste0(listR[[i]][XX],".gz")

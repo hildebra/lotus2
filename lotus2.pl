@@ -2760,8 +2760,8 @@ sub prepLtsOptions{
 			printL "No valid DNA clust binary found at $dnaclustBin\n", 88;
 		}
 	} else {#default pipeline
-		$ClusterPipe = 6; $clusteringNameStr = "UNOISE3";
-		${OTU_prefix} = "Zotu";
+		$ClusterPipe = 1; $clusteringNameStr = "UPARSE";
+		#${OTU_prefix} = "Zotu";
 	}
 	if ( $platform eq "pacbio" && $ClusterPipe != 3 ) {
 		printL("CD-HIT clustering is strongly recommended with PacBio reads (unless you know what you are doing).","w");
