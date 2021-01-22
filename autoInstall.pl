@@ -181,11 +181,9 @@ if (check_exists('Rscript')) {
   exit(0);
 }
 
-my $RinstallWarns = "";
 if ($install_dada) {
-  print("Install dada");
-  my $r_output = `Rscript bin/R/autoInstall.R 2>&1`;
-  $RinstallWarns = $r_output;
+  print("Install dada2\n");
+  my $r_output = `Rscript bin/autoInstall.R 2>&1`;
   print($r_output);
 }
 
@@ -206,9 +204,8 @@ get_DBs();
 get_programs();
 
 if ($onlyDbinstall){
-	print "The following messages were printed by the R installations:\n##########################################\n$RinstallWarns\n##########################################\n";
 	finishAI("d");
-	print "\n\nInstalled LotuS2\nExiting autoinstaller..\n";
+	print "\n\nInstalled databases\nExiting autoinstaller..\n";
 	exit(0);
 }
 
@@ -447,7 +444,7 @@ sub getSLV($){
 	#changed to 128
 	#changed to 132
 #	my $baseSP = "http://www.arb-silva.de/fileadmin/silva_databases/release_123_1/Exports";
-	my $SLVver = "138";
+	my $SLVver = "138.1";
 	#my $baseSP = "http://www.arb-silva.de/fileadmin/silva_databases/release_$SLVver/Exports";
 	my $baseSP = "https://ftp.arb-silva.de/release_$SLVver/Exports";
 #	my $baseSN = "SILVA_123.1";my $baseLN = "SLV_123.1";	my $SLVver = "123.1";
@@ -458,51 +455,52 @@ sub getSLV($){
 	system "rm -f $DB"."*";
 	print "Downloading SILVA SSU release $SLVver..\n";
 	if ($locSLBdl){ #in case silva server doesn't work again..
-		my $SlvAltFna = "http://lotus2.earlham.ac.uk/lotus/packs/DB/SLV/SLV_132_SSU.fasta.gz";
-		getS2($SlvAltFna,"$DB.gz");
-		system("gunzip -c $DB.gz > $DB;rm -f $DB.gz"); 
-		my $SlvAltTax = "http://lotus2.earlham.ac.uk/lotus/packs/DB/SLV/SLV_132_SSU.tax.gz";
-		getS2($SlvAltTax,"$DB2.gz");
-		system("gunzip -c $DB2.gz > $DB2;rm -f $DB2.gz"); 
-	} else {
-		my $SLV = $baseSP."/".$baseSN."_SSURef_NR99_tax_silva.fasta.gz";
-		getS2($SLV,"$DB.gz");
-		#print "$SLV\n";
-		system("gunzip -c $DB.gz > $ddir/SSUsilva.fasta;rm -f $DB.gz"); 
-		getS2($baseSP."/taxonomy/tax_slv_ssu_$SLVver.txt.gz","$ddir/SLVtaxSSU.csv.gz");
-		#print "$baseSP/taxonomy/tax_slv_ssu_$SLVver.txt.gz\n";
-		system("gunzip -c $ddir/SLVtaxSSU.csv.gz > $ddir/SLVtaxSSU.csv;rm -f $ddir/SLVtaxSSU.csv.gz"); 
-		prepareSILVA("$ddir/SSUsilva.fasta",$DB,$DB2,"$ddir/SLVtaxSSU.csv","");
-		unlink("$ddir/SSUsilva.fasta");
-	}
+		$baseSP = "http://lotus2.earlham.ac.uk/lotus/packs/DB/SLV/";
+		#my $SlvAltFna = "http://lotus2.earlham.ac.uk/lotus/packs/DB/SLV/SLV_132_SSU.fasta.gz";
+		#getS2($SlvAltFna,"$DB.gz");
+		#system("gunzip -c $DB.gz > $DB;rm -f $DB.gz"); 
+		#my $SlvAltTax = "http://lotus2.earlham.ac.uk/lotus/packs/DB/SLV/SLV_132_SSU.tax.gz";
+		#getS2($SlvAltTax,"$DB2.gz");
+		#system("gunzip -c $DB2.gz > $DB2;rm -f $DB2.gz"); 
+	} 
+	
+	my $SLV = $baseSP."/".$baseSN."_SSURef_NR99_tax_silva.fasta.gz";
+	getS2($SLV,"$DB.gz");
+	#print "$SLV\n";
+	system("gunzip -c $DB.gz > $ddir/SSUsilva.fasta;rm -f $DB.gz"); 
+	getS2($baseSP."/taxonomy/tax_slv_ssu_$SLVver.txt.gz","$ddir/SLVtaxSSU.csv.gz");
+	#print "$baseSP/taxonomy/tax_slv_ssu_$SLVver.txt.gz\n";
+	system("gunzip -c $ddir/SLVtaxSSU.csv.gz > $ddir/SLVtaxSSU.csv;rm -f $ddir/SLVtaxSSU.csv.gz"); 
+	prepareSILVA("$ddir/SSUsilva.fasta",$DB,$DB2,"$ddir/SLVtaxSSU.csv","");
+	unlink("$ddir/SSUsilva.fasta");
+
+	$finalWarning .= "\nWARNING: Silva $SLVver does not have consistent taxonomy levels for LSU's, therefore the taxonomy used in LotuS will contain \"?\" after taxonomy name.\n";
 	
 	@txt = addInfoLtS("TAX_REFDB_SSU_SLV",$DB,\@txt,1);
 	@txt = addInfoLtS("TAX_RANK_SSU_SLV",$DB2,\@txt,1);
 #------------------------------ LSU SLV DB --------------------------
 	$DB = "$ddir/$baseLN"."_LSU.fasta";
 	$DB2 = "$ddir/$baseLN"."_LSU.tax";
-	print "Downloading SILVA LSU release $SLVver (could be different from SSU version) ..\n";
+	print "Downloading SILVA LSU release $SLVver..\n";
 	system "rm -f $DB"."*";
-	$locSLBdl=1; $SLVver="132";#change this to local (132 release), since SIVLA doesn't have that yet..
+	$locSLBdl=0; $SLVver="138.1";#change this to local (132 release), since SIVLA doesn't have that yet..
 	if ($locSLBdl){ #in case silva server doesn't work again..
-		my $SlvAltFna = "http://lotus2.earlham.ac.uk/lotus/packs/DB/SLV/SLV_132_LSU.fasta.gz";
-		getS2($SlvAltFna,"$DB.gz");
-		system("gunzip -c $DB.gz > $DB;rm -f $DB.gz"); 
-		my $SlvAltTax = "http://lotus2.earlham.ac.uk/lotus/packs/DB/SLV/SLV_132_LSU.tax.gz";
-		getS2($SlvAltTax,"$DB2.gz");
-		system("gunzip -c $DB2.gz > $DB2;rm -f $DB2.gz"); 
-	} else {
-		my $SLV = $baseSP."/".$baseSN."_LSURef_tax_silva.fasta.gz";
-		getS2($SLV,"$DB.gz");
-		getS2($baseSP."/taxonomy/tax_slv_lsu_$SLVver.txt.gz","$ddir/SLVtaxLSU.csv");
-		system("gunzip -c $DB.gz > $ddir/LSUSILVA.fasta;rm -f $DB.gz"); #unlink("$DB.tgz");
-		prepareSILVA("$ddir/LSUSILVA.fasta",$DB,$DB2,"$ddir/SLVtaxLSU.csv","$ddir/SLVtaxSSU.csv");
-		unlink("$ddir/LSUSILVA.fasta"); unlink("$ddir/SLVtaxLSU.csv");unlink("$ddir/SLVtaxSSU.csv");
+		$baseSP = "http://lotus2.earlham.ac.uk/lotus/packs/DB/SLV/";
 	}
+	#	my $SlvAltFna = "http://lotus2.earlham.ac.uk/lotus/packs/DB/SLV/SLV_132_LSU.fasta.gz";
+	#	getS2($SlvAltFna,"$DB.gz");
+	#	system("gunzip -c $DB.gz > $DB;rm -f $DB.gz"); 
+	#	my $SlvAltTax = "http://lotus2.earlham.ac.uk/lotus/packs/DB/SLV/SLV_132_LSU.tax.gz";
+	#	getS2($SlvAltTax,"$DB2.gz");
+	#	system("gunzip -c $DB2.gz > $DB2;rm -f $DB2.gz"); 
+	$SLV = $baseSP."/".$baseSN."_LSURef_tax_silva.fasta.gz";
+	getS2($SLV,"$DB.gz");
+	getS2($baseSP."/taxonomy/tax_slv_lsu_$SLVver.txt.gz","$ddir/SLVtaxLSU.csv");
+	system("gunzip -c $DB.gz > $ddir/LSUSILVA.fasta;rm -f $DB.gz"); #unlink("$DB.tgz");
+	prepareSILVA("$ddir/LSUSILVA.fasta",$DB,$DB2,"$ddir/SLVtaxLSU.csv","$ddir/SLVtaxSSU.csv");
+	unlink("$ddir/LSUSILVA.fasta"); unlink("$ddir/SLVtaxLSU.csv");unlink("$ddir/SLVtaxSSU.csv");
 	@txt = addInfoLtS("TAX_REFDB_LSU_SLV",$DB,\@txt,1);
 	@txt = addInfoLtS("TAX_RANK_LSU_SLV",$DB2,\@txt,1);
-
-	$finalWarning .= "\nWARNING: Silva $SLVver does not have consistent taxonomy levels for LSU's, therefore the taxonomy used in LotuS will contain \"?\" after taxonomy name.\n";
 
 	return @txt;
 }

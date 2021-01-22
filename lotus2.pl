@@ -816,6 +816,8 @@ sub sdmStep1{
 			$sdmDemultiDir = "$lotus_tempDir/demultiplexed/" if ($saveDemulti == 0);
 		}
 	}
+	
+	#die "$sdmOptStr\n";
 
 	if ($sdmDerepDo) {
 		$derepCmd = "-o_dereplicate $lotus_tempDir/derep.fas ";
