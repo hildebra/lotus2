@@ -84,6 +84,7 @@ sub systemW;
 #keep track of time
 my $start = time;
 my $duration;
+$| = 1; #don't buffer ostream
 
 #print qx/ps -o args $$/."\n";
 my $cmdCall = qx/ps -o args $$/;
