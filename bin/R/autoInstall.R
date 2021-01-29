@@ -18,7 +18,7 @@ if(!require("phyloseq",quietly=TRUE,warn.conflicts =FALSE)){
 
 
 if(!require("dplyr",quietly=TRUE,warn.conflicts =FALSE)){
-	install.packages("dplyr")
+	install.packages("dplyr",repos="https://cloud.r-project.org")
 	#require("dplyr",warn.conflicts =FALSE)
 }
 

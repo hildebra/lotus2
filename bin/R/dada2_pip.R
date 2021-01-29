@@ -220,7 +220,7 @@ for (i in sort(names(tSuSe))){
 		if (length(filtMs) == 0){
 			stop(paste0("Can't find derep for block ",i," expected\n",defMergeFile,"\n\nAborting dada2 run\n"))
 		}
-		cat(paste0("Learning error profiles for merged reads:\n"));
+		cat(paste0("Learning error profiles for merged reads\n"));
 		try( errM <- learnErrors(filtMs, nbases = bp4error, multithread=ncores))#dada2 is too instable
 		if (is.null(errM)) {errM <- learnErrors(filtMs, nbases = bp4error, multithread=1)}
 		# Save the plots of error profiles, for a sanity check:
