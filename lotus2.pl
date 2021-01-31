@@ -1071,7 +1071,7 @@ sub ITSxOTUs {
 			$hdde = $1;
 		}
 		#same again, different known format, but remove the ItSx info
-		if ($k =~ m/^(ASV|[z]?OTU_\d+;size=\d+)\|/){
+		if ($k =~ m/^(ASV|[z]?OTU_\d+);size=\d+\|/){
 			$hdde = $1;
 		}
 		$lookup{$hdde} = 1;
