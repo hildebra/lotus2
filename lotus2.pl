@@ -877,7 +877,7 @@ sub sdmStep1{
 
 	if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 		#$duration = time - $start;
-		printL( frame("Demultiplexing, filtering, dereplicating input files, this might take some time. For an extensive report see $mainSDMlog",1,2),0 );
+		printL( frame("Demultiplexing, filtering, dereplicating input files, this might take some time..\ncheck progress at $progOutPut\n",1,2),0 );
 		systemL("cp $sdmOpt $outdir/primary");
 		if ( systemL($sdmcmd) != 0 ) {
 			printL "FAILED sdm demultiplexing step: " . $sdmcmd . "\n";
@@ -904,7 +904,7 @@ sub sdmStep1{
 		$shrtRpt .= "\n".$1;
 		$readSdmLog =~ m/(Accepted \(Mid\+High qual\):.*)/;
 		$shrtRpt .= "\n".$1;
-		printL( frame("Finished primary read processing with sdm:\n".$shrtRpt."\n",1,3),0 );
+		printL( frame("Finished primary read processing with sdm:\n".$shrtRpt."\nFor an extensive report see $mainSDMlog\n",1,3),0 );
 
 		#postprocessing of output files
 		if ( $saveDemulti == 1 || $saveDemulti == 2 ) {    #gzip stuff
@@ -1066,18 +1066,27 @@ sub ITSxOTUs {
 	my %lookup;
 	foreach my $k ( keys %ITSo ) {
 		my $hdde = "${OTU_prefix}x_1";
+		#known format, but remove the ItSx info
 		if ($k =~ m/^(ASV|[z]?OTU_\d+)\|/){
+			$hdde = $1;
+		}
+		#same again, different known format, but remove the ItSx info
+		if ($k =~ m/^(ASV|[z]?OTU_\d+;size=\d+)\|/){
 			$hdde = $1;
 		}
 		$lookup{$hdde} = 1;
 	}
-
+	
+	my $delOTUs=0;
 	for my $otu ( @prevOTUs ) {
-		$ret{$otu} = 1 if (!exists($lookup{ $otu }));
+		if (!exists($lookup{ $otu })){
+			$ret{$otu} = 1 ;
+			$delOTUs++;
+		}
 	}
 	
 
-	printL frame( "ITSx analysis: Kept " . scalar( keys(%ITSo) ) . " ${OTU_prefix}'s identified as $ITSxReg (of "  . scalar( keys(%FNA) ) . " ${OTU_prefix}'s).\n"),0;
+	printL frame( "ITSx analysis: Kept " . scalar( keys(%ITSo) ) . "(deleted $delOTUs) ${OTU_prefix}'s identified as $ITSxReg (of "  . scalar( keys(%FNA) ) . " ${OTU_prefix}'s).\n"),0;
 	#die scalar( keys(%ret) )."\n";
 
 	#systemL "cat $outBFile.full.fasta > $otusFA";
@@ -1090,6 +1099,7 @@ sub ITSxOTUs {
 	#	print O ">$hdde\n$ITSo{$k}\n";
 	#}
 	#close O;
+	#die "rm -f $outBFile*;";
 	systemL "rm -f $outBFile*;";
 	$citations .= "ITSx removal of non ITS OTUs: ITSx: Johan Bengtsson-Palm et al. (2013) Improved software detection and extraction of ITS1 and ITS2 from ribosomal ITS sequences of fungi and other eukaryotes for use in environmental sequencing. Methods in Ecology and Evolution, 4: 914-919, 2013\n";
 	return \%ret;
