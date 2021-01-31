@@ -1028,7 +1028,7 @@ sub ITSxOTUs {
 	$itsxOrg = "F" if ( lc($organism) eq "fungi" );
 
 	#die "$itsxOrg\n";
-	my $cmd = "$itsxBin -i $otusFA -o $outBFile -cpu $uthreads -t $itsxOrg --silent T --fasta T --save_regions $ITSxReg --partial $ITSpartial --hmmBin $hmmsrchBin;";
+	my $cmd = "$itsxBin -i $otusFA -o $outBFile -cpu $uthreads --multi_thread T --heuristics T -t $itsxOrg --silent T --fasta T --save_regions $ITSxReg --partial $ITSpartial --hmmBin $hmmsrchBin --preserve T;";
 	$cmd .= "cp $outBFile.summary.txt $logDir/ITSx.summary.txt\n";
 	if ( systemL($cmd) != 0 ) { printL( "Failed command:\n$cmd\n", 1 ); }
 
@@ -1065,7 +1065,8 @@ sub ITSxOTUs {
 	my @prevOTUs = keys %FNA;
 	my %lookup;
 	foreach my $k ( keys %ITSo ) {
-		my $hdde = "${OTU_prefix}x_1";
+		my $hdde = $k;# substr($k,1);#"${OTU_prefix}x_1";
+		
 		#known format, but remove the ItSx info
 		if ($k =~ m/^(ASV|[z]?OTU_\d+)\|/){
 			$hdde = $1;
@@ -1074,6 +1075,7 @@ sub ITSxOTUs {
 		if ($k =~ m/^(ASV|[z]?OTU_\d+);size=\d+\|/){
 			$hdde = $1;
 		}
+		#print $hdde;
 		$lookup{$hdde} = 1;
 	}
 	
@@ -1086,7 +1088,7 @@ sub ITSxOTUs {
 	}
 	
 
-	printL frame( "ITSx analysis: Kept " . scalar( keys(%ITSo) ) . "(deleted $delOTUs) ${OTU_prefix}'s identified as $ITSxReg (of "  . scalar( keys(%FNA) ) . " ${OTU_prefix}'s).\n"),0;
+	printL frame( "ITSx analysis: Kept " . scalar( keys(%ITSo) ) . ", deleted $delOTUs ${OTU_prefix}'s identified as $ITSxReg (of "  . scalar( keys(%FNA) ) . " ${OTU_prefix}'s).\n"),0;
 	#die scalar( keys(%ret) )."\n";
 
 	#systemL "cat $outBFile.full.fasta > $otusFA";
@@ -1571,7 +1573,7 @@ sub clean_otu_mat($ $ $ $) {
 	my $strTmp = "Contaminants: ";
 	my $lcnt =0;
 	foreach my $k (keys %contaCnt){
-		$strTmp .=  "$k: $contaCnt{$k} ${OTU_prefix}'s found ($contaCntRds{$k} reads); ";
+		$strTmp .=  "$k: $contaCnt{$k} ${OTU_prefix}'s removed ($contaCntRds{$k} reads); ";
 		$lcnt += $contaCntRds{$k}+$contaCnt{$k};
 	}
 	$Lreport .= "Extended logs active, contaminant and chimeric matrix will be created.\n" if ($extendedLogs);
