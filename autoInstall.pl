@@ -1190,13 +1190,13 @@ sub get_programs{
 	#cd-hit
 	my $cdhitdir = $bdir."cdhit-master/";
 	my $cexe = "$cdhitdir/cd-hit-est";
-	$tar = "$bdir/cdhit.zip";
+	my $ctar = "$bdir/cdhit.zip";
 	#my $cdhitTar = "https://cdhit.googlecode.com/files/cd-hit-v4.6.1-2012-08-27.tgz";
 	my $cdhitTar = "http://lotus2.earlham.ac.uk/lotus/packs/cd-hit_git.zip";#"https://github.com/weizhongli/cdhit/archive/master.zip";
-	getS2($cdhitTar,$tar);
+	getS2($cdhitTar,$ctar);
 	#system("tar -xzf $tar -C $bdir");
-	system("unzip -o -q $tar -d $bdir");
-	unlink($tar);
+	system("unzip -o -q $ctar -d $bdir");
+	unlink($ctar);
 	$callret = system("make -C $cdhitdir");
 	if ($callret != 0){
 		print "\n\n=================\nProblem while compiling CD-HIT.\n"; $finalWarning.="CD-HIT did not compile. The -UP 3 option will not be available to LotuS unless you reinstall cd-hit-est manually (lotus.cfg). \n";
