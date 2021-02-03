@@ -3364,6 +3364,7 @@ sub buildTree($ $) {
 			$cmd .= "cp ${treePrefix}.treefile $outTree\n";#cp final good tree over 
 		} else {
 			printL "Unknown tree option ($buildPhylo)\n",53;
+		}
         #die($cmd."\n");
         if ( $exec == 0 ) {
             #printL "Building tree..\n";
