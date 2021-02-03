@@ -185,7 +185,7 @@ my $finalWarnings    = "";
 my $remFromEnd       = ""; #fix for strange behavior of flash, where overlaps of too short amplicons can include rev primer / adaptor
 my $doPhiX			 = 1;
 my $dada2Seed        = 0; #seed for dada2 to produce reproducible results
-my $buildPhylo       = 2; #iqtree(1), fastree (2)
+my $buildPhylo       = 1; #iqtree(2), fastree (1)
 
 
 #my $combineSamples = 0; #controls if samples are combined
@@ -3326,7 +3326,7 @@ sub buildTree($ $) {
     my ( $OTUfa, $outdir ) = @_;
 	return "" if ($buildPhylo==0);
 	my $treePrg = "iqtree2";
-	$treePrg = "fasttree" if ($buildPhylo == 2);
+	$treePrg = "fasttree" if ($buildPhylo == 1);
 	if ( -f $mafftBin && (-f $fasttreeBin || -f $iqTreeBin) ) {
 		printL( frame("Building tree ($treePrg) and aligning (mafft) OTUs"),0 );
 	} else {
@@ -3356,13 +3356,14 @@ sub buildTree($ $) {
 		if ( !-f $multAli ) {
 			printL "Could not find multiple alignment file:\n$multAli\n", 5;
 		}
-		if ($buildPhylo==2){
+		if ($buildPhylo==1){
 			$cmd = $fasttreeBin . " -nt -gtr -no2nd -spr 4 -log $logDir/fasttree.log -quiet -out $outTree $multAli;";
-		} elsif ($buildPhylo==1){
+		} elsif ($buildPhylo==2){
 			$cmd = "$iqTreeBin -s $multAli -ntmax $tthreads -pre $treePrefix -seed 678 ";
 			$cmd .= "--quiet --fast -m GTR+R10 --alrt 1000\n";#GTR+F+I+G4
 			$cmd .= "cp ${treePrefix}.treefile $outTree\n";#cp final good tree over 
-		}
+		} else {
+			printL "Unknown tree option ($buildPhylo)\n",53;
         #die($cmd."\n");
         if ( $exec == 0 ) {
             #printL "Building tree..\n";

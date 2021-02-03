@@ -1170,20 +1170,21 @@ sub get_programs{
 
 
 	#flash
-	my $flashdir = $bdir."FLASH-1.2.10";
-	my $fexe = "$flashdir/flash";
-	my $tar = "$bdir/Flash.tar.gz";
-	my $flashTar = "http://lotus2.earlham.ac.uk/lotus/packs/FLASH-1.2.10.tar.gz";#"http://sourceforge.net/projects/flashpage/files/FLASH-1.2.10.tar.gz/download";
-	getS2($flashTar,$tar);
-	system("tar -xzf $tar -C $bdir");
-	unlink($tar);
-	$callret = system("make -C $flashdir");
-	if ($callret != 0){
-		print "\n\n=================\nProblem while compiling FLASH.\n"; $finalWarning.="Flash did not compile. This means you can not use paired reads with LotuS.\n";
+	if (0){#not needed in lotus2 any longer..
+		my $flashdir = $bdir."FLASH-1.2.10";
+		my $fexe = "$flashdir/flash";
+		my $tar = "$bdir/Flash.tar.gz";
+		my $flashTar = "http://lotus2.earlham.ac.uk/lotus/packs/FLASH-1.2.10.tar.gz";#"http://sourceforge.net/projects/flashpage/files/FLASH-1.2.10.tar.gz/download";
+		getS2($flashTar,$tar);
+		system("tar -xzf $tar -C $bdir");
+		unlink($tar);
+		$callret = system("make -C $flashdir");
+		if ($callret != 0){
+			print "\n\n=================\nProblem while compiling FLASH.\n"; $finalWarning.="Flash did not compile. This means you can not use paired reads with LotuS.\n";
+		}
+		system("chmod +x $fexe");
+		@txt = addInfoLtS("flashBin",$fexe,\@txt,1);
 	}
-	system("chmod +x $fexe");
-	@txt = addInfoLtS("flashBin",$fexe,\@txt,1);
-
 
 
 	#cd-hit
