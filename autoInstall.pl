@@ -183,7 +183,7 @@ if (check_exists('Rscript')) {
 
 if ($install_dada) {
   print("Install dada2\n");
-  my $r_output = `Rscript bin/autoInstall.R 2>&1`;
+  my $r_output = `Rscript bin/R/autoInstall.R 2>&1`;
   print($r_output);
 }
 
