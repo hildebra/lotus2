@@ -58,6 +58,10 @@ itsx ITSx
 #hmmsearch
 hmmsearch hmmscan
 
+#V-xtractor
+vxtractorHMMs bin/vxtr/HMMs/
+vxtractor bin/vxtr/vxtractor.pl
+
 # --------------------
 #   databases
 #reference database for ref chimera filtering - suggested is gold.fa for bacteria SSU and UNITE resources for fungal ITS

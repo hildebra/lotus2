@@ -75,7 +75,7 @@ sub swarm4us_size;
 sub dnaClust2UC;
 sub chimera_ref_rem; sub chimera_denovo;
 sub checkLtsVer;
-sub ITSxOTUs;
+sub ITSxOTUs; sub vfxtractor;
 sub lulu;
 sub checkXtalk;
 sub annotateFaProTax;
@@ -119,6 +119,8 @@ my $fasttreeBin  = ""; #FastTree binary - for speed improvements /YY/FastTReeMP 
 my $iqTreeBin    = ""; #iqTree, better choice instead of fasttree
 my $flashBin     = "";    #flash for merging paired reads
 my $itsxBin      = "";    #identifies ITS regions
+my $hmmsVX = "" ; my $vxtrBin = ""; #vxtractor
+
 my $hmmsrchBin   = "";    #hmm required for itsx
 
 # --------------------
@@ -179,6 +181,7 @@ my $platform         = "miSeq";        #454, miSeq, hiSeq, PacBio
 my $keepUnclassified = 1;
 my $keepOfftargets   = 0;
 my $doITSx           = 1;            #run itsx in its mode?
+my $doVXTR           = "0";   #run v xtractor?
 my $doLULU           = 0;   #run LULU post matrix filter?
 my $ITSpartial       = 0;            #itsx --partial parameter
 my $finalWarnings    = "";
@@ -285,6 +288,7 @@ GetOptions(
     "saveDemultiplex=i"     => \$saveDemulti,        #1=yes, 0=not, 2=yes,unfiltered
     "rdp_thr=f"             => \$RDPCONF,
     "ITSx|itsextraction=i"  => \$doITSx,
+	"VXtr=s"                => \$doVXTR,
 	"lulu=i"                => \$doLULU,
     "itsx_partial=i"        => \$ITSpartial,
     "utax_thr=f"            => \$utaxConf,
@@ -574,8 +578,10 @@ if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 	chimera_denovo($OTUSEED);
     #remove chimeras on longer merged reads
     my $refChims = chimera_ref_rem( $OTUSEED);
-    #ITSx
+    #ITSx - ITS region fungi only 
     my $nonITShref = ITSxOTUs($OTUSEED);
+	#V-Xtractor
+	my $nonVXTRs = vfxtractor($OTUSEED);
     #phiX
 	my $phiXhref = contamination_rem( $OTUSEED, $CONT_REFDB_PHIX, "phiX" );
     #custom DB for contamination - off-target
@@ -1000,17 +1006,86 @@ sub loadFaProTax($){
 	#return $DB;
 }
 
+sub vfxtractor{
+	my ($otusFA) = @_;
+	my %ret;
+	return \%ret unless ( substr( $ampliconType, 0, 3 ) eq "SSU" );
+	return \%ret if ( $doVXTR eq "0" );
+	if ( !-e $vxtrBin ) {
+		printL "Did not find V-xtractor binary at $vxtrBin\nNo V extraction used\n","w";
+		return \%ret;
+	}
+	if (!-d $hmmsVX){
+		printL "Did not find V-xtractor HMMs at $hmmsVX\nNo V extraction used\n","w";
+		return \%ret;
+	}
+	if ( !-e $hmmsrchBin ) {
+		printL "Did not find hmmscan binary at $hmmsrchBin\nNo V extraction used\n","w";
+		return \%ret;
+	}
+	my $outBFile = $otusFA . ".vxtr";
+	my $outCFile = $otusFA . ".vxtr.csv";
+	my $defReg = ".V1-V9.";
+	my $region = $defReg;
+	$region = $doVXTR unless ($doVXTR eq "1");
+
+	my $cmd = "$vxtrBin -o $outBFile -r $region -c $outCFile -hmmdir $hmmsVX/".substr( $ampliconType, 0, 3 )."/bacteria/ -nc $uthreads -hmmsc $hmmsrchBin $otusFA;"; #-nc $uthreads
+	$cmd .= "cp $outCFile $logDir/VXtractor.summary.txt\n";
+	if ( systemL($cmd) != 0 ) { printL( "Failed command:\n$cmd\n", 1 ); }
+
+#die "VXdie ".$cmd;
+#if (-z "$outBFile.full.fasta"){printL "Could not find any valid ITS OTU's. Aborting run.\n Remaining OTUs can be found in $outBFile*\n",923;}
+	my $hr;
+	my %ITSo;
+	
+	$hr   = readFasta("$outBFile");
+	%ITSo = %{$hr};
+
+	#my $ITSfa = `grep -c '^>' $outBFile.full.fasta`;
+	#my $orifa = `grep -c '^>' $otusFA`;chomp $orifa;    #chomp $ITSfa;
+	$hr = readFasta($otusFA); my %FNA = %{$hr};
+	
+	if ( scalar( keys(%ITSo) ) == 0 ) {
+		printL "Could not find any valid ${OTU_prefix}'s within variable regions $region (via V-Xtractor). Aborting run.\n Remaining OTUs can be found in $outBFile*\n", 923;
+	}
+	
+	#check which OTUs existed before, but are not longer listed in ITSx output
+	my @prevOTUs = keys %FNA;
+	my %lookup;
+	foreach my $k ( keys %ITSo ) {
+		my $hdde = $k;# substr($k,1);#"${OTU_prefix}x_1";
+		#print $hdde;
+		$lookup{$hdde} = 1;
+	}
+	
+	my $delOTUs=0;
+	for my $otu ( @prevOTUs ) {
+		if (!exists($lookup{ $otu })){
+			$ret{$otu} = 1 ;
+			$delOTUs++;
+		}
+	}
+	
+
+	printL frame( "V region extraction: Kept " . scalar( keys(%ITSo) ) . ", deleted $delOTUs ${OTU_prefix}'s identified as regions $doVXTR (of "  . scalar( keys(%FNA) ) . " ${OTU_prefix}'s).\n"),0;
+	systemL "rm -f $outBFile*;";
+	$citations .= "V extraction of ribosomal regions: V-Xtractor: an open-source, high-throughput software tool to identify and extract hypervariable regions of small subunit (16S/18S) ribosomal RNA gene sequences. Martin Hartmann 1, Charles G Howes, Kessy Abarenkov, William W Mohn, R Henrik Nilsson\n";
+	return \%ret;
+
+
+}
+
 sub ITSxOTUs {
 	my ($otusFA) = @_;
 	my %ret;
 	return \%ret unless ( substr( $ampliconType, 0, 3 ) eq "ITS" );
 	return \%ret if ( !$doITSx );
 	if ( !-e $itsxBin ) {
-		printL "Did not find ITSx binary at $itsxBin\nNo ITS extraction used\n";
+		printL "Did not find ITSx binary at $itsxBin\nNo ITS extraction used\n","w";
 		return \%ret;
 	}
 	if ( !-e $hmmsrchBin ) {
-		printL "Did not find hmmscan binary at $hmmsrchBin\nNo ITS extraction used\n";
+		printL "Did not find hmmscan binary at $hmmsrchBin\nNo ITS extraction used\n","w";
 		return \%ret;
 	}
 
@@ -1028,7 +1103,7 @@ sub ITSxOTUs {
 	$itsxOrg = "F" if ( lc($organism) eq "fungi" );
 
 	#die "$itsxOrg\n";
-	my $cmd = "$itsxBin -i $otusFA -o $outBFile -cpu $uthreads --multi_thread T --heuristics T -t $itsxOrg --silent T --fasta T --save_regions $ITSxReg --partial $ITSpartial --hmmBin $hmmsrchBin --preserve T;";
+	my $cmd = "$itsxBin -i $otusFA -o $outBFile --cpu $uthreads --multi_thread T --heuristics T -t $itsxOrg --silent T --fasta T --save_regions $ITSxReg --partial $ITSpartial --hmmBin $hmmsrchBin --preserve T;";
 	$cmd .= "cp $outBFile.summary.txt $logDir/ITSx.summary.txt\n";
 	if ( systemL($cmd) != 0 ) { printL( "Failed command:\n$cmd\n", 1 ); }
 
@@ -2110,17 +2185,13 @@ sub readPaths_aligners($) {
 		}
 		elsif ( $line =~ m/^lambda_index\s+(\S+)/ ) {
 			$lambdaIdxBin = truePath($1);
+		} elsif ( $line =~ m/^vxtractor\s+(\S+)/ ) {$vxtrBin = truePath($1);
+		} elsif ( $line =~ m/^vxtractorHMMs\s+(\S+)/ ) {$hmmsVX = $1;
+		} elsif ( $line =~ m/^itsx\s+(\S+)/ ) {$itsxBin = truePath($1);
+		} elsif ( $line =~ m/^hmmsearch\s+(\S+)/ ) { $hmmsrchBin = truePath($1);
+		} elsif ( $line =~ m/^CheckForUpdates\s+(\S+)/ ) {$checkForUpdates = $1;
 		}
-		elsif ( $line =~ m/^itsx\s+(\S+)/ ) {
-			$itsxBin = truePath($1);
-		}
-		elsif ( $line =~ m/^hmmsearch\s+(\S+)/ ) {
-			$hmmsrchBin = truePath($1);
-		}
-		elsif ( $line =~ m/^CheckForUpdates\s+(\S+)/ ) {
-			$checkForUpdates = $1;
-		}
-    }
+	}
 
     #check that usearch is execuatble
     if ( $doBlasting == 3 && !-f $usBin ) {
@@ -2918,6 +2989,7 @@ my %taxonomy_options = (
   '-ITSx <0|1>', '(1) use ITSx to only retain OTUs fitting to ITS1/ITS2 hmm models; (0) deactivate. (Default: 1)',
   '-itsx_partial <0-100>', 'Parameters for ITSx to extract partial (%) ITS regions as well. (0) deactivate. (Default: 0)',
   '-lulu <0|1>', '(1) use LULU (https://github.com/tobiasgf/lulu) to merge OTUs based on their occurence. (Default: 1)',
+  '-buildPhylo <0,1,2,>','(0) do not build OTU phylogeny; (1) use fasttree2; (2) use iqtree2. (Default: 1)',
 );
 
 my $clustering_heading = "Clustering Options";

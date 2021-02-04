@@ -927,7 +927,7 @@ sub get_DBs{
 		system "tar -xzf $tarUTN -C $bdir;rm $tarUTN";
 		unlink($tarUTN);
 		@txt = addInfoLtS("itsx","$bdir/ITSx_1.0.11/./ITSx",\@txt,1);
-		@txt = addInfoLtS("hmmsearch","$bdir/ITSx_1.0.11/bin/./hmmscan",\@txt,1);
+		@txt = addInfoLtS("hmmsearch","$bdir/ITSx_1.0.11/bin/hmmscan",\@txt,1);
 
 	}
 	
@@ -1083,6 +1083,17 @@ sub get_programs{
 	#die "$vexe\n";
 
 
+	#V-Xtractor
+	my $vxexe = "$bdir/vxtr/vxtractor.pl";
+	system "mkdir -p $bdir/vxtr/";
+	getS2("http://lotus2.earlham.ac.uk/lotus/packs/VXtractor/vxtractor.pl",$vxexe);
+	@txt = addInfoLtS("vxtractor",$vxexe,\@txt,1);
+	$vxexe = "$bdir/vxtr/HMM.zip";
+	getS2("http://lotus2.earlham.ac.uk/lotus/packs/VXtractor/HMMs.zip",$vxexe);
+	system("unzip  -o -q $vxexe -d $bdir/vxtr/;rm $vxexe;");
+	@txt = addInfoLtS("vxtractorHMMs","$bdir/vxtr/HMMs/",\@txt,2);
+	#die "$bdir/vxtr/HMMs/";
+
 
 
 	#DEBUG
@@ -1185,6 +1196,8 @@ sub get_programs{
 		system("chmod +x $fexe");
 		@txt = addInfoLtS("flashBin",$fexe,\@txt,1);
 	}
+	
+	
 
 
 	#cd-hit
@@ -1311,6 +1324,10 @@ sub user_options(){
 				last;
 			} elsif ($_ eq "x") {
 				$skipAll=1;
+				last;
+			} elsif ($_ eq "xx") {
+				$skipAll=1;
+				$refDBinstall[0] = 1;$refDBinstall[8] = 0;$ITSready=0;$getUTAX=0;
 				last;
 			} else {
 				exit(0);

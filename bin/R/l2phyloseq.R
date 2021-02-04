@@ -66,18 +66,18 @@ colnames(sd) = sdA[-1]
 # Read the taxonomy table:
 tax= as.matrix(read.delim(path_TAX, row.names=NULL,header=TRUE,sep="\t") )
 if (RDPhier){
-	rownames(tax) = tax[,dim(tax)[2]]
-	tax = tax[,1:(dim(tax)[2]-1)]
+	rownames(tax) = tax[,dim(tax)[2],drop=FALSE]
+	tax = tax[,1:(dim(tax)[2]-1),drop=FALSE]
 } else {
 	rownames(tax) = tax[,1]
-	tax = tax[,2:(dim(tax)[2])]
+	tax = tax[,2:(dim(tax)[2]),drop=FALSE]
 }
 
 if (dim(tax)[1] < dim(otu)[1]){
 	taxA = matrix("?", nrow(otu), ncol(tax))
 	rownames(taxA) = dimnames(otu)[[1]]
 	idx = dimnames(otu)[[1]] %in% dimnames(tax)[[1]] 
-	taxA[idx,] = tax[dimnames(otu)[[1]][idx],]
+	taxA[idx,] = tax[dimnames(otu)[[1]][idx],,drop=FALSE]
 	tax = taxA
 	#rownames(taxA) = dimnames(otu)[[1]][idx]
 	#tax=rbind (tax, taxA)
