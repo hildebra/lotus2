@@ -59,7 +59,9 @@ sub user_options;
 
 
 my $forceUpdate=0;
+my $condaDBinstall=0;
 if (@ARGV > 0 && $ARGV[0] eq "-forceUpdate"){$forceUpdate=1};
+if (@ARGV > 0 && $ARGV[0] eq "-condaDBinstall"){$condaDBinstall=1};
 #die "$ARGV[0] $forceUpdate\n";
 
 my $isMac = 1;
@@ -102,8 +104,10 @@ if (@ARGV > 0 && $ARGV[0] eq "-link_usearch"){
 ###### GET USER OPTIONS ###################
 
 my ($lver,$sver) = getInstallVer("");
-if ($forceUpdate==0){
+if ($forceUpdate==0 && $condaDBinstall == 0){
 	print "\n\t####################################\n\t LotuS $lver Auto Installer script.\n\t####################################\n\n";
+} elsif ($condaDBinstall){
+	print "\n\nConda Lotus Install: Downloading standarad DB set for LotuS2\n\n";
 } else {
 	print "\n\nRerunning updates due to updated autoupdate.pl script\n\n";
 }
@@ -131,7 +135,7 @@ if (!-e $uspath){
 #die "@txt\n";
 
 
-if ($usearch_reset==1){
+if ($usearch_reset==1 && !$condaDBinstall){
 	print "\n\n#######################################################################################";
 	print "\nUSEARCH ver 7, 8, 9 or 10 has to be installed manually (due to licensing). Please download & install from http://www.drive5.com/usearch/download.html  \n";
 	print "If you have already installed it on this system, please enter the absolute path to usearch below.\nOr continue by entering \"0\" (you have to add it later via \"./autoInstall.pl -link_usearch [path to usearch]\"\n\nAnswer:";
@@ -198,6 +202,11 @@ if ($UID eq "??"){
 
 ###################   database downloads ... #########################
 get_DBs();
+
+if ($condaDBinstall){
+	print "Finished LotuS2 DB install (Conda autointall)\nEnjoy LotuS2!\n";
+	exit(0)
+}
 
 ###################   prgrams downloads & installs... #########################
 
@@ -524,6 +533,7 @@ if ($taxGuide2 ne ""){
 open I,"<",$taxGuide2 or die "Can't find taxguide file $taxGuide2\n";
 while (my $line = <I>){
 	chomp($line); my @splg = split("\t",$line);
+	next if (@splg < 2);
 	my $newN =  $splg[0]; #lc
 	$taxG{$newN} =  $splg[2];
 } 
@@ -1245,8 +1255,13 @@ sub get_programs{
 }
 
 sub user_options(){
+
+	if ($condaDBinstall){#no user input at all wanted
+		return;
+	}
 	if ( ($UID ne "??" && -f $uspath) || $forceUpdate || $usearchInstall ne ""){#set UID, means lotus was installed here
 		my $inp="";
+		
 		if (!$forceUpdate && $usearchInstall eq ""){
 			while ($inp !~ m/\d/){
 				print "Detected previous installation of LotuS, do you want to \n (1) search & install updates\n (2) fully reinstall lotus (no LotuS update will be downloaded)\n";
