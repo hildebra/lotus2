@@ -185,12 +185,6 @@ if (check_exists('Rscript')) {
   exit(0);
 }
 
-if ($install_dada) {
-  print("Install dada2\n");
-  my $r_output = `Rscript bin/R/autoInstall.R 2>&1`;
-  print($r_output);
-}
-
 
 
 
@@ -207,6 +201,15 @@ if ($condaDBinstall){
 	print "Finished LotuS2 DB install (Conda autointall)\nEnjoy LotuS2!\n";
 	exit(0)
 }
+
+###################   R packages ... #########################
+
+if ($install_dada) {
+  print("Install dada2 and other R packages \n");
+  my $r_output = `Rscript bin/R/autoInstall.R 2>&1`;
+  print($r_output);
+}
+
 
 ###################   prgrams downloads & installs... #########################
 
@@ -916,30 +919,6 @@ sub get_DBs{
 		
 	}
 
-
-	if ($ITSready){
-		#ITS DB
-		my $tarUN = "$ddir/qITSfa.zip";
-		getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta.zip",$tarUN);
-		#getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/sh_qiime_release_02.03.2015.zip",$tarUN);
-		system("rm -r $ddir/UNITE;unzip -o $tarUN -d $ddir/UNITE/");
-		@txt = addInfoLtS("TAX_REFDB_ITS_UNITE","$ddir/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta",\@txt,1);
-		getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt.zip",$tarUN);
-		system("unzip -o $tarUN -d $ddir/UNITE/;rm -rf $ddir/UNITE/__MACOSX/");
-		@txt = addInfoLtS("TAX_RANK_ITS_UNITE","$ddir/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt",\@txt,1);
-		unlink($tarUN);
-		
-
-		#itsx
-		print "Downloading ITSX to detect valid ITS regions..\n";
-		my $tarUTN = "$bdir/ITSx_1.0.11.tar.gz";
-		getS2("http://lotus2.earlham.ac.uk/lotus/packs/ITSx_1.0.11.tar.gz",$tarUTN);
-		system "tar -xzf $tarUTN -C $bdir;rm $tarUTN";
-		unlink($tarUTN);
-		@txt = addInfoLtS("itsx","$bdir/ITSx_1.0.11/./ITSx",\@txt,1);
-		@txt = addInfoLtS("hmmsearch","$bdir/ITSx_1.0.11/bin/hmmscan",\@txt,1);
-
-	}
 	
 	#-------BIG DB INSTALL END
 	
@@ -989,7 +968,29 @@ sub get_DBs{
 sub get_programs{
 	#-----------  exit prog here, if set
 	#-----------------------
+	if ($ITSready){
+		#ITS DB
+		my $tarUN = "$ddir/qITSfa.zip";
+		getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta.zip",$tarUN);
+		#getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/sh_qiime_release_02.03.2015.zip",$tarUN);
+		system("rm -r $ddir/UNITE;unzip -o $tarUN -d $ddir/UNITE/");
+		@txt = addInfoLtS("TAX_REFDB_ITS_UNITE","$ddir/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta",\@txt,1);
+		getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt.zip",$tarUN);
+		system("unzip -o $tarUN -d $ddir/UNITE/;rm -rf $ddir/UNITE/__MACOSX/");
+		@txt = addInfoLtS("TAX_RANK_ITS_UNITE","$ddir/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt",\@txt,1);
+		unlink($tarUN);
+		
 
+		#itsx
+		print "Downloading ITSX to detect valid ITS regions..\n";
+		my $tarUTN = "$bdir/ITSx_1.1.3.tar.gz";
+		getS2("http://lotus2.earlham.ac.uk/lotus/packs/ITSx_1.1.3.tar.gz",$tarUTN);
+		system "tar -xzf $tarUTN -C $bdir;rm $tarUTN";
+		unlink($tarUTN);
+		@txt = addInfoLtS("itsx","$bdir/ITSx_1.1.3/./ITSx",\@txt,1);
+		@txt = addInfoLtS("hmmsearch","$bdir/ITSx_1.1.3/bin/hmmscan",\@txt,1);
+
+	}
 
 	#-------BLAST LAMBDA INSTALL
 	if ($installBlast == 1 || $installBlast == 3){
