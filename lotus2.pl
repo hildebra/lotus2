@@ -338,7 +338,7 @@ if ( $check_map ne "" ) {
 }
 if ($create_map ne ""){
 	autoMap($input, $create_map);
-	exit(0);
+	exit(0); 
 }
 #declare global vars
 my $logDir       = $outdir . "/LotuSLogS/";
@@ -1101,9 +1101,19 @@ sub ITSxOTUs {
 	}
 	my $itsxOrg = "all";
 	$itsxOrg = "F" if ( lc($organism) eq "fungi" );
-
+	my $xcmd = "";
+	
 	#die "$itsxOrg\n";
-	my $cmd = "$itsxBin -i $otusFA -o $outBFile --cpu $uthreads --multi_thread T --heuristics T -t $itsxOrg --silent T --fasta T --save_regions $ITSxReg --partial $ITSpartial --hmmBin $hmmsrchBin --preserve T;";
+	#perl ITSx -h
+	#ITSx -- Identifies ITS sequences and extracts the ITS region
+	#by Johan Bengtsson-Palme et al., University of Gothenburg
+	#Version: 1.0.11
+
+	my $preChk = `perl $itsxBin -h 2>&1`;
+	if ($preChk =~ m/Version: 1\.([\.0-9]+)/){
+		if ($1 >= 1.3){$preChk = "--temp $lotus_tempDir/itsx/";systemL "mkdir -p $lotus_tempDir/itsx/";}
+	}
+	my $cmd = "perl $itsxBin -i $otusFA -o $outBFile --cpu $uthreads --multi_thread T --heuristics T -t $itsxOrg --silent T --fasta T --save_regions $ITSxReg --partial $ITSpartial --hmmBin $hmmsrchBin --preserve T;";
 	$cmd .= "cp $outBFile.summary.txt $logDir/ITSx.summary.txt\n";
 	if ( systemL($cmd) != 0 ) { printL( "Failed command:\n$cmd\n", 1 ); }
 
@@ -1742,7 +1752,7 @@ sub forceMerge_fq2fna($ $ $ $ $) {
 		#close I2;
 	}
     if ( -f $sdms ) { 
-	print "sdms $sdms\n";
+	#print "sdms $sdms\n";
 		open I, "<", $sdms;
 		$lnCnt = 0;
 		while ( my $line = <I> ) {
@@ -2430,9 +2440,8 @@ sub readPaths {    #read tax databases and setup correct usage
             if ( $subrdbw =~ m/^UNITE$/
                 || substr( $ampliconType, 0, 3 ) eq "ITS" )
             {                                 #overrides everything else
-                printL "Using UNITE ITS ref seq database.\n", 0;
-                $ampliconType =
-                  "ITS";    #unless (substr($ampliconType,0,3) eq "ITS");
+                #printL "Using UNITE ITS ref seq database.\n", 0;
+                $ampliconType = "ITS";    #unless (substr($ampliconType,0,3) eq "ITS");
                 push @TAX_REFDB, $TAX_REFDB_ITS_UNITE;
                 push @TAX_RANKS, $TAX_RANK_ITS_UNITE;
                 if ( !-f $TAX_REFDB[-1] || !-f $TAX_RANKS[-1] ) {
@@ -5185,7 +5194,9 @@ sub printL($ $) {
         print LOG $msg;
     }
     if ( defined $stat && $stat ne "0" ) { 
+		print "LotuS2 encountered an error:\n";
 		print $msg if ($verbosity < 1) ; #print in any case, since exiting on this message
+		print "\nYou can contact the team about this on \"https://github.com/hildebra/lotus2/\". However, a good first step is to first check if the last error occured in a program called by LotuS2 (\"tail $progOutPut\") and to recapitulate the last program calls and see if the error is related to the system you are running it on (e.g. external program breaking). To see the last commands by the pipeline, run \"tail $cmdLogFile\".\nThis information is also very useful for us to know, if you chose to contact the LotuS2 team about this.\n";
 		exit($stat); 
 	}
 }
