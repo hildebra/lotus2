@@ -1669,7 +1669,6 @@ sub clean_otu_mat($ $ $ $) {
 	$Lreport .= "After filtering $nonChim $OTU_prefix ($nonChimRds reads) remaining in matrix.\n";
 
 	if ( ( $nonChim - $emptyOTUcnt ) == 0 ) {
-
 		#print "$nonChim - $emptyOTUcnt\n";
 		printL "Empty ${OTU_prefix} matrix.. aborting LotuS run!\n", 87;
 	}

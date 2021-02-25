@@ -1034,7 +1034,6 @@ sub get_programs{
 	if ($installBlast == 0){
 		print "\nNo similarity comparison program will be installed.\n";
 	}
-
 	#-------BLAST LAMBDA INSTALL END
 
 	#swarm
@@ -1353,15 +1352,18 @@ sub user_options(){
 		if ($isMac){print "Mac system detected, installing corresponding mac software.\n";}
 
 	#decide on blast
+		if ($skipAll){
+			return;
+		}
 		print "\n\nFor similarity based taxonomic assignments LotuS can either use \n (1) Blastn (slow but very sensitve)\n (2) Lambda (fast, a little less sensitive than Blastn)\n (3) both, decide at runtime which to use or\n (0) none\n Answer:";
-		while (!$skipAll && <> ){
+		while (<> ){
 			chomp($_);
 			if ($_ == 1 || $_ == 3 ||$_ == 2 ||$_ == 0){
 				$installBlast = $_;
 				last;
 			}
 		}
-
+	
 	}
 
 
@@ -1373,7 +1375,7 @@ sub user_options(){
 	print " (5) beeTax (~2 MB) database specialized (and named) on taxonomy specific to the bee gut.\n";
 	print " (8) HITdb + SILVA + greengenes + PR2 + beeTax (one has to be select for each LotuS run)\n (0) no database\n";
 	print "Answer:";
-	while (!$skipAll && <>){
+	while (<>){
 		chomp($_); 
 		if ($_ == 1 ||$_ == 4 || $_ == 3 ||$_ == 2 ||$_ == 5 ||$_ == 0 ||$_ == 8){
 			$refDBinstall[$_] = 1;
@@ -1381,9 +1383,9 @@ sub user_options(){
 		}
 	}
 	#SILVA license
-	if ($refDBinstall[2] || $refDBinstall[8]){
+	if (!$skipAll && ($refDBinstall[2] || $refDBinstall[8])){
 		print "Please read and accept the SILVA license: https://www.arb-silva.de/fileadmin/silva_databases/LICENSE.txt\n Accepted it (y/n)? \n";
-		while (!$skipAll && <>){
+		while (<>){
 			chomp($_);
 			if ($_ eq "y" || $_ eq "Y" || $_ eq "yes"){
 				last;
@@ -1395,7 +1397,7 @@ sub user_options(){
 
 	print "\n\nDo you want to\n (1) install databases and programs required to process ITS data (including fungi ITS UNITE database)\n (0) no ITS related packages\n Answer:";
 
-	while (!$skipAll && <>){
+	while (<>){
 		chomp($_); 
 		if ($_ == 1 ||$_ == 0){
 			$ITSready = $_;
@@ -1405,7 +1407,7 @@ sub user_options(){
 
 	#UTAX ref DBs..
 	print "\n\nDo you want to\n (1) install utax taxonomic classification databases (16S, ITS)?\n (0) no utax related databases\n Answer:";
-	while (!$skipAll && <>){
+	while (<>){
 		chomp($_);
 		if ($_ == 1 ||$_ == 0){
 			$getUTAX = $_;
