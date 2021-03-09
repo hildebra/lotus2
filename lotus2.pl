@@ -3351,7 +3351,7 @@ sub calcHighTax($ $ $ $ $) {
 
         }
 		if ($keepUnclassified){
-			print O "\n" . "noHit;" . $SEP;
+			print O "\n" . "noHit;";
 			my @OTUli = ();
 			foreach (keys %matOTUsTT){
 				push @OTUli, $_ if ($matOTUsTT{$_} == 0);
@@ -3365,7 +3365,7 @@ sub calcHighTax($ $ $ $ $) {
 				}
 			}
 			$lvlSmplCnt  += $smplTaxCnt;
-			print O  $smplTaxCnt;
+			print O  $SEP.$smplTaxCnt;
 			}
 		}
 		close O;
