@@ -7,6 +7,7 @@ rtk_src
 lotus.pl
 lOTUs.cfg
 config.txt
+myTestRun
 bin/vxtr/vxtractor.pl
 bin/vxtr/
 bin/rdp_classifier_2.12

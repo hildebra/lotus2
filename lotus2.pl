@@ -140,7 +140,7 @@ my $FaProTax        = undef; #faprotax -> functional annotations from taxonomy~~
 
 # --------------------
 #general lOTUs parameters
-my $selfID = "LotuS 2.00"; #release candidate: 2.0
+my $selfID = "LotuS 2.01"; #release candidate: 2.0
 my $citations = "$selfID: Hildebrand F, Tadeo RY, Voigt AY, Bork P, Raes J. 2014. LotuS: an efficient and user-friendly OTU processing pipeline. Microbiome 2: 30.\n";
 my $noChimChk = 0; #deactivate all chimera checks 1=no nothing, 2=no denovo, 3=no ref; default = 0
 my $mainLogFile = "";
@@ -2897,10 +2897,12 @@ sub prepLtsOptions{
 
 	if ( !-e $sdmOpt && $TaxOnly eq "0") {
 		if ( $sdmOpt eq "" ) {
-			$sdmOpt = "$RealBin/sdm_miSeq.txt";
-			printL "No sdm Option specified, using standard 454 sequences options", 0;
+			$sdmOpt = "configs/sdm_miSeq.txt";
+			printL "No sdm Option specified, using standard miSeq sdm options", 0;
 		}
-		printL "Could not find sdm options file (specified via \"-s\". Please make sure this is available.\n Aborting run..\n",33;
+		if (!-e $sdmOpt){
+			printL "Could not find sdm options file (specified via \"-s $sdmOpt\"). Please make sure this is available.\n Aborting run..\n",33;
+		}
 	}
 
 	#die $LCABin."\n";
@@ -3329,21 +3331,21 @@ sub calcHighTax($ $ $ $ $) {
 			}
 
             #die(join("-",@OTUli)." ".$ta."\n");
-            foreach my $sm (@avSmps) {
-                printL("Sample $sm does not exist\n"), 0  if ( !exists( $OTUmat{$sm} ) );
-                my $smplTaxCnt = 0;
-                foreach (@OTUli) {
-                    next if ( !$keepUnclassified && exists( $fails{$_} ) );
-                    if ( !exists( $OTUmat{$sm}{$_} ) ) {
-                        printL( "Sample $sm id $_ does not exist. $l. $ta.\n", 0 );
-                    }
-                    else {
-                        $smplTaxCnt += $OTUmat{$sm}{$_};
-                    }
-                }
-                $assignedCnt += $smplTaxCnt if ( !$isUnassigned );
-                $lvlSmplCnt  += $smplTaxCnt;
-                print O $SEP . $smplTaxCnt;
+			foreach my $sm (@avSmps) {
+				printL("Sample $sm does not exist\n"), 0  if ( !exists( $OTUmat{$sm} ) );
+				my $smplTaxCnt = 0;
+				foreach (@OTUli) {
+					next if ( !$keepUnclassified && exists( $fails{$_} ) );
+					if ( !exists( $OTUmat{$sm}{$_} ) ) {
+						printL( "Sample $sm id $_ does not exist. $l. $ta.\n", 0 );
+					}
+					else {
+						$smplTaxCnt += $OTUmat{$sm}{$_};
+					}
+				}
+				$assignedCnt += $smplTaxCnt if ( !$isUnassigned );
+				$lvlSmplCnt  += $smplTaxCnt;
+				print O $SEP . $smplTaxCnt;
             }
             $isUnassigned = 0;
 			
@@ -5193,9 +5195,8 @@ sub printL($ $) {
         print LOG $msg;
     }
     if ( defined $stat && $stat ne "0" ) { 
-		print "LotuS2 encountered an error:\n";
-		print $msg if ($verbosity < 1) ; #print in any case, since exiting on this message
-		print "\nYou can contact the team about this on \"https://github.com/hildebra/lotus2/\". However, a good first step is to first check if the last error occured in a program called by LotuS2 (\"tail $progOutPut\") and to recapitulate the last program calls and see if the error is related to the system you are running it on (e.g. external program breaking). To see the last commands by the pipeline, run \"tail $cmdLogFile\".\nThis information is also very useful for us to know, if you chose to contact the LotuS2 team about this.\n";
+		#print "Error: $msg\n";# if ($verbosity < 1) ; #print in any case, since exiting on this message
+		print "\n%@#%@#%@#%@%@#@%#@%#@#%@#%@#%@#@%#@%#@%#@#%@#%@#%@##\nYour LotuS2 run encounterend an error!\nFirst check if the last error occured in a program called by LotuS2 \n\"tail $progOutPut\"\n, if there is an obvious solution (e.g. external program breaking, this we can't fix). To see (and excecute) the last commands by the pipeline, run \n\"tail $cmdLogFile\".\nIn case you decide to contact us on \"https://github.com/hildebra/lotus2/\", please try to include information from these approaches in your message, this will increase our response time. Thank you.\n%@#%@#%@#%@%@#@%#@%#@#%@#%@#%@#@%#@%#@%#@#%@#%@#%@##\n";
 		exit($stat); 
 	}
 }

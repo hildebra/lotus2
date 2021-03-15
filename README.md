@@ -10,11 +10,15 @@ http://www.microbiomejournal.com/content/2/1/30
 
 
 ### REQUIREMENTS
-LotuS requires a perl installation and sdm requires a fairly recent C++ compiler (like gcc or clang) that supports C++11.
+LotuS2 requires a perl installation and sdm requires a fairly recent C++ compiler (like gcc or clang) that supports C++11.
 Lambda currently only works under linux, the option to use lambda is not available on mac os :( Instead, Blast can be installed.
 
-### INSTALL LotuS
-To install LotuS and required properitary software execute
+### INSTALL LotuS2
+Either download and untar from http://lotus2.earlham.ac.uk/ or use the linux/mac command 
+```{sh}
+git clone https://github.com/hildebra/lotus2.git
+```
+To install properitary software execute
 ```{sh}
 perl autoInstall.pl
 ```
@@ -25,8 +29,7 @@ http://lotus2.earlham.ac.uk/documentation.html
 If you want to install software and databases to other locations, follow installation instructions on: 
 http://lotus2.earlham.ac.uk/documentation.html
 
-Compiling **sdm** manually (the autoinstaller is alternatively doing this):
-go to the lotus subdirectory *sdm_src* and run 
+LotuS2 packs a static compiled linux sdm binary, this should be useable out of the box. However, to manually compile **sdm**  (the autoinstaller can also do this) go to the lotus subdirectory *sdm_src* and run 
 **make** to compile the sdm binary. Next copy the binary into the lotus directory using **cp**.
 ```{sh}
 cd sdm_src
@@ -34,25 +37,26 @@ make
 cp sdm ../sdm
 ```
 
-###  UPDATE LotuS
-LotuS has a built in mechanism to upgrade LotuS, so that properitary programs & databases (once installed) don't have to be downloaded again. To use this feature a) install LotuS for the first time using the autoinstaller. 
-Once you know or want to check for new updates, simply excecute the autoinstaller again and you will be prompted if LotuS should be updated. In case no new updates are available, the autoinstaller will exit without making changes, so this function can be used frequently. New updates will always be announced on LotuS webpage (http://lotus2.earlham.ac.uk/).
+###  UPDATE LotuS2
+If you installed LotuS2 via "git clone", you can get the latest release via "git pull".
+LotuS2 has a built in mechanism to upgrade LotuS2, so that properitary programs & databases (once installed) don't have to be downloaded again. To use this feature a) install LotuS2 for the first time using the autoinstaller. 
+Once you know or want to check for new updates, simply excecute the autoinstaller again and you will be prompted if LotuS2 should be updated. In case no new updates are available, the autoinstaller will exit without making changes, so this function can be used frequently. New updates will always be announced on LotuS2 webpage (http://lotus2.earlham.ac.uk/).
 
 ### EXAMPLES
 To test your installation, run the example test set:
 ```{sh}
-./lotus.pl -i Example/ -m Example/miSeqMap.sm.txt -s sdm_miSeq.txt -p miSeq -o myTestRun
+perl lotus2.pl -i Example/ -m Example/miSeqMap.sm.txt -s configs/sdm_miSeq.txt -p miSeq -o myTestRun
 ```
 
 
-**Please cite LotuS with:**
+**Please cite LotuS2 with:**
 
 Hildebrand F, Tadeo RY, Voigt AY, Bork P, Raes J. 2014. LotuS: an efficient and user-friendly OTU processing pipeline. Microbiome 2: 30. 
 
 
 ## Acknowledgements of the softwares
 
-I would like to acknowledge the following software, that is used in LotuS, please also acknowledge these if you use them:
+I would like to acknowledge the following software, that is used in LotuS2, please also acknowledge these if you use them:
 
 * **DADA2** - Callahan, B., McMurdie, P., Rosen, M. et al. 2016. DADA2: High resolution sample inference from Illumina amplicon data. Nat Methods, 13. 581–583 (2016).
 
@@ -108,4 +112,4 @@ I would like to acknowledge the following software, that is used in LotuS, pleas
 ## C++ libraries
 
 * **gzip libraries** - (gzstream.h) https://gist.github.com/piti118/1508048 and zlib library (http://www.zlib.net/)
-
+* **robin_hood hash map libraries** - (robinhood.h) https://github.com/martinus/robin-hood-hashing
