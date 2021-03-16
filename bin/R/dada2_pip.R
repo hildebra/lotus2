@@ -146,9 +146,6 @@ for (i in names(tSuSe)){
 	listR[[i]] = paste0(pathF, paste0(mapping[idx,"#SampleID"],".2.fq",sep="") )
 	listM[[i]] = paste0(pathF, paste0(mapping[idx,"#SampleID"],".merg.fq",sep="") )
 
-	if (all(!file.exists(listF[[i]]))){#single file case
-		listF[[i]] = paste0(pathF, paste0(mapping[idx,"#SampleID"],".fq",sep="") )
-	}
 	for (XX in 1:length(listF[[i]])){
 		if (!file.exists(listF[[i]][XX])){
 			listF[[i]][XX]= paste0(listF[[i]][XX],".gz")
@@ -169,7 +166,15 @@ for (i in names(tSuSe)){
 				listM[[i]][XX] = ""
 			}
 		}
-		
+	}
+	#last resort..
+	if (all(!file.exists(listF[[i]]))){#single file case
+		listF[[i]] = paste0(pathF, paste0(mapping[idx,"#SampleID"],".fq",sep="") )
+		for (XX in 1:length(listF[[i]])){
+			if (!file.exists(listF[[i]][XX])){
+				listF[[i]][XX]= paste0(listF[[i]][XX],".gz")
+			}
+		}
 	}
 	#next;
 }
