@@ -875,9 +875,10 @@ sub sdmStep1{
 		}
 	}
 	my $mrgOpt = "";#"-merge_pairs 1";
+	my $multCore = ""; $multCore = " -threads $uthreads";
 
 	#primary sequence filtering + demultiplexing + dereplication
-	$sdmcmd = "$sdmBin $sdmIn $sdmOut -sample_sep $sep_smplID  -log $mainSDMlog -map $cpMapFile $sdmMergeOpt $sdmOptStr $demultiSaveCmd $derepCmd $dmgCmd $qualOffset -paired $paired $paired_sdm -maxReadsPerOutput $linesPerFile -oneLineFastaFormat 1 $mrgOpt ";    #4000000
+	$sdmcmd = "$sdmBin $sdmIn $sdmOut -sample_sep $sep_smplID  -log $mainSDMlog -map $cpMapFile $sdmMergeOpt $sdmOptStr $demultiSaveCmd $derepCmd $dmgCmd $qualOffset -paired $paired $paired_sdm -maxReadsPerOutput $linesPerFile -oneLineFastaFormat 1 $mrgOpt $multCore ";    #4000000
 	#die $sdmcmd."\n";
 
 
@@ -4703,11 +4704,11 @@ sub doDBblasting($ $ $) {
         $simMethod = "BLAST";
     
 	} elsif ($doBlasting == 4 || $doBlasting == 5){#new default: vsearch 
-			my $outCols="query+target+id+alnlen+mism+opens+qlo+qhi+tlo+thi+ql";
+		my $outCols="query+target+id+alnlen+mism+opens+qlo+qhi+tlo+thi+ql";
         my $udbDB = $DB . ".vudb";
         $udbDB = $DB . ".udb" if ($doBlasting == 5 );
         if ( !-f $udbDB ) { 
-            print "Building UDB database\n";
+            print "Building UDB database (takes some time the first time)\n";
 			if ($doBlasting == 4 ){
 				if (systemL("$VSBinOri  --makeudb_usearch $DB -output $udbDB;")){printL "VSEARCH DB building failed\n";}
 			} else {
@@ -4742,7 +4743,7 @@ sub doDBblasting($ $ $) {
             systemL "rm -r $DB.*;";
         }
         if ( !-f $DB . ".dna5.fm.sa.val" ) {
-            print "Building LAMBDA index anew (may take up to an hour)..\n";
+            print "Building LAMBDA index anew (may take up to an hour first time)..\n";
 
             #die($DB.".dna5.fm.sa.val");
             my $xtraLmbdI = "";
