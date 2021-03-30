@@ -322,7 +322,7 @@ GetOptions(
 
     # "flashAvgLength" => \$flashLength,
     #"flashAvgLengthSD" => \$flashSD,
-) or usage("Unknown options");
+) or usage();
 
 
 #routines that are external of a proper 16S run
@@ -2945,8 +2945,9 @@ sub prepLtsOptions{
 
 
 sub help {
+    my $opt_name = shift;
+    my $exit_code = $opt_name eq 'help' ? 0 : $opt_name;
 	my $ver = 0;
-	($ver) = @_ if (@_ > 0);
 
 
 # HELP BLOCK LOTUS2
@@ -3119,13 +3120,12 @@ foreach $key (keys %clustering_options)
 
 #   print "  -pseudoRefOTUcalling [1: create Reference based (open) OTUs, where the chosen reference database (SLV,GG etc) is being used as cluster center. Default: 0]\n";
 #print "  -OTUbuild [OTU building strategy: \"ref_closed\", \"ref_open\" or \"denovo\" (default)\n";
-	exit(0);
+	exit($exit_code);
 }
 
 sub usage {
     print STDERR @_ if @_;
     help(1);
-    exit(1);
 }
 
 sub parse_duration {
