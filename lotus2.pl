@@ -277,7 +277,7 @@ GetOptions(
     "extendedLogs=i"        => \$extendedLogs,
     "cl|CL|clustering|UP|UPARSE=s" => \$ClusterPipe_pre,
     "t|thr|threads=i"       => \$uthreads,
-	"v"                     => \$versionOut,
+	"v|version"             => \$versionOut,
 	"verbosity=i"           => \$verbosity,
     "highmem=i"             => \$sdmDerepDo,
     "useBestBlastHitOnly=i" => \$maxHitOnly,
