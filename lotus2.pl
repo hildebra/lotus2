@@ -2782,8 +2782,14 @@ sub prepLtsOptions{
 		printL "Usearch ver 7 is outdated, it is recommended to install ver 9.\nDownload from http://drive5.com/ and execute \n\"./autoInstall.pl -link_usearch [path to usearch9]\"\n",0;
 	}
 	if ($doLULU && $LULUscript eq "" || !-f $LULUscript){
-		printL "Requested LULU matrix corrections, can't find lulu R script at \"$LULUscript\"\n";
+		printL "Requested LULU matrix corrections, can't find lulu R script at \"$LULUscript\"\n",24;
 	}
+	if ($Rscript eq "" || !-e $Rscript){
+		my $warnLvl = "w";
+		$warnLvl=291 if ($doLULU || $ClusterPipe == 7);
+        printL "Rscript can't be found, but is required for dada2, LULU and phyloseq\n",$warnLvl;
+	}
+
 	#die "$usearchVer $usearchsubV\n";
 	if ( $doXtalk == -1 ) {
 		if ( $usearchVer >= 11 ) {
