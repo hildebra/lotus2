@@ -89,7 +89,7 @@ combineDada = function (samples, orderBy = "abundance")
 #ARGS parsing
 #args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//tmpFiles//","0","12","/hpc-home/hildebra/dev/lotus/maps/AngeTest1.16S.sm.ngz.map","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/derep.merg.fas")
 #args=c("/hpc-home/hildebra/grp/data/results/lotus/Anh//tmpFiles//demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Anh//tmpFiles/","0","14","/hpc-home/hildebra/grp/data/results/lotus/Anh//primary/in.map","/hpc-home/hildebra/grp/data/results/lotus/Anh//tmpFiles//derep.fas")
-#args=c("/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/scratch/ltsAponDD2s2//demultiplexed/","/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/scratch/ltsAponDD2s2/","0","8","/hpc-home/hildebra/grp/data/results/lotus/Apong3mergeDD2s2//primary/in.map","/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/scratch/ltsAponDD2s2//derep.fas")
+#args=c("/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/scratch/ltsAponDD2s2//demultiplexed/","/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/scratch/ltsAponDD2s2/","0","8","/hpc-home/hildebra/grp/data/results/lotus/Apong3mergeDD2s//primary/in.map","/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/scratch/ltsAponDD2s2//derep.fas")
 
 args = commandArgs(trailingOnly=TRUE)
 # test if all the arguments are there: 
@@ -299,6 +299,8 @@ if (length(args)>5){
 		tmp =names(ldada[[kk]]$denoised)
 		ldada[[kk]]$denoised = seq(length(ldada[[kk]]$denoised))
 		names(ldada[[kk]]$denoised) = tmp
+		#remove chimeras in subsets
+		ldada[[kk]]$denoised = removeBimeraDenovo(ldada[[kk]]$denoised,multithread=ncores)
 	}
 	#tdada=ldada[[1]]
 	cat("Finished initial per-subset dada2 clustering\n")

@@ -1358,7 +1358,7 @@ sub addSize2OTUfna($ $){
 sub chimera_denovo($){
 	my ($OTUfa) = @_;
 	#uparse, unoise, dada2 have their own chimera checks
-    if (   $ClusterPipe == 1 || !-e $OTUfa || $noChimChk == 1 || $noChimChk == 2 ){
+    if (   $ClusterPipe == 1 ||$ClusterPipe == 7||$ClusterPipe == 6 || !-e $OTUfa || $noChimChk == 1 || $noChimChk == 2 ){
 		return $OTUfa;
 	}
 	my $iniEntries = cntFastaEntrs($OTUfa);
