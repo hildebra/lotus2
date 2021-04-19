@@ -1358,7 +1358,7 @@ sub addSize2OTUfna($ $){
 sub chimera_denovo($){
 	my ($OTUfa) = @_;
 	#uparse, unoise, dada2 have their own chimera checks
-    if (   $ClusterPipe == 1 ||$ClusterPipe == 7||$ClusterPipe == 6 || !-e $OTUfa || $noChimChk == 1 || $noChimChk == 2 ){
+    if ($ClusterPipe == 1 ||$ClusterPipe == 7||$ClusterPipe == 6 || !-e $OTUfa || $noChimChk == 1 || $noChimChk == 2 ){
 		return $OTUfa;
 	}
 	my $iniEntries = cntFastaEntrs($OTUfa);
@@ -1366,6 +1366,7 @@ sub chimera_denovo($){
 	if ($extendedLogs) {
 		$chimOut = "$extendedLogD/chimeras_denovo.fa";
 	}
+	
 	my $progUsed = "vsearch uchime";
 	$cmd = "$VSBin -uchime_denovo $OTUfa -chimeras $chimOut -nonchimeras $lotus_tempDir/tmp1.fa -abskew $chimera_absskew -log $logDir/chimera_dn.log;";
 
@@ -1421,35 +1422,35 @@ sub chimera_ref_rem($) {
 	my $iniEntries = cntFastaEntrs($otusFA);
 	my $progUsed = "";
 	my $outfile = $otusFA.".tmp.fa";
-    if ($UCHIME_REFDB ne ""  && -f $UCHIME_REFDB && ( $noChimChk == 2 || $noChimChk == 0 ) ){
-		if ($extendedLogs) {
-			$chimOut = "$extendedLogD/chimeras_ref.fa";
-		} else {$chimOut = "$lotus_tempDir/chimeras_ref.fa";}
-        printL "Could not find fasta otu file $otusFA. Aborting..\n", 33 unless ( -s $otusFA );
-        $cmd = "$VSBin -uchime_ref  $otusFA -db $UCHIME_REFDB -strand plus -chimeras $chimOut -nonchimeras $outfile -threads $uthreads -log $logDir/uchime_refdb.log;";
-		$progUsed = "vsearch uchime_ref";
-        if (!$useVsearch && $usearchVer >= 9 && !$VSused ) {
-            $cmd = "$usBin -uchime2_ref  $otusFA -db $UCHIME_REFDB -mode balanced -strand plus -chimeras $chimOut -notmatched $outfile -threads $uthreads -log $logDir/uchime_refdb.log;";
-			$progUsed = "usearch uchime2_ref";
-        }
-        #die $cmd."\n";
-        if ( systemL($cmd) != 0 ) { printL( "Failed command:\n$cmd\n", 1 ); }
-        if ( $usearchVer >= 9 ) {
-            $citations .= "uchime2 chimera detection deNovo: Edgar, R.C. (2016), UCHIME2: Improved chimera detection for amplicon sequences, http://dx.doi.org/10.1101/074252..\n";
-        }
-        elsif ( $VSused == 0 ) {
-            $citations .= "uchime reference based chimera detection: Edgar RC, Haas BJ, Clemente JC, Quince C, Knight R. 2011. UCHIME improves sensitivity and speed of chimera detection. Bioinformatics 27: 2194–200.\n";
-        }
-        else {
-            $citations .= "Vsearch reference based chimera detection: \n";
-        }
-		systemL "rm $otusFA; mv $outfile $otusFA";
-        #print $outfile."\n";
-    }
-    else {
+    if ($ClusterPipe == 1 ||$ClusterPipe == 7 || $UCHIME_REFDB eq ""  || !-f $UCHIME_REFDB ||  $noChimChk == 1 ){
 		printL "No ref based chimera detection\n";
-        #$outfile = "$lotus_tempDir/uparse.fa";
-    }
+		return $chimOut;
+	}
+	#start ref chimera fasta
+	if ($extendedLogs) {
+		$chimOut = "$extendedLogD/chimeras_ref.fa";
+	} else {$chimOut = "$lotus_tempDir/chimeras_ref.fa";}
+	printL "Could not find fasta otu file $otusFA. Aborting..\n", 33 unless ( -s $otusFA );
+	$cmd = "$VSBin -uchime_ref  $otusFA -db $UCHIME_REFDB -strand plus -chimeras $chimOut -nonchimeras $outfile -threads $uthreads -log $logDir/uchime_refdb.log;";
+	$progUsed = "vsearch uchime_ref";
+	if (!$useVsearch && $usearchVer >= 9 && !$VSused ) {
+		$cmd = "$usBin -uchime2_ref  $otusFA -db $UCHIME_REFDB -mode balanced -strand plus -chimeras $chimOut -notmatched $outfile -threads $uthreads -log $logDir/uchime_refdb.log;";
+		$progUsed = "usearch uchime2_ref";
+	}
+	#die $cmd."\n";
+	if ( systemL($cmd) != 0 ) { printL( "Failed command:\n$cmd\n", 1 ); }
+	if ( $usearchVer >= 9 ) {
+		$citations .= "uchime2 chimera detection deNovo: Edgar, R.C. (2016), UCHIME2: Improved chimera detection for amplicon sequences, http://dx.doi.org/10.1101/074252..\n";
+	}
+	elsif ( $VSused == 0 ) {
+		$citations .= "uchime reference based chimera detection: Edgar RC, Haas BJ, Clemente JC, Quince C, Knight R. 2011. UCHIME improves sensitivity and speed of chimera detection. Bioinformatics 27: 2194–200.\n";
+	}
+	else {
+		$citations .= "Vsearch reference based chimera detection: \n";
+	}
+	systemL "rm $otusFA; mv $outfile $otusFA";
+	#print $outfile."\n";
+
 	
 	my $endEntries = cntFastaEntrs($otusFA);
 	printL( frame("Ref chimera filter using $progUsed\nTotal removed ${OTU_prefix}s: (". ($iniEntries-$endEntries) ."/$iniEntries)"), 0 );
@@ -2752,7 +2753,7 @@ sub prepLtsOptions{
 		
 	my $defDBset = 0;
 	if ( $refDBwanted eq "" ) {
-		$refDBwanted = "GG";
+		$refDBwanted = "SLV"; #switch to default SIVLA..
 		$defDBset    = 1;
 	}
 	
@@ -4549,12 +4550,12 @@ sub readMap() {
             }
         }
         if ( $line =~ m/\"/ ) {
-            $warnTrig = 1;
-            printL("Possible biom incompatibility: Mapping file contains \" for sample $smplNms. Lotus is removing this.","w");
+            $warnTrig = 0;
+            printL("Possible biom incompatibility: Mapping file contains paranthesis characters (\") for sample $smplNms. Lotus is removing this.","w");
         }
         if ( $line =~ m/ / ) {
             $warnTrig = 1;
-            printL("Possible biom incompatibility: Mapping file contains spaces for sample $smplNms","w");
+            printL("Possible biom incompatibility: Mapping file contains spaces (\" \") for sample $smplNms","w");
         }
         if ( $line =~ m/[^\x00-\x7F]/ ) {
             $warnTrig = 1;
@@ -4571,6 +4572,7 @@ sub readMap() {
             if ( $smplNms ne '#SampleID' ) {
                 printL"Missing \'#SampleID\' in first line of file $mapFile\n Aborting..\n",65;
             }
+			my $hasFwd=0; my $hasRev=0;
 
             #if ($line =~/\tCombineSamples\t/){$combineSamples=1;} #deprecated
             my $hcnt = 0;
@@ -4579,11 +4581,20 @@ sub readMap() {
                 if (m/^\s*$/) {
                     printL"Empty column header in mapping file (column $hcnt)\n$mapFile\n",4;
                 }
+				if (m/ForwardPrimer/){$hasFwd=1;}
+				if (m/ReversePrimer/){$hasRev=1;}
             }
-            if ( $line =~ m/\t\t/ ) {
+            if ($hasFwd==0){
+				$warnTrig = 1;
+				printL("No forward PCR primer for amplicon found in mapping file (column header \"ForwardPrimer\". This might invalidate chimera checks\n","w");
+			}
+			
+			if ( $line =~ m/\t\t/ ) {
                 printL"Empty header in mapping file:\n check for double tab chars in line 1:\n$mapFile\n",4;
             }
+			
         }
+		
         splice( @spl, 0, 1 );
 
         #print $smplNms." ".$spl[0]."\n";
@@ -4600,12 +4611,12 @@ sub readMap() {
     if ( scalar( keys %mapH ) == 0 ) {
         printL("Could not find sample names in mapping file (*nix/win file ending problem?\n",9);
     }
-    printL( frame($Ltxt), 0 );
 
     if ( $warnTrig == 1 ) {
         print "*********\nWarnings for mapping file \n$mapFile \nAbort by pressing Ctrl+c (10 sec wait)\n*********\n";
         sleep(10);
     }
+    printL( frame($Ltxt), 0 );
     return ( \%mapH, \%combH, $hasCombiSmpl );
 	
 }

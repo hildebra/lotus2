@@ -49,45 +49,107 @@ derepFastqRead= function (fls, n = 1e+06, verbose = FALSE, qualityType = "Auto")
 	derepO <- as(derepO, "derep")
     return(derepO)
 }
-combineDada = function (samples, orderBy = "abundance") 
+combineDada2 = function (samples, orderBy = "abundance") 
 {
-    if (class(samples) %in% c("dada", "derep", "data.frame")) {
-        samples <- list(samples)
-    }
-    if (!is.list(samples)) {
-        stop("Requires a list of samples.")
-    }
-    unqs <- lapply(samples, getUniques) #gets $denoised seqs from dada2
-    unqsqs <- unique(do.call(c, lapply(unqs, names))) #compares them
+	if (class(samples) %in% c("dada", "derep", "data.frame")) {
+		samples <- list(samples)
+	}
+	if (!is.list(samples)) {
+		stop("Requires a list of samples.")
+	}
+	unqs <- lapply(samples, getUniques) #gets $denoised seqs from dada2
+	unqsqs <- unique(do.call(c, lapply(unqs, names))) #compares them
 	sums = 0;
 	for (x in names(samples)){sums = sums + sum((samples[[x]]$clustering$abundance))}
-    rval <- matrix(0L, nrow = length(unqs), ncol = length(unqsqs))
-    colnames(rval) <- unqsqs
-    for (i in seq_along(unqs)) {
-        rval[i, match(names(unqs[[i]]), colnames(rval))] <- unqs[[i]]
-    }
-    if (!is.null(names(unqs))) {
-        rownames(rval) <- names(unqs)
-    }
-    if (!is.null(orderBy)) {
-        if (orderBy == "abundance") {
-            rval <- rval[, order(colSums(rval), decreasing = TRUE), 
-                drop = FALSE]
+	rval <- matrix(0L, nrow = length(unqs), ncol = length(unqsqs))
+	colnames(rval) <- unqsqs
+	for (i in seq_along(unqs)) {
+		rval[i, match(names(unqs[[i]]), colnames(rval))] <- unqs[[i]]
+	}
+	if (!is.null(names(unqs))) {
+		rownames(rval) <- names(unqs)
+	}
+	if (!is.null(orderBy)) {
+		if (orderBy == "abundance") {
+			rval <- rval[, order(colSums(rval), decreasing = TRUE), 
+				drop = FALSE]
+		}
+		else if (orderBy == "nsamples") {
+			rval <- rval[, order(colSums(rval > 0), decreasing = TRUE), 
+				drop = FALSE]
+		}
+	}
+	return(list(rval=rval,sums=sums))
+}
+
+isBimeraDenovo2 = function (unqs, minFoldParentOverAbundance = 2, minParentAbundance = 8, 
+    allowOneOff = FALSE, minOneOffParentDistance = 4, maxShift = 16, 
+    multithread = FALSE, verbose = FALSE) 
+{
+    unqs.int <- getUniques(unqs, silence = TRUE)
+    abunds <- unname(unqs.int)
+    seqs <- names(unqs.int)
+    seqs.input <- getSequences(unqs)
+    rm(unqs)
+    gc(verbose = FALSE)
+    if (is.logical(multithread)) {
+        if (multithread == TRUE) {
+            mc.cores <- getOption("mc.cores", detectCores())
         }
-        else if (orderBy == "nsamples") {
-            rval <- rval[, order(colSums(rval > 0), decreasing = TRUE), 
-                drop = FALSE]
+    }
+    else if (is.numeric(multithread)) {
+        mc.cores <- multithread
+        multithread <- TRUE
+    }
+    else {
+        warning("Invalid multithread parameter. Running as a single thread.")
+        multithread <- FALSE
+    }
+    loopFun <- function(i, unqs.loop, minFoldParentOverAbundance, 
+        minParentAbundance, allowOneOff, minOneOffParentDistance, 
+        maxShift) {
+        sq <- names(unqs.loop)[[i]]
+        abund <- unqs.loop[[i]]
+        pars <- names(unqs.loop)[(unqs.loop > (minFoldParentOverAbundance * 
+            abund) & unqs.loop > minParentAbundance)]
+        if (length(pars) < 2) {
+            return(FALSE)
+        }
+        else {
+            isBimera(sq, pars, allowOneOff = allowOneOff, minOneOffParentDistance = minOneOffParentDistance, 
+                maxShift = maxShift)
         }
     }
-    return(list(rval=rval,sums=sums))
+    if (multithread) {
+        mc.indices <- sample(seq_along(unqs.int), length(unqs.int))
+        bims <- mclapply(mc.indices, loopFun, unqs.loop = unqs.int, 
+            allowOneOff = allowOneOff, minFoldParentOverAbundance = minFoldParentOverAbundance, 
+            minParentAbundance = minParentAbundance, minOneOffParentDistance = minOneOffParentDistance, 
+            maxShift = maxShift, mc.cores = mc.cores)
+        bims <- bims[order(mc.indices)]
+    }
+    else {
+        bims <- lapply(seq_along(unqs.int), loopFun, unqs.loop = unqs.int, 
+            allowOneOff = allowOneOff, minFoldParentOverAbundance = minFoldParentOverAbundance, 
+            minParentAbundance = minParentAbundance, minOneOffParentDistance = minOneOffParentDistance, 
+            maxShift = maxShift)
+    }
+    bims <- unlist(bims)
+    bims.out <- seqs.input %in% seqs[bims]
+    names(bims.out) <- seqs.input
+    if (verbose) 
+        message("Identified ", sum(bims.out), " bimeras out of ", 
+            length(bims.out), " input sequences.")
+    return(bims.out)
 }
 
 
 
 
 
+
 #ARGS parsing
-#args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//tmpFiles//","0","12","/hpc-home/hildebra/dev/lotus/maps/AngeTest1.16S.sm.ngz.map","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S/tmpFiles/derep.merg.fas")
+#args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//tmpFiles//demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//tmpFiles/","0","2","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//primary/in.map","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//tmpFiles//derep.fas")
 #args=c("/hpc-home/hildebra/grp/data/results/lotus/Anh//tmpFiles//demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Anh//tmpFiles/","0","14","/hpc-home/hildebra/grp/data/results/lotus/Anh//primary/in.map","/hpc-home/hildebra/grp/data/results/lotus/Anh//tmpFiles//derep.fas")
 #args=c("/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/scratch/ltsAponDD2s2//demultiplexed/","/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/scratch/ltsAponDD2s2/","0","8","/hpc-home/hildebra/grp/data/results/lotus/Apong3mergeDD2s//primary/in.map","/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/scratch/ltsAponDD2s2//derep.fas")
 
@@ -296,16 +358,30 @@ if (length(args)>5){
 		cnt = cnt+1
 	}
 	for (kk in 1:length(ldada)){
+		#remove chimeras in subsets
+		num_prev = length(ldada[[kk]]$denoised)
+		sum_prev = sum(ldada[[kk]]$clustering$abundance)
+		#pooled  consensus  
+		isBimera = isBimeraDenovo2(ldada[[kk]],multithread=ncores,verbose=TRUE) 
+		#ldada[[kk]]$denoised = ldada[[kk]]$denoised 
+		
+		sum_aft = sum(ldada[[kk]]$clustering$abundance[unname(isBimera)])
+		num_aft = sum(isBimera)
+		cat(paste0("Removed ",num_prev-num_aft," chimeric ASVs(",sum_prev-sum_aft," read counts)\n"))
+		
+		ldada[[kk]]$clustering = ldada[[kk]]$clustering[!isBimera,]
+		ldada[[kk]]$denoised  = ldada[[kk]]$denoised [!isBimera]
+		
+		
 		tmp =names(ldada[[kk]]$denoised)
 		ldada[[kk]]$denoised = seq(length(ldada[[kk]]$denoised))
 		names(ldada[[kk]]$denoised) = tmp
-		#remove chimeras in subsets
-		ldada[[kk]]$denoised = removeBimeraDenovo(ldada[[kk]]$denoised,multithread=ncores)
+
 	}
 	#tdada=ldada[[1]]
 	cat("Finished initial per-subset dada2 clustering\n")
 	cat("Merging dada2 clusters between subsets..\n")
-	tdada2 = combineDada(ldada)
+	tdada2 = combineDada2(ldada)
 	ASVseq=as.character(colnames(tdada2$rval))
 	#names(ASVseqFnd) = ASVseq
 	ASVab = tdada2$sums
