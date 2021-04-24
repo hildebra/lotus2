@@ -98,7 +98,7 @@ my $dada2Scr    = ""; #absolute path to dada2 pipeline script
 my $LULUscript  = ""; #script for LULU OTU matrix cleanup
 my $phyloLnk    = ""; #R helper script to create phyloSeq objects
 my $Rscript     = ""; #absolute path to Rscript -> also serves as check that Rscript exists on cluster..
-my $defRscriptOpt  = "";
+my $defRscriptOpt  = " --vanilla ";
 my $swarmBin    = "";
 my $VSBin       = "";
 my $VSBinOri    = "";
@@ -4581,7 +4581,7 @@ sub readMap() {
                 if (m/^\s*$/) {
                     printL"Empty column header in mapping file (column $hcnt)\n$mapFile\n",4;
                 }
-				if (m/ForwardPrimer/){$hasFwd=1;}
+				if (m/ForwardPrimer/ || m/LinkerPrimerSequence/){$hasFwd=1;}
 				if (m/ReversePrimer/){$hasRev=1;}
             }
             if ($hasFwd==0){
@@ -5924,7 +5924,9 @@ sub buildOTUs($) {
         my $restUC = "$lotus_tempDir/rests.uc";
         $cmd =  "$VSBin -usearch_global ". $derepl . ".rest" . " -db $OTUfastaTmp -uc $restUC $userachDffOpt $vsearchSpcfcOpt;";#-threads  $BlastCores";
         if ( -s $OTUfastaTmp ) {
-            if ( systemL($cmd) != 0 ) { exit(1); }
+			printL(frame("Backmapping low qual reads to ${OTU_prefix}'s",1,2),0);
+			if ( systemL($cmd) != 0 ) { exit(1); }
+			printL(frame("Finished backmapping",1,3),0);
         }
         else { systemL("touch $restUC;"); }
         systemL( "cat $restUC >> " . $UCguide[0] . ".REST" );
