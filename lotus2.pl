@@ -2833,8 +2833,7 @@ sub prepLtsOptions{
 	#die "$refDBwanted\n";
 	if ( $doBlasting < 1 ) {
 		$doRDPing = 1;
-	}
-	else {    #LCA only
+	} else {    #LCA only
 		$doRDPing = 0;
 	}
 
@@ -4875,14 +4874,17 @@ sub runRDP{
 		#ampliconType
 		$cmd = "java -Xmx1g -jar $mjar --gene=$rdpGene --format=fixrank --hier_outfile=$outdir/hierachy_cnt.tax --conf=0.1 --assign_outfile=$lotus_tempDir/RDPotus.tax $OTUfa;";
 		$RDPTAX = 2;
-	} elsif ( $doRDPing > 0 && ( $rdpjar ne "" || exists( $ENV{'RDP_JAR_PATH'} ) ) ) {
+	} elsif ( $doRDPing > 0 ) { #has to do RDP normal
+		unless ( $rdpjar ne "" || exists( $ENV{'RDP_JAR_PATH'} ) ) {
+			printL"Could not run RDP classifier (required).\nCheck that 'RDP_JAR_PATH' is set as environmental variable and that 'RDPjar' is set in lOTUs.cfg\n",55;
+		}
 		$msg = "Assigning taxonomy with RDP";
 		my $toRDP = $ENV{'RDP_JAR_PATH'};
 		if ( $rdpjar ne "" ) { $toRDP = $rdpjar; }
 		my $subcmd = "classify";
 		$cmd =        "java -Xmx1g -jar " . $toRDP  . " $subcmd -f fixrank -g $rdpGene -h $outdir/hierachy_cnt.tax -q $OTUfa -o $lotus_tempDir/RDPotus.tax -c 0.1;";
 		$RDPTAX = 1;
-	}    
+	}
 	
 	if ( $doRDPing > 0 && $exec == 0 ) {    #ITS can't be classified by RDP
 		printL frame($msg), 0;
