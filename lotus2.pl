@@ -81,6 +81,9 @@ sub checkXtalk;
 sub annotateFaProTax;
 sub systemW;
 
+#versioning
+my $selfID = "LotuS 2.02"; #release candidate: 2.0
+
 #keep track of time
 my $start = time;
 my $duration;
@@ -140,7 +143,6 @@ my $FaProTax        = undef; #faprotax -> functional annotations from taxonomy~~
 
 # --------------------
 #general lOTUs parameters
-my $selfID = "LotuS 2.01"; #release candidate: 2.0
 my $citations = "$selfID: Hildebrand F, Tadeo RY, Voigt AY, Bork P, Raes J. 2014. LotuS: an efficient and user-friendly OTU processing pipeline. Microbiome 2: 30.\n";
 my $noChimChk = 0; #deactivate all chimera checks 1=no nothing, 2=no denovo, 3=no ref; default = 0
 my $mainLogFile = "";
@@ -176,7 +178,7 @@ my $numInput         = 2;
 my $saveDemulti      = 0;            #save a copy of demultiplexed reads??
 my $check_map        = "";
 my $create_map       = "";
-my $curSdmV          = 1.46;
+my $curSdmV          = 1.6;
 my $platform         = "miSeq";        #454, miSeq, hiSeq, PacBio
 my $keepUnclassified = 1;
 my $keepOfftargets   = 0;
@@ -867,12 +869,15 @@ sub sdmStep1{
 		} elsif ( $paired == 2 ) {
 			$sdmIn = "-i_fna $inputArray[0],$inputArray[1] -i_qual $inqArray[0],$inqArray[1] ";
 		}
-	} else {
+	} elsif (-f $inputArray[0]) {
 		if ( $paired == 1 ) {
 			$sdmIn = "-i_fastq $inputArray[0]";
 		} elsif ( $paired == 2 ) {
 			$sdmIn = "-i_fastq $inputArray[0],$inputArray[1]";
+			printL "Could not find second file in input, but required paired sequencing reads as input files",25 if (@inputArray < 2);
 		}
+	} else {
+		printL "Could not find input file on system, aborting. Please check the input is either a directory or file.",42;
 	}
 	my $mrgOpt = "";#"-merge_pairs 1";
 	my $multCore = ""; $multCore = " -threads $uthreads";
