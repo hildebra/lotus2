@@ -240,6 +240,10 @@ my $REFflag = 0;#reference based OTU clustering requested?
 #flash control
 my $flashCustom = "";
 
+#primer control
+my $fwdPrimSeq = "";
+my $revPrimSeq = "";
+
 #### DEPRECEATED ###
 my $truncLfwd    = 130;    #250 for fwd illumina miSeq & 454; 90 for hiSeq fwd
 my $truncLrev    = 200;    #200 for rev illumina miSeq; 90 for hiSeq rev
@@ -321,6 +325,8 @@ GetOptions(
 	"useVsearch=i"		=> \$useVsearch,
 	"removePhiX=i"			=> \$doPhiX,
 	"buildPhylo=i"          => \$buildPhylo,
+	"forwardPrimer=s"       => \$fwdPrimSeq,
+	"reversePrimer=s"       => \$revPrimSeq,
 
     # "flashAvgLength" => \$flashLength,
     #"flashAvgLengthSD" => \$flashSD,
@@ -2986,6 +2992,8 @@ my %further_options = (
 
 my $workflow_heading = "Workflow Options";
 my %workflow_options = (
+  '-forwardPrimer <string>','give the forward primer used to amplify DNA region (e.g. 16S primer fwd)',
+  '-reversePrimer <string>','give the reverse primer used to amplify DNA region (e.g. 16S primer rev)',
   '-verbosity <0-3>', 'Level of verbosity from printing all program calls and program output (3) to not even printing errors (0). Default: 1',
   '-saveDemultiplex <0|1|2|3>', '(1) Saves all demultiplexed reads (unfiltered) in the [outputdir]/demultiplexed folder, for easier data upload. (2) Only saves quality filtered demultiplexed reads and continues LotuS2 run subsequently. (3) Saves demultiplexed file into a single fq, saving sample ID in fastq/a header. (0) No demultiplexed reads are saved. (Default: 0)',
   '-taxOnly <file>', 'Skip most of the lotus pipeline and only run a taxonomic classification on a fasta file. E.g. ./lotus2.pl -taxOnly <some16S.fna> -refDB SLV',
@@ -3095,33 +3103,33 @@ print "#### OPTIONS ####\n\n";
 
 print "$basic_heading:\n\n";
 my $key = "";
-foreach $key (keys %basic_options)
+foreach $key (sort(keys %basic_options))
 {
   print_option_pair($key, $basic_options{$key}, $option_indent, $option_width, $description_width);
 }
 
-print "\n\n$further_heading:\n\n";
-foreach $key (keys %further_options)
-{
-  print_option_pair($key, $further_options{$key}, $option_indent, $option_width, $description_width);
-}
 
 print "\n\n$workflow_heading:\n\n";
-foreach $key (keys %workflow_options)
+foreach $key (sort(keys %workflow_options))
 {
   print_option_pair($key, $workflow_options{$key}, $option_indent, $option_width, $description_width);
 }
+print "\n\n$clustering_heading:\n\n";
+foreach $key (sort(keys %clustering_options))
+{
+  print_option_pair($key, $clustering_options{$key}, $option_indent, $option_width, $description_width);
+}
 
 print "\n\n$taxonomy_heading:\n\n";
-foreach $key (keys %taxonomy_options)
+foreach $key (sort(keys %taxonomy_options))
 {
   print_option_pair($key, $taxonomy_options{$key}, $option_indent, $option_width, $description_width);
 }
 
-print "\n\n$clustering_heading:\n\n";
-foreach $key (keys %clustering_options)
+print "\n\n$further_heading:\n\n";
+foreach $key (sort(keys %further_options))
 {
-  print_option_pair($key, $clustering_options{$key}, $option_indent, $option_width, $description_width);
+  print_option_pair($key, $further_options{$key}, $option_indent, $option_width, $description_width);
 }
 
 
@@ -4471,8 +4479,8 @@ sub readMap() {
     #find number of samples
     #my @avSMPs = ();
 	my $Ltxt = "Reading mapping file\n";
-    my %mapH;
-    my %combH;
+    my %mapH; #hash of the actual map
+    my %combH; #combine these samples??
     unless ( open M, "<", $mapFile ) {
         printL( "Couldn't open map file $mapFile: $!\n", 3 );
     }
@@ -4494,6 +4502,10 @@ sub readMap() {
     my $CombineCol   = -1;
     my $hasCombiSmpl = 0;
     my $colCnt       = -1;
+	
+	my $insertPrimers = 0;
+	$insertPrimers = 1 if ($fwdPrimSeq ne "" || $revPrimSeq ne "");
+
 
     foreach my $line (@mapar) {
         $cnt++;
@@ -4515,62 +4527,32 @@ sub readMap() {
             next;
         }
         my $smplNms = $spl[0];
-        if ( $fileCol != -1 ) {
-            if ( $spl[$fileCol] =~ m/,/ ) {
-                $Ltxt .= "Switching to paired end read mode\n" if ( $numInput != 2 );
-                $numInput = 2;
-            }
-            elsif ( $numInput == 2 ) {
-                printL "Inconsistent file number in mapping. See row with ID $smplNms.\n", 55;
-            }
-        }
-        if ( $CombineCol != -1 && $spl[$CombineCol] ne "" ) {
-            $combH{ $spl[$CombineCol] } = $smplNms;
-        }
-        else {
-            $combH{$smplNms} = $smplNms;
-        }
-        if ( $cnt == 1 ) {
-            if ( $line !~ m/^#/ ) {
-                printL "First line does not start with \"#\". Please check mapping file for compatibility (http://psbweb05.psb.ugent.be/lotus/documentation.html#MapFile)\n",93;
-            }
-            my $ccn = 0;
-            $colCnt = @spl;
-            foreach (@spl) {
-                if ( $_ eq "fastqFile" || $_ eq "fnaFile" ) {
-                    $Ltxt .= "Sequence files are indicated in mapping file.\n";
-                    if ( $fileCol != -1 ) {
-                        $Ltxt .= "both fastqFile and fnaFile are given in mapping file, is this intended?\n";
-                    }
-                    $fileCol = $ccn;
-                }
-                if ( $_ eq "CombineSamples" ) {
-                    $Ltxt .= "Samples will be combined.\n";
-                    $CombineCol   = $ccn;
-                    $hasCombiSmpl = 1;
-                }
+        
+		if ( $cnt == 1 ) {#HEADER line
+			if ( $line !~ m/^#/ ) {
+				printL "First line does not start with \"#\". Please check mapping file for compatibility (http://psbweb05.psb.ugent.be/lotus/documentation.html#MapFile)\n",93;
+			}
+			my $ccn = 0;
+			$colCnt = @spl;
+			foreach (@spl) {
+				if ( $_ eq "fastqFile" || $_ eq "fnaFile" ) {
+					$Ltxt .= "Sequence files are indicated in mapping file.\n";
+					if ( $fileCol != -1 ) {
+						$Ltxt .= "both fastqFile and fnaFile are given in mapping file, is this intended?\n";
+					}
+					$fileCol = $ccn;
+				}
+				if ( $_ eq "CombineSamples" ) {
+					$Ltxt .= "Samples will be combined.\n";
+					$CombineCol   = $ccn;
+					$hasCombiSmpl = 1;
+				}
 
-                $ccn++;
-            }
-        }
-        if ( $line =~ m/\"/ ) {
-            $warnTrig = 0;
-            printL("Possible biom incompatibility: Mapping file contains paranthesis characters (\") for sample $smplNms. Lotus is removing this.","w");
-        }
-        if ( $line =~ m/ / ) {
-            $warnTrig = 1;
-            printL("Possible biom incompatibility: Mapping file contains spaces (\" \") for sample $smplNms","w");
-        }
-        if ( $line =~ m/[^\x00-\x7F]/ ) {
-            $warnTrig = 1;
-            printL("Possible biom incompatibility: Mapping file contains non-ASCII character for sample $smplNms","w");
-        }
-        $line =~ s/\s+/\t/g;
-        if ( $smplNms =~ m/^\s/ || $smplNms =~ m/\s$/ ) {
-            printL"SampleID $smplNms contains spaces. Aborting LotuS as this will lead to errors, please fix.\n",5;
-        }
-        if ( $cnt == 1 ) {    #col names
-            if ( $line =~ m/\t\t/ ) {
+				$ccn++;
+			}
+			
+			#warning/abort checks on mapper header
+			if ( $line =~ m/\t\t/ ) {
                 printL"Empty column header in mapping file:\n check for double tab chars in line 1:\n$mapFile\n",4;
             }
             if ( $smplNms ne '#SampleID' ) {
@@ -4588,23 +4570,83 @@ sub readMap() {
 				if (m/ForwardPrimer/ || m/LinkerPrimerSequence/){$hasFwd=1;}
 				if (m/ReversePrimer/){$hasRev=1;}
             }
-            if ($hasFwd==0){
+            if ($hasFwd==0  && !$insertPrimers){
 				$warnTrig = 1;
 				printL("No forward PCR primer for amplicon found in mapping file (column header \"ForwardPrimer\". This might invalidate chimera checks\n","w");
+			}
+			if ($fwdPrimSeq ne "" ){
+				printL "forwardPrimer in both map and cmd line arg",55 if ($hasFwd);
+				push (@spl, "ForwardPrimer");
+			}
+			if ($revPrimSeq ne "" ){
+				printL "reversePrimer in both map and cmd line arg",55 if ($hasRev);
+				push (@spl, "ReversePrimer");
 			}
 			
 			if ( $line =~ m/\t\t/ ) {
                 printL"Empty header in mapping file:\n check for double tab chars in line 1:\n$mapFile\n",4;
             }
 			
-        }
+		} else { #not the header
 		
+		#push in fwd/rev primers to the map file
+			push (@spl, $fwdPrimSeq) if ($fwdPrimSeq ne "" );
+			push (@spl, $revPrimSeq) if ($revPrimSeq ne "" );
+		
+		#check input files for consistency
+			if ( $fileCol != -1 ) {
+				if ( $spl[$fileCol] =~ m/,/ ) {
+					$Ltxt .= "Switching to paired end read mode\n" if ( $numInput != 2 );
+					$numInput = 2;
+				}
+				elsif ( $numInput == 2 ) {
+					printL "Inconsistent file number in mapping. See row with ID $smplNms.\n", 55;
+				}
+			}
+			if ( $CombineCol != -1 && $spl[$CombineCol] ne "" ) {
+				$combH{ $spl[$CombineCol] } = $smplNms;
+			}
+			else {
+				$combH{$smplNms} = $smplNms;
+			}
+
+		
+		}
+		
+		#warning/abort checks for mapping file START
+        if ( $line =~ m/\"/ ) {
+            $warnTrig = 0;
+            printL("Possible biom incompatibility: Mapping file contains paranthesis characters (\") for sample $smplNms. Lotus is removing this.","w");
+        }
+        if ( $line =~ m/ / ) {
+            $warnTrig = 1;
+            printL("Possible biom incompatibility: Mapping file contains spaces (\" \") for sample $smplNms","w");
+        }
+        if ( $line =~ m/[^\x00-\x7F]/ ) {
+            $warnTrig = 1;
+            printL("Possible biom incompatibility: Mapping file contains non-ASCII character for sample $smplNms","w");
+        }
+        $line =~ s/\s+/\t/g;
+        if ( $smplNms =~ m/^\s/ || $smplNms =~ m/\s$/ ) {
+            printL"SampleID $smplNms contains spaces. Aborting LotuS as this will lead to errors, please fix.\n",5;
+        }
+		#warning/abort checks for mapping file STOP
+		
+		#check header of mapping file
+ 		#remove sample ID from @spl, since key of mapH is sample ID already
         splice( @spl, 0, 1 );
 
-        #print $smplNms." ".$spl[0]."\n";
+		#clean up " from map
         for ( my $i = 0 ; $i < @spl ; $i++ ) {
             $spl[$i] =~ s/\"//g;
         }
+		
+		#insert new data?
+		if ($fwdPrimSeq ne ""){
+		}
+		if ($revPrimSeq ne ""){
+		}
+		
 
         #print $smplNms."\n";
         $mapH{$smplNms} = [@spl];
@@ -4621,8 +4663,10 @@ sub readMap() {
         sleep(10);
     }
     printL( frame($Ltxt), 0 );
-    return ( \%mapH, \%combH, $hasCombiSmpl );
 	
+	
+	
+    return ( \%mapH, \%combH, $hasCombiSmpl );
 }
 
 sub finWarn($) {
