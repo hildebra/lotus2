@@ -95,7 +95,7 @@ if (length(args) == 3) {
  
  
 # Save the phyloseq object as an R object:
-save(physeq,file=paste0(strsplit(path_TABLE,"O")[[1]][1],"phyloseq.R"))
+save(physeq,file=paste0(strsplit(path_TABLE,"O")[[1]][1],"phyloseq.Rdata"))
 
 
-  cat("Phyloseq object is created: phyloseq.R\n")
+  cat("Phyloseq object is created: phyloseq.Rdata\n")

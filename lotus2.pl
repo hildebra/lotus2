@@ -466,7 +466,7 @@ my ($sdmIn,$derepOutHQ,$qualOffset,$filterOutAdd,$filterOut,
 
 my $A_UCfil;
 my $tmpOTU = "$lotus_tempDir/tmp_otu.fa";
-my $OTUfa  = "$outdir/otus.fa";
+my $OTUfa  = "$outdir/OTU.fna";
 
 
 
@@ -724,7 +724,10 @@ systemL("rm -rf $outdir;") if ($rmOutDir); #online in extreme cases, keep well d
 printL(    frame("LotuS2 finished. Output:\n$outdir\n\- LotuSLogS/ contains run statistics (useful for describing data/amount of reads/quality\n- LotuSLogS/citations.txt: papers of programs used in this run\nNext steps: you can use the rtk program in this pipeline, to generate rarefaction curves and diversity estimates of your samples.\n"    ),0);
 my $phyloHlp="";
 $phyloHlp="- Phyloseq: $outdir/phyloseq.Rdata can be directly loaded in R\n" if ($phyloseqCreated);
-printL(frame("          Next steps:          \n- Rarefaction analysis: can be done with rtk (avaialble in R or use bin/rtk)\n$phyloHlp- Phylogeny: ${OTU_prefix} phylogentic tree available in $outdir/tree.nwk\n- .biom: $outdir/OTU.biom contains biom formated output\n- tutorial: Visit http://lotus2.earlham.ac.uk for more tutorials in data analysis\n"));
+my $nwkOut = "";
+$nwkOut = "- Phylogeny: ${OTU_prefix} phylogentic tree available in $outdir/OTUphylo.nwk\n" if ($buildPhylo); 
+my $nxtSteps = "          Next steps:          \n- Rarefaction analysis: can be done with rtk (avaialble in R or use bin/rtk)\n$phyloHlp$nwkOut- .biom: $outdir/OTU.biom contains biom formated output\n- tutorial: Visit http://lotus2.earlham.ac.uk for more tutorials in data analysis\n";
+printL(frame($nxtSteps));
 printWarnings();
 
 close LOG; close cmdLOG;
@@ -2983,7 +2986,7 @@ my $further_heading = "Further Options";
 my %further_options = (
   '-q <file>', 'input qual file (not defined in case of fastq or input directory)', 
   '-barcode|-MID <file>', 'Filepath to fastq formated file with barcodes (this is a processed mi/hiSeq format). The complementary option in a mapping file would be the column "MIDfqFile"',
-  '-s <file>', 'SDM option file, defaults to \"sdm_options.txt\" in current dir',
+  '-s <file>', 'SDM option file, defaults to "configs/sdm_options.txt" in current dir',
   '-c <file>', 'LotuS.cfg, config file with program paths',
   '-p <454/miSeq/hiSeq/PacBio>', 'sequencing platform: PacBio, 454, miSeq or hiSeq',
   '-t|-threads <num>', 'number of threads to be used',
@@ -3437,7 +3440,7 @@ sub buildTree($ $) {
 
 	
     my $multAli  = $outdir . "/otuMultAlign.fna";
-    my $outTree  = $outdir . "/Tree.tre";
+    my $outTree  = $outdir . "/OTUphylo.nwk";
 	my $treePrefix = "$lotus_tempDir/IQ";
     my $tthreads = $uthreads;
 
