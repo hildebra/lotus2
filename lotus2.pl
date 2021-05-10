@@ -380,7 +380,7 @@ if ($TaxOnly eq "0" ){
 system("mkdir -p $outdir/primary/;") unless ( -d "$outdir/primary" );
 system("mkdir -p $outdir") unless ( -d $outdir );
 system("mkdir -p $logDir") unless ( -d $logDir );
-system("mkdir -p $extendedLogD;") if ( !-d $extendedLogs && $extendedLogs);	
+system("mkdir -p $extendedLogD;") if ( !-d $extendedLogs );	
 open LOG, ">", $mainLogFile or die "Can't open Logfile $mainLogFile\n";
 open cmdLOG , ">$cmdLogFile" or die "Can't open cmd log $cmdLogFile\n";
 
@@ -2563,7 +2563,7 @@ sub readPaths {    #read tax databases and setup correct usage
 
 sub announce_options{
 	if ( !$onlyTaxRedo && $TaxOnly eq "0" ) {
-	printL "$clustMode sequence clustering with $clusteringNameStr into ${OTU_prefix}'s\n",0;
+		printL "$clustMode sequence clustering with $clusteringNameStr into ${OTU_prefix}'s\n",0;
 		if ( $ClusterPipe == 7 ) {
 			die "Incorrect dada2 script defined $dada2Scr" unless (-f $dada2Scr);
 			die "Incorrect R installation (can't find Rscript)" unless (-f $Rscript);
@@ -2576,7 +2576,7 @@ sub announce_options{
 		while ( -d $newLDir ) { $k++; $newLDir = "$outdir/prevLtsTax_$k"; }
 		printL frame("Saving previous Tax to $newLDir"), 0;
 		systemL "mkdir -p $newLDir/LotuSLogS/;";
-		systemL "mv $highLvlDir $FunctOutDir $RDP_hierFile $SIM_hierFile $outdir/hierachy_cnt.tax $outdir/cnadjusted_hierachy_cnt.tax $newLDir/;";
+		systemL "mv $highLvlDir $FunctOutDir $RDP_hierFile $SIM_hierFile $outdir/hierachy_cnt.tax $extendedLogD/cnadjusted_hierachy_cnt.tax $newLDir/;";
 		systemL "mv $outdir/LotuSLogS/* $newLDir/LotuSLogS/;";
 		systemL("mkdir -p $logDir;") unless ( -d $logDir );
 
@@ -3439,7 +3439,7 @@ sub buildTree($ $) {
 	}
 
 	
-    my $multAli  = $outdir . "/otuMultAlign.fna";
+    my $multAli  = $extendedLogD . "/OTU.MSA.fna";
     my $outTree  = $outdir . "/OTUphylo.nwk";
 	my $treePrefix = "$lotus_tempDir/IQ";
     my $tthreads = $uthreads;
@@ -4949,9 +4949,9 @@ sub runRDP{
 			systemL "cp $lotus_tempDir/RDPotus.tax $TaxOnly.rdp";
 		}
 		$citations .= "RDP ${OTU_prefix} taxonomy: Wang Q, Garrity GM, Tiedje JM, Cole JR. 2007. Naive Bayesian classifier for rapid assignment of rRNA sequences into the new bacterial taxonomy. Appl Env Microbiol 73: 5261–5267.\n";
-	} elsif ( $rdpjar ne "" || exists( $ENV{'RDP_JAR_PATH'} ) ) {
+	#} elsif ( $rdpjar ne "" || exists( $ENV{'RDP_JAR_PATH'} ) ) {
 		if ($extendedLogs && -e "$lotus_tempDir/RDPotus.tax" && -d $extendedLogD) { systemL "cp $lotus_tempDir/RDPotus.tax $extendedLogD/;"; }
-		if ( $RDPTAX > 0 ) {                #move confusing files
+		if ( $doRDPing > 0 ) {                #move confusing files
 			if ($extendedLogs) {
 				systemL "mv $outdir/hierachy_cnt.tax $outdir/cnadjusted_hierachy_cnt.tax $extendedLogD/;";
 			} else {
