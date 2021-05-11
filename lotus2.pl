@@ -153,6 +153,12 @@ my $versionOut=0;
 #LotuS file related
 my $rmOutDir = 0;
 my $lotusCfg  = "$RealBin/lOTUs.cfg";
+my $sdmMiseqOpt = "$RealBin/configs/sdm_miSeq.txt";
+my $sdm454Opt = "$RealBin/configs/sdm_454.txt";
+my $sdmMiseqCDHITOpt = "$RealBin/configs/sdm_miSeq_cdhit.txt";
+my $sdm454CDHITOpt = "$RealBin/configs/sdm_454_cdhit.txt";
+my $sdmHiseqOpt = "$RealBin/configs/sdm_hiSeq.txt";
+my $sdmPacBioOpt = "$RealBin/configs/sdm_PacBio.txt";
 
 my $ClusterPipe_pre = "?"; #default is unknown..
 my $ClusterPipe     = 1; #use UPARSE (1) or otupipe(0) or SWARM (2) or cd-hit(3), dnaclust (4), micca (5)
@@ -222,8 +228,9 @@ my $lowMemLambI       = 0;
 
 # --------------------
 #uparse / otupipe / cdhit / swarm options
-my $useVsearch = 0; # 1(vsearch) or 0(usearch) for chim check are being used, searching, matching tasks
+my $useVsearch = -1; # 1(vsearch) or 0(usearch) for chim check are being used, searching, matching tasks
 #my $preferVsearch   = 0;      #0=use usearch always; 1=use vesarch always
+my $installUsearch = "";
 my $chimera_absskew = 2;      # Abundance skew for de novo chimera filtering # 2
 my $id_OTU          = .97;    # Id threshold for OTU clustering  #Default: .97
 my $swarmClus_d     = 1;
@@ -234,11 +241,12 @@ my $dereplicate_minsize_def = 2
   ; # Discard clusters < dereplicate_minsize in error correction round #Default: 2 for UPARSE, 4 for otupipe
 my $dereplicate_minsize = -1;
 my $doXtalk             = -1;    #check for cross talk in OTU tables
-my $usearchVer          = 7; my $usearchsubV = 0;
+my $usearchVer          = 0; my $usearchsubV = 0;
 my $REFflag = 0;#reference based OTU clustering requested?
 
 #flash control
 my $flashCustom = "";
+
 
 #primer control
 my $fwdPrimSeq = "";
@@ -248,8 +256,7 @@ my $revPrimSeq = "";
 my $truncLfwd    = 130;    #250 for fwd illumina miSeq & 454; 90 for hiSeq fwd
 my $truncLrev    = 200;    #200 for rev illumina miSeq; 90 for hiSeq rev
 my $truncQual    = 25;     #15 for illumina miSeq, 25 for 454
-my $UPARSEfilter = 0
-  ; #use additional quality filter from uparse (1) or use sdm only for filtering (0) # Default: 0
+my $UPARSEfilter = 0; #use additional quality filter from uparse (1) or use sdm only for filtering (0) # Default: 0
 #### DEPRECEATED ###
 
 my $input = "";
@@ -327,6 +334,8 @@ GetOptions(
 	"buildPhylo=i"          => \$buildPhylo,
 	"forwardPrimer=s"       => \$fwdPrimSeq,
 	"reversePrimer=s"       => \$revPrimSeq,
+	
+	"link_usearch=s"        => \$installUsearch,
 
     # "flashAvgLength" => \$flashLength,
     #"flashAvgLengthSD" => \$flashSD,
@@ -348,6 +357,14 @@ if ($create_map ne ""){
 	autoMap($input, $create_map);
 	exit(0); 
 }
+
+if ($installUsearch ne ""){
+	print "Will only install usearch into LotuS2 and exist afterwards.\nProvided path to usearch binary was $installUsearch\n";
+	die "Can't find file at $installUsearch\n" unless (-f $installUsearch);
+	system "perl $RealBin/autoInstall.pl -link_usearch $installUsearch";
+	exit(0);
+}
+
 #declare global vars
 my $logDir       = $outdir . "/LotuSLogS/";
 my $extendedLogD = $outdir . "/ExtraFiles/";
@@ -418,6 +435,7 @@ if ( $TaxOnly eq "0" ) {
 	%mapH = %{$hr};
 	#systemL("cp $map $outdir/primary\n");
 }
+
 
 #die "$cpMapFile\n\n";
 
@@ -1385,7 +1403,7 @@ sub chimera_denovo($){
 	$cmd = "$VSBin -uchime_denovo $OTUfa -chimeras $chimOut -nonchimeras $lotus_tempDir/tmp1.fa -abskew $chimera_absskew -log $logDir/chimera_dn.log;";
 
 	#die "\n\n$usearchVer\n";
-	if (!$useVsearch && $usearchVer >= 10 && !$VSused ) {
+	if ($useVsearch ==0 && $usearchVer >= 10 && !$VSused ) {
 		if ( $usearchVer == 10.0 && $usearchsubV <= 240 ) {
 			#really dirty hack..
 			$cmd ="$VSBinOri -uchime_denovo $OTUfa -chimeras $chimOut -nonchimeras $lotus_tempDir/tmp1.fa -abskew $chimera_absskew -log $logDir/chimera_dn.log;";
@@ -1408,6 +1426,7 @@ sub chimera_denovo($){
 		$cmd = "$usBin -uchime2_denovo $OTUfa -abskew 16 -chimeras $chimOut -nonchimeras $lotus_tempDir/tmp1.fa -log $logDir/chimera_dn.log;";
 		$progUsed = "usearch uchime2";
 	}
+	
 
 	#die $cmd."\n";
 	$cmd .= "\nrm $OTUfa\nmv -f $lotus_tempDir/tmp1.fa $OTUfa";
@@ -1423,6 +1442,7 @@ sub chimera_denovo($){
 	else {
 		$citations .= "uchime chimera detection deNovo: Edgar RC, Haas BJ, Clemente JC, Quince C, Knight R. 2011. UCHIME improves sensitivity and speed of chimera detection. Bioinformatics 27: 2194–200.\n";
 	}
+	
 	
 	my $endEntries = cntFastaEntrs($OTUfa);
 	printL( frame("De novo chimera filter using $progUsed\nTotal removed ${OTU_prefix}s: (". ($iniEntries-$endEntries) ."/$iniEntries)"), 0 );
@@ -1447,7 +1467,7 @@ sub chimera_ref_rem($) {
 	printL "Could not find fasta otu file $otusFA. Aborting..\n", 33 unless ( -s $otusFA );
 	$cmd = "$VSBin -uchime_ref  $otusFA -db $UCHIME_REFDB -strand plus -chimeras $chimOut -nonchimeras $outfile -threads $uthreads -log $logDir/uchime_refdb.log;";
 	$progUsed = "vsearch uchime_ref";
-	if (!$useVsearch && $usearchVer >= 9 && !$VSused ) {
+	if ($useVsearch ==0 && $usearchVer >= 9 && !$VSused ) {
 		$cmd = "$usBin -uchime2_ref  $otusFA -db $UCHIME_REFDB -mode balanced -strand plus -chimeras $chimOut -notmatched $outfile -threads $uthreads -log $logDir/uchime_refdb.log;";
 		$progUsed = "usearch uchime2_ref";
 	}
@@ -1476,9 +1496,14 @@ sub checkXtalk($ $) {
     my ( $otuFA, $otuM ) = @_;
 	my %ret;
     if ( !$doXtalk ) { return \%ret; }
-    if ( $usearchVer < 11 ) {
+    if (!-f $usBin){
+		printL "Cross talk check only avaialable with usearch installed\n";
+		return \%ret;
+	}
+	if ( $usearchVer < 11 ) {
         printL "cannot check for cross-talk, as only implemented in usearch version > 11\n",83;
     }
+	
     my $otuM1 = $otuM . ".noXref";
     #systemL "cp $otuM $otuM1;";
     my $cmd = "$usBin -otutab_xtalk $otuM -otutabout $otuM1 -report $logDir/crossTalk_analysis.txt;";
@@ -2378,9 +2403,7 @@ sub readPaths {    #read tax databases and setup correct usage
     }
     close I;
     if ( !-e $usBin && !-e $rdpjar && !-e $sdmBin ) {
-        printL
-"\nWARNING:: Several essential auxiliary programs are missing: you can always install these and configure into your lotus installation by excecuting ./autoinstall.pl\n\n",
-          0;
+        printL "\nWARNING:: Several essential auxiliary programs are missing: you can always install these and configure into your lotus installation by excecuting ./autoinstall.pl\n\n", 0;
     }
 
     $UCHIME_REFDB = $UCHIME_REFssu;
@@ -2543,7 +2566,7 @@ sub readPaths {    #read tax databases and setup correct usage
     if ( !-f $sdmBin ) {
         printL "Could not find sdm binary at\n\"$sdmBin\"\n.Aborting..\n", 3;
     }
-    if ( !-f $usBin ) {
+    if ( !-f $usBin && $useVsearch == 0 ) {
         printL "Could not find usearch binary at\n\"$usBin\"\n.Aborting..\n", 3;
     }
     if ( !-f $VSBin ||  $useVsearch == 0) {
@@ -2710,6 +2733,11 @@ sub prepLtsOptions{
 
 	#uc/lc some vars
 	$platform = lc($platform);
+	$ampliconType    = uc($ampliconType);
+	$organism        = lc($organism);
+	$ClusterPipe_pre = uc($ClusterPipe_pre);
+	$otuRefDB        = lc $otuRefDB;
+
 	if ($greengAnno) {
 		$pseudoRefOTU   = 1;
 		$refDBwanted    = "GG";
@@ -2726,21 +2754,34 @@ sub prepLtsOptions{
 	}
 	if ( $platform eq "hiseq" ) {
 		$linesPerFile = 8000000;
-	}
-
-	if ( $platform eq "pacbio" ) {
+		$sdmOpt = $sdmHiseqOpt if ($ClusterPipe_pre eq "CD-HIT"|| $ClusterPipe_pre eq "CDHIT" || $ClusterPipe_pre eq "3");
+	} elsif ( $platform eq "454" ) {
+		if ($sdmOpt eq ""){
+			$sdmOpt = $sdm454Opt ;
+			$sdmOpt = $sdm454CDHITOpt if ($ClusterPipe_pre eq "CD-HIT" || $ClusterPipe_pre eq "CDHIT" || $ClusterPipe_pre eq "3");
+		}
+	} elsif ( $platform eq "pacbio" ) {
 		$dereplicate_minsize_def = 0;
 		$ClusterPipe_pre = "CDHIT" if ($ClusterPipe_pre eq "?");
+		$sdmOpt = $sdmPacBioOpt if ($sdmOpt eq "");
 	}
 	if ( $dereplicate_minsize !~ m/\D/ && $dereplicate_minsize == -1 ){
 		$dereplicate_minsize = $dereplicate_minsize_def ;
 	}
+	
+	if ( !-e $sdmOpt && $TaxOnly eq "0") {
+		if ( $sdmOpt eq "" ) {
+			$sdmOpt = $sdmMiseqOpt;
+			printL "No sdm Option specified, using standard miSeq sdm options ($sdmOpt)", 0;
+		} else {
+			printL "Using sdm option: $sdmOpt",0;
+		}
+		if (!-e $sdmOpt){
+			printL "Could not find sdm options file (specified via \"-s $sdmOpt\"). Please make sure this is available.\n Aborting run..\n",33;
+		}
+	}
 
 	#die $refDBwanted."\n";
-	$ampliconType    = uc($ampliconType);
-	$organism        = lc($organism);
-	$ClusterPipe_pre = uc($ClusterPipe_pre);
-	$otuRefDB        = lc $otuRefDB;
 
 	getSimBasedTax();
 
@@ -2780,22 +2821,35 @@ sub prepLtsOptions{
 	if ($LCAver !~ m/[\d\.]/ || $LCAver < 0.21){
 		printL "LCA is ver $LCAver. Require at least ver 0.21. $LCABin\n",823;
 	}
-	my $usvstr = `$usBin --version`;
-	$usvstr =~ m/usearch v(\d+\.\d+)\.(\d+)/;
-	$usearchVer = $1;$usearchsubV = $2;
+#minimap2 version check
+	if (defined($mini2Bin) && -f $mini2Bin){
+		my $usvstr = `$mini2Bin --version`; $usvstr =~ m/(\d\.\d+)/;
+		my $miniVer = $1;
+		if ($miniVer < 2.17) {die "minimap2 version (found $miniVer at $mini2Bin) too low, expected at least 2.17\n";}
+	}
+
+#usearch version check
+	if (defined $usBin && -f $usBin){
+		my $usvstr = `$usBin --version`;
+		$usvstr =~ m/usearch v(\d+\.\d+)\.(\d+)/;
+		$usearchVer = $1;$usearchsubV = $2;
+	}
 	
-	$usvstr = `$mini2Bin --version`; $usvstr =~ m/(\d\.\d+)/;
-	my $miniVer = $1;
-	if ($miniVer < 2.17) {die "minimap2 version (found $miniVer at $mini2Bin) too low, expected at least 2.17\n";}
 
 	#if ($usearchVer == 9){printL "Usearch ver 9 currently not supported, please install ver 8.\n",39;}
 	if ( $usearchVer > 11 ) {
 		printL "Usearch ver $usearchVer is not supported.\n", 55;
 	}elsif ( $usearchVer >= 8 && $usearchVer < 9 ) {
 		printL"Usearch ver 8 is outdated, it is recommended to install ver 9.\nDownload from http://drive5.com/ and execute \n\"./autoInstall.pl -link_usearch [path to usearch9]\"\n",0;
-	}elsif ( $usearchVer < 8 ) {
+	}elsif ( $usearchVer < 8&& $usearchVer > 0) {
 		printL "Usearch ver 7 is outdated, it is recommended to install ver 9.\nDownload from http://drive5.com/ and execute \n\"./autoInstall.pl -link_usearch [path to usearch9]\"\n",0;
 	}
+	#safety for vsearch
+	if ($usearchVer == 0 && $VSused ){
+		$usearchVer = 11;
+	}
+
+	
 	if ($doLULU && $LULUscript eq "" || !-f $LULUscript){
 		printL "Requested LULU matrix corrections, can't find lulu R script at \"$LULUscript\"\n",24;
 	}
@@ -2916,15 +2970,7 @@ sub prepLtsOptions{
 
 	#die();
 
-	if ( !-e $sdmOpt && $TaxOnly eq "0") {
-		if ( $sdmOpt eq "" ) {
-			$sdmOpt = "configs/sdm_miSeq.txt";
-			printL "No sdm Option specified, using standard miSeq sdm options", 0;
-		}
-		if (!-e $sdmOpt){
-			printL "Could not find sdm options file (specified via \"-s $sdmOpt\"). Please make sure this is available.\n Aborting run..\n",33;
-		}
-	}
+
 
 	#die $LCABin."\n";
 	if ( substr( $ampliconType, 0, 3 ) eq "ITS" ) {
@@ -2986,7 +3032,7 @@ my $further_heading = "Further Options";
 my %further_options = (
   '-q <file>', 'input qual file (not defined in case of fastq or input directory)', 
   '-barcode|-MID <file>', 'Filepath to fastq formated file with barcodes (this is a processed mi/hiSeq format). The complementary option in a mapping file would be the column "MIDfqFile"',
-  '-s <file>', 'SDM option file, defaults to "configs/sdm_options.txt" in current dir',
+  '-s <file>', 'SDM option file, defaults to "configs/sdm_miSeq.txt" in current dir',
   '-c <file>', 'LotuS.cfg, config file with program paths',
   '-p <454/miSeq/hiSeq/PacBio>', 'sequencing platform: PacBio, 454, miSeq or hiSeq',
   '-t|-threads <num>', 'number of threads to be used',
@@ -4931,10 +4977,17 @@ sub runRDP{
 			printL"Could not run RDP classifier (required).\nCheck that 'RDP_JAR_PATH' is set as environmental variable and that 'RDPjar' is set in lOTUs.cfg\n",55;
 		}
 		$msg = "Assigning taxonomy with RDP";
-		my $toRDP = $ENV{'RDP_JAR_PATH'};
+		my $toRDP = $ENV{'RDP_JAR_PATH'}; 
 		if ( $rdpjar ne "" ) { $toRDP = $rdpjar; }
+		if (!-f $toRDP){printL"$toRDP not a valid file, aborting\n",35;}
+		$cmd = "java -Xmx1g -jar ";
+		my $headRDP= `head -n1 $toRDP`;
+		#print $headRDP."\n\n$toRDP\n";
+		if ($headRDP =~ m/\/bin\/bash/){
+			$cmd = "";
+		}
 		my $subcmd = "classify";
-		$cmd =        "java -Xmx1g -jar " . $toRDP  . " $subcmd -f fixrank -g $rdpGene -h $outdir/hierachy_cnt.tax -q $OTUfa -o $lotus_tempDir/RDPotus.tax -c 0.1;";
+		$cmd .=  $toRDP  . " $subcmd -f fixrank -g $rdpGene -h $outdir/hierachy_cnt.tax -q $OTUfa -o $lotus_tempDir/RDPotus.tax -c 0.1;";
 		$RDPTAX = 1;
 	}
 	
@@ -5972,11 +6025,13 @@ sub buildOTUs($) {
     }
 
     #add in unique abundant reads
-    if ( -s $derepl . ".rest" ) {
+    if ( -s $derepl . ".rest" && !$VSused) {
 #push(@lotsFiles,$derepl.".rest"); #these are sdm "uniques" that were too small to map
 #my @lotsFiles2 = ($derepl,$derepl.".rest");
         my $restUC = "$lotus_tempDir/rests.uc";
-        $cmd =  "$VSBin -usearch_global ". $derepl . ".rest" . " -db $OTUfastaTmp -uc $restUC $userachDffOpt $vsearchSpcfcOpt;";#-threads  $BlastCores";
+		$cmd = "";
+		$cmd .= "$sdmBin -i $derepl.rest -o_fna $derepl.rest1;rm $derepl.rest;mv $derepl.rest1 $derepl.rest;" if ($VSused);
+        $cmd .=  "$VSBin -usearch_global $derepl.rest -db $OTUfastaTmp -uc $restUC $userachDffOpt $vsearchSpcfcOpt;";#-threads  $BlastCores";
         if ( -s $OTUfastaTmp ) {
 			printL(frame("Backmapping low qual reads to ${OTU_prefix}'s",1,2),0);
 			if ( systemL($cmd) != 0 ) { exit(1); }

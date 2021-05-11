@@ -1238,7 +1238,12 @@ sub get_programs{
 	system("unzip -o -q $exe -d $bdir");
 	unlink($exe);
 	$exe = $bdir."rdp_classifier_2.12/dist/classifier.jar";
-	@txt = addInfoLtS("RDPjar",$exe,\@txt,1);
+	if ($condaDBinstall){
+		@txt = addInfoLtS("RDPjar","rdp_classifier",\@txt,1);
+	} else {
+		@txt = addInfoLtS("RDPjar",$exe,\@txt,1);
+	}
+	
 
 
 
