@@ -3091,7 +3091,7 @@ my %other_options = (
   '-v', 'Print LotuS2 version',
   '-check_map <file>', 'Mapping_file: only checks mapping file and exists.',
   '-create_map <file>', 'mapping_file: creates a new mapping file at location, based on already demultiplexed input (-i) dir. E.g. ./lotus2.pl -create_map mymap.txt -i /home/dir_with_demultiplex_fastq',
-  '-link_usearch <file>', 'Provide the absolute path to your local usearch binary file, this will be installed to be useable with LotuS2 in the future.';
+  '-link_usearch <file>', 'Provide the absolute path to your local usearch binary file, this will be installed to be useable with LotuS2 in the future.',
 );
 #HELPPARSEEND
 
