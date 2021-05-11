@@ -5479,8 +5479,9 @@ sub autoMap{
 		my @pa2 =(); 
 		my @pa1 = ();
 		if ($paired == 2){
-			@pa2 = sort ( grep { /$rawFileSrchStr2/ && -e "$pathPre/$RD/$_" } readdir(DIR) );	rewinddir DIR;
-			@pa1 = sort ( grep { /$rawFileSrchStr1/  && -e "$pathPre/$RD/$_"} readdir(DIR) );	close(DIR);
+			@pa2 = sort ( grep { /$rawFileSrchStr2/ && -e "$pathPre/$RD/$_" } readdir(DIR) );
+            rewinddir DIR;
+			@pa1 = sort ( grep { /$rawFileSrchStr1/  && -e "$pathPre/$RD/$_"} readdir(DIR) );
 			#fix reads double assigned, always assume 2nd is correct
 			if (@pa1 != @pa2){
 				my %h;
@@ -5494,9 +5495,11 @@ sub autoMap{
 		
 		#in case things are not matching up.. go for single reads
 		if ($paired == 1){
-			@pa1 = sort ( grep { /$rawSingSrchStr/  && -e "$pathPre/$RD/$_"} readdir(DIR) );	close(DIR);
+            rewinddir DIR;
+			@pa1 = sort ( grep { /$rawSingSrchStr/  && -e "$pathPre/$RD/$_"} readdir(DIR) );
 		}
-				
+		close(DIR);
+
 		die "unequal read pairs!: ".@pa1 .",". @pa2."\n" if (@pa1 != @pa2 && $paired == 2);
 		print "Found ".@pa1." samples in dir $RD\n";
 		print "Assuming unpaired reads, as can not find signature for pair 2 files\n" if (@pa2 == 0 && @pa1 >0 && $paired == 2);
