@@ -31,7 +31,7 @@ minimap2 minimap2
 #RDP multiclassifier java archieve (e.g. /YY/MultiClassifier.jar)
 #alternatively leave this "" and set environmental variable to RDP_JAR_PATH, as described in RDP documentary
 multiRDPjar MultiClassifier.jar
-RDPjar classifier.jar
+RDPjar rdp_classifier
 
 
 #Blastn+ binary (e.g. /YY/ncbi-blast-2.2.XX+/bin/blastn)

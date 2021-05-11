@@ -199,6 +199,7 @@ get_DBs();
 
 if ($condaDBinstall){
 	print "Finished LotuS2 DB install (Conda autointall)\nEnjoy LotuS2!\n";
+	@txt = addInfoLtS("RDPjar","rdp_classifier",\@txt,1);
 	exit(0)
 }
 
