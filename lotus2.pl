@@ -3083,6 +3083,7 @@ my %clustering_options = (
   '-chim_skew <num>', 'Skew in chimeric fragment abundance (uchime option). (Default: 2)',
   '-count_chimeras', 'Minimum size of dereplicated clustered, one form of noise removal. Can be complex terms like "10:1,3:3" -> meaning at least 10x in 1 sample or 3x in 3 different samples. (Default: 2)',
   '-deactivateChimeraCheck <0|1|2|3>', '(0) do OTU chimera checks. (1) no chimera check at all. (2) Deactivate deNovo chimera check. (3) Deactivate ref based chimera check. (Default: 0)',
+  '-derepMin<num>','Minimum size of dereplicated clustered, one form of noise removal. Can also have a more complex syntax, see examples. Default 1',
   '-readOverlap <num>', 'The maximum number of basepairs that two reads are overlapping. (Default: 300)',
   '-flash_param <string>', 'custom flash parameters, since this contains spaces the command needs to be in parentheses: e.g. -flash_param "-r 150 -s 20". Note that this option completely replaces the default -m and -M flash options (i.e. need to be reinserted, if wanted)]',
   '-endRem <string>', 'DNA sequence, usually reverse primer or reverse adaptor; all sequence beyond this point will be removed from OTUs. This is redundant with the "ReversePrimer" option from the mapping file, but gives more control (e.g. there is a problem with adaptors in the OTU output). (Default: "")',
