@@ -3049,7 +3049,7 @@ my %workflow_options = (
   '-redoTaxOnly <0|1>', '(1) Only redo the taxonomic assignments (useful for replacing a DB used on a finished lotus run). (0) Normal lotus run. (Default: 0)',
   '-keepOfftargets <0|1>', '(0)?!?: keep offtarget hits against offtargetDB in output fasta and otu matrix, default 0',
   '-keepTmpFiles <0|1>', '(1) save extra tmp files like chimeric OTUs or the raw blast output in extra dir. (0) do not save these. (Default: 0)',
-  '-keepUnclassfied <0|1>', '(1) Includes unclassified OTUs (i.e. no match in RDP/Blast database) in OTU and taxa abundance matrix calculations. (0) does not take these OTUs into account. (Default: 0)',
+  '-keepUnclassified <0|1>', '(1) Includes unclassified OTUs (i.e. no match in RDP/Blast database) in OTU and taxa abundance matrix calculations. (0) does not take these OTUs into account. (Default: 0)',
   '-tolerateCorruptFq <0|1>', '(1) Continue reading fastq files, even if single entries are incomplete (e.g. half of qual values missing). (0) Abort lotus run, if fastq file is corrupt. (Default: 0)'
 );
 
@@ -5479,8 +5479,9 @@ sub autoMap{
 		my @pa2 =(); 
 		my @pa1 = ();
 		if ($paired == 2){
-			@pa2 = sort ( grep { /$rawFileSrchStr2/ && -e "$pathPre/$RD/$_" } readdir(DIR) );	rewinddir DIR;
-			@pa1 = sort ( grep { /$rawFileSrchStr1/  && -e "$pathPre/$RD/$_"} readdir(DIR) );	close(DIR);
+			@pa2 = sort ( grep { /$rawFileSrchStr2/ && -e "$pathPre/$RD/$_" } readdir(DIR) );
+            rewinddir DIR;
+			@pa1 = sort ( grep { /$rawFileSrchStr1/  && -e "$pathPre/$RD/$_"} readdir(DIR) );
 			#fix reads double assigned, always assume 2nd is correct
 			if (@pa1 != @pa2){
 				my %h;
@@ -5494,9 +5495,11 @@ sub autoMap{
 		
 		#in case things are not matching up.. go for single reads
 		if ($paired == 1){
-			@pa1 = sort ( grep { /$rawSingSrchStr/  && -e "$pathPre/$RD/$_"} readdir(DIR) );	close(DIR);
+            rewinddir DIR;
+			@pa1 = sort ( grep { /$rawSingSrchStr/  && -e "$pathPre/$RD/$_"} readdir(DIR) );
 		}
-				
+		close(DIR);
+
 		die "unequal read pairs!: ".@pa1 .",". @pa2."\n" if (@pa1 != @pa2 && $paired == 2);
 		print "Found ".@pa1." samples in dir $RD\n";
 		print "Assuming unpaired reads, as can not find signature for pair 2 files\n" if (@pa2 == 0 && @pa1 >0 && $paired == 2);
