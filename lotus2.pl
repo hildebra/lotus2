@@ -161,8 +161,8 @@ my $sdmHiseqOpt = "$RealBin/configs/sdm_hiSeq.txt";
 my $sdmPacBioOpt = "$RealBin/configs/sdm_PacBio.txt";
 
 my $ClusterPipe_pre = "?"; #default is unknown..
-my $ClusterPipe     = 1; #use UPARSE (1) or otupipe(0) or SWARM (2) or cd-hit(3), dnaclust (4), micca (5)
-my $clusteringNameStr = "otupipe";
+my $ClusterPipe     = 1; #use UPARSE (1) or otupipe(0) or SWARM (2) or cd-hit(3), dnaclust (4), micca (5), unoise (6), dada2(7)
+my $clusteringNameStr = "UPARSE";
 my $lotus_tempDir    = "";
 my $sdmOpt           = "";    #default sdm (simple demultiplexer) options
 my $damagedFQ        = 0;
@@ -2930,6 +2930,9 @@ sub prepLtsOptions{
 		}
 	} else {#default pipeline
 		$ClusterPipe = 1; $clusteringNameStr = "UPARSE";
+		if (!-f $usBin){
+			$ClusterPipe = 3; $clusteringNameStr = "CD-HIT";
+		}
 		#${OTU_prefix} = "Zotu";
 	}
 	if ( $platform eq "pacbio" && $ClusterPipe != 3 ) {
@@ -5322,7 +5325,7 @@ sub printL($ $) {
     }
     if ( defined $stat && $stat ne "0" ) { 
 		#print "Error: $msg\n";# if ($verbosity < 1) ; #print in any case, since exiting on this message
-		print "\n%@#%@#%@#%@%@#@%#@%#@#%@#%@#%@#@%#@%#@%#@#%@#%@#%@##\nYour LotuS2 run encounterend an error!\nFirst check if the last error occured in a program called by LotuS2 \n\"tail $progOutPut\"\n, if there is an obvious solution (e.g. external program breaking, this we can't fix). To see (and excecute) the last commands by the pipeline, run \n\"tail $cmdLogFile\".\nIn case you decide to contact us on \"https://github.com/hildebra/lotus2/\", please try to include information from these approaches in your message, this will increase our response time. Thank you.\n%@#%@#%@#%@%@#@%#@%#@#%@#%@#%@#@%#@%#@%#@#%@#%@#%@##\n";
+		print "\n%@#%@#%@#%@%@#@%#@%#@#%@#%@#%@#@%#@%#@%#@#%@#%@#%@##\n      LotuS2 encounterend an error:\n$msg\n\nFirst check if the last error occured in a program called by LotuS2 \n\"tail $progOutPut\"\n, if there is an obvious solution (e.g. external program breaking, this we can't fix). To see (and excecute) the last commands by the pipeline, run \n\"tail $cmdLogFile\".\nIn case you decide to contact us on \"https://github.com/hildebra/lotus2/\", please try to include information from these approaches in your message, this will increase our response time. Thank you.\n%@#%@#%@#%@%@#@%#@%#@#%@#%@#%@#@%#@%#@%#@#%@#%@#%@##\n";
 		exit($stat); 
 	}
 }
@@ -5729,6 +5732,7 @@ sub buildOTUs($) {
     my $refDB4otus = "$TAX_REFDB[0]" if ( @TAX_REFDB > 0 );  #reference database
     #print_nseq("$filterOut");
     my $filtered = "$lotus_tempDir/filtered.fa";
+	printL "Can't find usearch binary (required for uparse and unoise OTUs), aborting",72 if (!-f $usBin && ($ClusterPipe == 6 || $ClusterPipe == 1));
 
 	if ($UPARSEfilter) {
 		printL("\n =========================================================================\n Secondary uparse filter\n",0  );
@@ -5815,6 +5819,7 @@ sub buildOTUs($) {
 		}
 		$entrMessage = "UPARSE core routine\nCluster at ". 100 * $id_OTU ;
 		#"\n =========================================================================\n UPARSE core routine\n Cluster at ". 100 * $id_OTU. "%\n=========================================================================\n",0);
+		
 
 		$cmd = "$usBin -cluster_otus $derepl -otus $OTUfastaTmp $idLabel $id_OTUup -log $logDir/UPARSE.log $xtraOptions;";    # -threads $uthreads"; # -uc ".$UCguide[2]."
 		$citations .= "UPARSE ${OTU_prefix} clustering - Edgar RC. 2013. UPARSE: highly accurate OTU sequences from microbial amplicon reads. Nat Methods.\n";
