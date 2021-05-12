@@ -2985,7 +2985,7 @@ sub prepLtsOptions{
 		if (   $doBlasting == 0
 			|| ( !-f $blastBin && !-f $lambdaBin )  || @TAX_REFDB == 0 || !-f $TAX_REFDB[0] )
 		{
-			my $failedBlastITS = "ITS region was chosen as target; this requires a similarity based taxnomic annotation and excludes RDP tax annotation.\n";
+			my $failedBlastITS = "ITS region was chosen as target; this requires a similarity based taxonomic annotation and excludes RDP tax annotation.\n";
 			$failedBlastITS .= "Blast similarity based annotation is not possible due to: ";
 			if ( $doBlasting == 0 ) {
 				$failedBlastITS .= "Similarity search was not explicitly activated (please use option \"-taxAligner usearch\" or vsearch,lambda,blast).";
@@ -3052,7 +3052,7 @@ my %workflow_options = (
   '-redoTaxOnly <0|1>', '(1) Only redo the taxonomic assignments (useful for replacing a DB used on a finished lotus run). (0) Normal lotus run. (Default: 0)',
   '-keepOfftargets <0|1>', '(0)?!?: keep offtarget hits against offtargetDB in output fasta and otu matrix, default 0',
   '-keepTmpFiles <0|1>', '(1) save extra tmp files like chimeric OTUs or the raw blast output in extra dir. (0) do not save these. (Default: 0)',
-  '-keepUnclassified <0|1>', '(1) Includes unclassified OTUs (i.e. no match in RDP/Blast database) in OTU and taxa abundance matrix calculations. (0) does not take these OTUs into account. (Default: 0)',
+  '-keepUnclassified <0|1>', '(1) Includes unclassified OTUs (i.e. no match in RDP/Blast database) in OTU and taxa abundance matrix calculations. (0) does not take these OTUs into account. (Default: 1)',
   '-tolerateCorruptFq <0|1>', '(1) Continue reading fastq files, even if single entries are incomplete (e.g. half of qual values missing). (0) Abort lotus run, if fastq file is corrupt. (Default: 0)'
 );
 
@@ -3064,8 +3064,8 @@ my %taxonomy_options = (
   '-tax_group <bacteria|fungi>', '(bacteria) bacterial 16S rDNA annnotation, (fungi) fungal 18S/23S/ITS annotation. (Default: bacteria)',
   '-rdp_thr <0-1>', 'Confidence thresshold for RDP.(Default: 0.8)',
   '-utax_thr <0-1>', 'Confidence thresshold for UTAX. (Default: 0.8)',
-  '-taxAligner <0|blast|lambda|utax|vsearch|usearch>', 'Previously doBlast. (0) deavtivated (just use RDP); (1) or (blast) use Blast; (2) or (lambda) use LAMBDA to search against a 16S reference database for taxonomic profiling of OTUs; (3) or (utax): use UTAX with custom databases; (4) or (vsearch) use VSEARCH to align OTUs to custom databases; (5) or (usearch) use USEARCH to align OTUs to custom databases. (Default: 0)',
-  '-useBestBlastHitOnly <0|1>', '(1) do not use LCA (lowest common ancestor) to determine most likely taxnomic level (not recommended), instead just use the best blast hit. (0) LCA algorithm. (Default: 0)',
+  '-taxAligner <0|blast|lambda|utax|vsearch|usearch>', 'Previously doBlast. (0) deactivated (just use RDP); (1) or (blast) use Blast; (2) or (lambda) use LAMBDA to search against a 16S reference database for taxonomic profiling of OTUs; (3) or (utax): use UTAX with custom databases; (4) or (vsearch) use VSEARCH to align OTUs to custom databases; (5) or (usearch) use USEARCH to align OTUs to custom databases. (Default: 0)',
+  '-useBestBlastHitOnly <0|1>', '(1) do not use LCA (lowest common ancestor) to determine most likely taxonomic level (not recommended), instead just use the best blast hit. (0) LCA algorithm. (Default: 0)',
   '-LCA_cover <0-1>', 'Min horizontal coverage of an OTU sequence against ref DB. (Default: 0.5)',
   '-LCA_frac <0-1>', 'Min fraction of reads with identical taxonomy. (Default: 0.9)',
   '-greengenesSpecies <0|1>', '(1) Create greengenes output labels instead of OTU (to be used with greengenes specific programs such as BugBase). (Default: 0)',
@@ -4760,7 +4760,7 @@ sub readOTUmat($) {
 
 sub utaxTaxAssign($ $) {
     my ( $query, $taxblastf ) = @_;
-    if ( !-f $usBin ) { printL "uearch binary not found: $usBin\n", 81; }
+    if ( !-f $usBin ) { printL "usearch binary not found: $usBin\n", 81; }
     my $dbfa = $TAX_REFDB[0];
     if ( !-d $dbfa ) { printL "wrong utax input dir: $dbfa\n", 82; }
 
