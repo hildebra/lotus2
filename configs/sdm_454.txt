@@ -1,17 +1,17 @@
 #sdm options file to control sequence quality filtering, demultiplexing and preparation (can also be used without demultiplexing)
 #* indicates alternative quality filtering options, saved in *.add.fna etc. files separately from initial quality filtered dataset
 #sequence length refers to sequence length AFTER removal of Primers, Barcodes and trimming. this ensures that downstream analyis tools will have appropiate sequence information
-minSeqLength	250
+minSeqLength	220
 maxSeqLength	1000
 minAvgQuality	27
-*minSeqLength	200
+*minSeqLength	170
 *minAvgQuality	20
 #truncate total Sequence length to X (length after Barcode, Adapter and Primer removals, set to -1 to deactivate)
 TruncateSequenceLength	250
 
 #Ambiguous bases in Sequence
 maxAmbiguousNT	0
-*maxAmbiguousNT	1
+*maxAmbiguousNT	2
 
 #sequence is discarded if a homonucleotide run in sequence is longer
 maxHomonucleotide	8
@@ -21,16 +21,16 @@ QualWindowWidth	50
 QualWindowThreshhold	25
 
 #Trim the end of a sequence if a window falls below quality threshhold. Useful for removing low qulaity trailing ends of sequence
-TrimWindowWidth	20
-TrimWindowThreshhold	25
+TrimWindowWidth	25
+TrimWindowThreshhold	23
 
 #Probabilistic max number of accumulated sequencing errors. After this length, the rest of the sequence will be deleted. Complimentary to TrimWindowThreshhold. (-1) deactivates this option.
-maxAccumulatedError	0.5
+maxAccumulatedError	2.5
 #mid qual option
 *maxAccumulatedError	-1
 #Binomial error model of expected errors per sequence (see https://github.com/fpusan/moira), to deactivate, set BinErrorModelAlpha to -1
 BinErrorModelMaxExpError	2.5
-BinErrorModelAlpha	0.005
+BinErrorModelAlpha	-1
 
 
 #Max Barcode Errors 
@@ -60,7 +60,7 @@ RejectSeqWithoutRevPrim	F
 
 #sets if sequences without a forward (LinkerPrimerSequence) primer will be accepted (T=reject ; F=accept all); default=F
 RejectSeqWithoutFwdPrim	T
-*RejectSeqWithoutFwdPrim	T
+*RejectSeqWithoutFwdPrim	F
 
 #checks if pair1 and pair2 were switched
 CheckForReversedSeqs	F
