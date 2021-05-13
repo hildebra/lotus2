@@ -5493,7 +5493,7 @@ sub autoMap{
 				@h{(@pa2)} = undef;
 				@pa1 = grep {not exists $h{$_}} @pa1;
 			}
-			if (@pa1 != @pa2){
+			if (not @pa1 or @pa1 != @pa2){
 				$paired=1;
 			}
 		}

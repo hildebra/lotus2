@@ -199,7 +199,6 @@ get_DBs();
 
 if ($condaDBinstall){
 	print "Finished LotuS2 DB install (Conda autointall)\nEnjoy LotuS2!\n";
-	@txt = addInfoLtS("RDPjar","rdp_classifier",\@txt,1);
 	exit(0)
 }
 
@@ -1239,12 +1238,7 @@ sub get_programs{
 	system("unzip -o -q $exe -d $bdir");
 	unlink($exe);
 	$exe = $bdir."rdp_classifier_2.12/dist/classifier.jar";
-	if ($condaDBinstall){
-		@txt = addInfoLtS("RDPjar","rdp_classifier",\@txt,1);
-	} else {
-		@txt = addInfoLtS("RDPjar",$exe,\@txt,1);
-	}
-	
+	@txt = addInfoLtS("RDPjar",$exe,\@txt,1);
 
 
 
