@@ -138,17 +138,39 @@ if (!-e $uspath){
 if ($usearch_reset==1 && !$condaDBinstall){
 	print "\n\n#######################################################################################";
 	print "\nUSEARCH ver 7, 8, 9 or 10 has to be installed manually (due to licensing). Please download & install from http://www.drive5.com/usearch/download.html  \n";
-	print "If you have already installed it on this system, please enter the absolute path to usearch below.\nOr continue by entering \"0\" (you have to add it later via \"./autoInstall.pl -link_usearch [path to usearch]\"\n\nAnswer:";
-	#print "Once downloaded, rename the binary userachXXX to usearch_bin, make it executable (chmod +x usearch_bin) and copy/link it to this directory:\n$bdir \n";
-	#print "\nLotuS is almost ready to run (usearch).\n\n";
-	my $inu = "";
-	while ( 1){
-		$inu = <>; chomp $inu;
-		if ($inu eq "0"){$inu="";last;
-		} elsif (!-f $inu){print "Not a valid file! try again:\n";
-		} else {last;}
-	}
-	@txt = addInfoLtS("usearch",$inu,\@txt,1) if ($inu ne "");
+
+    # Check if usearch is available in path and store the absolute path in $usearch_path
+    my $usearch_path = `which usearch`;
+    chomp($usearch_path);
+    
+    if ($usearch_path eq "") {
+		print "USEARCH was not found on this system. Please enter the absolute path to usearch below.\nOr continue by entering \"0\" \n (you will have to add it later via \"./autoInstall.pl -link_usearch [path to usearch] or use -link_usearch [path to usearch] as an option when running LotuS2 )\"\n\nAnswer:";
+
+		my $inu = "";
+		while ( 1){
+			$inu = <>; chomp $inu;
+			if ($inu eq "0"){$inu="";last;
+			} elsif (!-f $inu){print "Not a valid file! try again:\n";
+			} else {last;}
+		}
+		$usearch_path = $inu;
+    } else {
+    	print "USEARCH was found at: \n";
+    	print $usearch_path;
+    	print "\nIf this is not the right USEARCH version you can change it later via \"./autoInstall.pl -link_usearch [path to usearch] or use -link_usearch [path to usearch] as an option when running LotuS2.\n\n";
+    }
+
+	# print "USEARCH was not found on this system. Please enter the absolute path to usearch below.\nOr continue by entering \"0\" \n (you will have to add it later via \"./autoInstall.pl -link_usearch [path to usearch] or use -link_usearch [path to usearch] as an option when running LotuS2 )\"\n\nAnswer:";
+	# #print "Once downloaded, rename the binary userachXXX to usearch_bin, make it executable (chmod +x usearch_bin) and copy/link it to this directory:\n$bdir \n";
+	# #print "\nLotuS is almost ready to run (usearch).\n\n";
+	# my $inu = "";
+	# while ( 1){
+	# 	$inu = <>; chomp $inu;
+	# 	if ($inu eq "0"){$inu="";last;
+	# 	} elsif (!-f $inu){print "Not a valid file! try again:\n";
+	# 	} else {last;}
+	# }
+	@txt = addInfoLtS("usearch",$usearch_path,\@txt,1) if ($usearch_path ne "");
 	
 } else {
 	print "Found valid usearch bin at $uspath\n";
