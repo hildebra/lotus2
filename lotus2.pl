@@ -2157,6 +2157,8 @@ sub truePath($){
 	my ($tmp) = @_;
 	my $oriTmp = $tmp;
 	return "$RealBin/$tmp" if (-f "$RealBin/$tmp");#relative path thing..
+	return "$tmp" if (-f "$tmp");
+	
 	$tmp = `which $tmp 2>/dev/null`;chomp($tmp);
 	$tmp="" if ($tmp =~ /^which: no/);
 	return $tmp;
