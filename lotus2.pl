@@ -237,8 +237,7 @@ my $swarmClus_d     = 1;
 my $id_OTU_noise =
   .99;   # Id threshold for error correction (noise removal) round #Default: .99
 my $uthreads                = 1;
-my $dereplicate_minsize_def = 2
-  ; # Discard clusters < dereplicate_minsize in error correction round #Default: 2 for UPARSE, 4 for otupipe
+my $dereplicate_minsize_def = 2; # Discard clusters < dereplicate_minsize in error correction round #Default: 2 for UPARSE, 4 for otupipe
 my $dereplicate_minsize = -1;
 my $doXtalk             = -1;    #check for cross talk in OTU tables
 my $usearchVer          = 0; my $usearchsubV = 0;
@@ -739,12 +738,14 @@ my $phyloseqCreated=runPhyloObj($treeF);
 
 systemL("rm -rf $lotus_tempDir;") if ($exec == 0 && !$keepTmpFiles);  #printL "Delete temp dir $lotus_tempDir\n", 0; }
 systemL("rm -rf $outdir;") if ($rmOutDir); #online in extreme cases, keep well defined & controlled
-printL(    frame("LotuS2 finished. Output:\n$outdir\n\- LotuSLogS/ contains run statistics (useful for describing data/amount of reads/quality\n- LotuSLogS/citations.txt: papers of programs used in this run\nNext steps: you can use the rtk program in this pipeline, to generate rarefaction curves and diversity estimates of your samples.\n"    ),0);
+#printL(    frame(    ),0);
+my $finiMsg = "LotuS2 finished. Output in:\n$outdir\n";
+#Next steps: you can use the rtk program in this pipeline, to generate rarefaction curves and diversity estimates of your samples.\n
 my $phyloHlp="";
-$phyloHlp="- Phyloseq: $outdir/phyloseq.Rdata can be directly loaded in R\n" if ($phyloseqCreated);
+$phyloHlp="- Phyloseq: load $outdir/phyloseq.Rdata directly with the phyloseq package in R\n" if ($phyloseqCreated);
 my $nwkOut = "";
 $nwkOut = "- Phylogeny: ${OTU_prefix} phylogentic tree available in $outdir/OTUphylo.nwk\n" if ($buildPhylo); 
-my $nxtSteps = "          Next steps:          \n- Rarefaction analysis: can be done with rtk (avaialble in R or use bin/rtk)\n$phyloHlp$nwkOut- .biom: $outdir/OTU.biom contains biom formated output\n- tutorial: Visit http://lotus2.earlham.ac.uk for more tutorials in data analysis\n";
+my $nxtSteps = "$finiMsg          Next steps:          \n$phyloHlp$nwkOut- .biom: $outdir/OTU.biom contains biom formatted output\n- Alpha diveristy/rarefaction curves: rtk (available as R package or in bin/rtk)\n- LotuSLogS/ contains run statistics (useful for describing data/amount of reads/quality and citations to programs used\n- Tutorial: Visit http://lotus2.earlham.ac.uk for a numerical ecology tutorial\n";
 printL(frame($nxtSteps));
 printWarnings();
 
@@ -3091,7 +3092,7 @@ my %clustering_options = (
   '-xtalk <0|1>', '(1) check for crosstalk. Note that this requires in most cases 64bit usearch. (Default: 0)'
 );
 
-my $other_heading = "Other Options";
+my $other_heading = "Other uses of pipeline (quits after execution)";
 my %other_options = (
   '-v', 'Print LotuS2 version',
   '-check_map <file>', 'Mapping_file: only checks mapping file and exists.',
@@ -3186,6 +3187,14 @@ foreach $key (sort(keys %further_options))
 {
   print_option_pair($key, $further_options{$key}, $option_indent, $option_width, $description_width);
 }
+print "\n\n$other_heading:\n\n";
+foreach $key (sort(keys %other_options))
+{
+  print_option_pair($key, $other_options{$key}, $option_indent, $option_width, $description_width);
+}
+
+
+
 
 
 ######## PRINT HELP END #############
