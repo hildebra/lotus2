@@ -4988,13 +4988,13 @@ sub runRDP{
 		$cmd = "java -Xmx1g -jar $mjar --gene=$rdpGene --format=fixrank --hier_outfile=$outdir/hierachy_cnt.tax --conf=0.1 --assign_outfile=$lotus_tempDir/RDPotus.tax $OTUfa;";
 		$RDPTAX = 2;
 	} elsif ( $doRDPing > 0 ) { #has to do RDP normal
-		unless ( $rdpjar ne "" || exists( $ENV{'RDP_JAR_PATH'} ) ) {
-			printL"Could not run RDP classifier (required).\nCheck that 'RDP_JAR_PATH' is set as environmental variable and that 'RDPjar' is set in lOTUs.cfg\n",55;
+		if ( $rdpjar eq "" && !exists( $ENV{'RDP_JAR_PATH'} ) ) {
+			printL"Could not run RDP classifier (required).\nCheck that either 'RDP_JAR_PATH' is set as environmental variable or that 'RDPjar' is set in lOTUs.cfg\n",55;
 		}
 		$msg = "Assigning taxonomy with RDP";
 		my $toRDP = $ENV{'RDP_JAR_PATH'}; 
-		if ( $rdpjar ne "" ) { $toRDP = $rdpjar; }
-		if (!-f $toRDP){printL"$toRDP not a valid file, aborting\n",35;}
+		if ( $rdpjar ne "" || !-f $toRDP) { $toRDP = $rdpjar; }
+		if (!-f $toRDP){printL"RDP path: $toRDP not a valid file, aborting\n",35;}
 		$cmd = "java -Xmx1g -jar ";
 		my $headRDP= `head -n1 $toRDP`;
 		#print $headRDP."\n\n$toRDP\n";
