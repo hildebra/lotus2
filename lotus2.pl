@@ -3230,8 +3230,7 @@ sub frame {
     my @txtarrT = split( /\n/, $txt );
 	my @txtarr; 
 	my $width = `tput cols`;
-	#print "$width\n";
-	$width = 80 if (!defined $width || $width > 80|| $width < 20);
+	$width = 80 if (!defined $width || $width eq "" || $width > 80|| $width < 20);
     my $numOfChar = 10;
 	my $txtSpac=  $width - $numOfChar;
 	foreach my $s (@txtarrT){
