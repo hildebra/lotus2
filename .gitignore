@@ -7,6 +7,7 @@ rtk_src
 lotus.pl
 lOTUs.cfg
 config.txt
+ITSx_out.summary.txt
 debug.sh
 myTestRun2
 bin/ncbi-blast-*
