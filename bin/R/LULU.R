@@ -22,7 +22,7 @@ lulu = function (otutable, matchlist, minimum_ratio_type = "min", minimum_ratio 
     statistics_table <- statistics_table[with(statistics_table, order(spread, total, decreasing = TRUE)), ]
     otutable <- otutable[match(row.names(statistics_table), row.names(otutable)),]
     statistics_table$parent_id <- "NA"
-    log_con <- file(paste0(logD,"lulu.log_", format(start.time, "%Y%m%d_%H%M%S")), open = "a")
+    log_con <- file(file.path(logD, paste0("lulu.log_", format(start.time, "%Y%m%d_%H%M%S"))), open = "a")
 	tarProg=0.1
     for (line in seq(1:nrow(statistics_table))) {
 		if (line/nrow(statistics_table)>tarProg){

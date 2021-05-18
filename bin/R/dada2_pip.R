@@ -206,9 +206,9 @@ tSuSe = table(subset_map)
 for (i in names(tSuSe)){
 	#forward read error pattern
 	idx = which(subset_map == i)
-	listF[[i]] = paste0(pathF, paste0(mapping[idx,"#SampleID"],".1.fq",sep="") )
-	listR[[i]] = paste0(pathF, paste0(mapping[idx,"#SampleID"],".2.fq",sep="") )
-	listM[[i]] = paste0(pathF, paste0(mapping[idx,"#SampleID"],".merg.fq",sep="") )
+	listF[[i]] <- file.path(pathF, paste0(mapping[idx, "#SampleID"], ".1.fq"))
+	listR[[i]] <- file.path(pathF, paste0(mapping[idx, "#SampleID"], ".2.fq"))
+	listM[[i]] <- file.path(pathF, paste0(mapping[idx, "#SampleID"], ".merg.fq"))
 
 	for (XX in 1:length(listF[[i]])){
 		if (!file.exists(listF[[i]][XX])){
@@ -233,7 +233,7 @@ for (i in names(tSuSe)){
 	}
 	#last resort..
 	if (all(!file.exists(listF[[i]]))){#single file case
-		listF[[i]] = paste0(pathF, paste0(mapping[idx,"#SampleID"],".fq",sep="") )
+		listF[[i]] <- file.path(pathF, paste0(mapping[idx, "#SampleID"], ".fq"))
 		for (XX in 1:length(listF[[i]])){
 			if (!file.exists(listF[[i]][XX])){
 				listF[[i]][XX]= paste0(listF[[i]][XX],".gz")
@@ -295,7 +295,7 @@ for (i in sort(names(tSuSe))){
 		try( errM <- learnErrors(filtMs, nbases = bp4error, multithread=ncores))#dada2 is too instable
 		if (is.null(errM)) {errM <- learnErrors(filtMs, nbases = bp4error, multithread=1)}
 		# Save the plots of error profiles, for a sanity check:
-		pdf(paste0(path_output,"/dada2_p",i,"_errM.pdf"),useDingbats = FALSE)
+		pdf(file.path(path_output, paste0("dada2_p", i, "_errM.pdf")), useDingbats = FALSE)
 		suppressWarnings(print(plotErrors(errM, nominalQ=TRUE)));
 		dev.off()
 		errorsM[[i]] = errM
@@ -306,7 +306,7 @@ for (i in sort(names(tSuSe))){
 		try( errF <- learnErrors(filtFs, nbases = bp4error, multithread=ncores))#dada2 is too instable
 		if (is.null(errF)) {errF <- learnErrors(filtFs, nbases = bp4error, multithread=1)}
 		# Save the plots of error profiles, for a sanity check:
-		pdf(paste0(path_output,"/dada2_p",i,"_errF.pdf"),useDingbats = FALSE)
+		pdf(file.path(path_output, paste0("dada2_p", i, "_errF.pdf")), useDingbats = FALSE)
 		suppressWarnings(print(plotErrors(errF, nominalQ=TRUE)))
 		dev.off() 
 		errorsF[[i]] = errF
@@ -398,9 +398,9 @@ if (length(args)>5){
 	tothits=0
 	ASVseqFnd=array("",length(ASVseq))
 	#create .uc file from dada2
-	cat("Converting dada2 clutering to deterministic read mapping..\n")
-	fileUC=file(paste0(path_output,"dada2.uc"),open ="wt")
-	fileFNA=file(paste0(path_output,"uniqueSeqs.fna"),open ="wt")
+	cat("Converting dada2 clustering to deterministic read mapping..\n")
+	fileUC <- file(file.path(path_output, "dada2.uc"), open = "wt")
+	fileFNA <- file(file.path(path_output, "uniqueSeqs.fna"), open = "wt")
 	for (i in 1:length(ASVseq)){#OTUs & their original sequencing need to be written out in a block ??
 		for (kk in 1:length(ldada)){
 			nASV = ldada[[kk]]$denoised[ASVseq[i]]
@@ -455,9 +455,9 @@ for (i in 1:length(listF)){
 	if (is.null(errR)) {errR <- learnErrors(filtRs, multithread=1)}
 
 	# Save the plots of error profiles, for a sanity check:
-	pdf(paste0(path_output,"/dada2_p",i,"_errF.pdf"),useDingbats = FALSE)
+	pdf(file.path(path_output, paste0("dada2_p", i, "_errF.pdf")), useDingbats = FALSE)
 	plotErrors(errF, nominalQ=TRUE);	dev.off()
-	pdf(paste0(path_output,"/dada2_p",i,"_errR.pdf"),useDingbats = FALSE)
+	pdf(file.path(path_output, paste0("dada2_p", i, "_errR.pdf")), useDingbats = FALSE)
 	plotErrors(errR, nominalQ=TRUE);	dev.off()
 
 
@@ -482,7 +482,7 @@ for (i in 1:length(listF)){
 	}
 
 	# Remove the matched_IDs folder:
-	#unlink(paste0(path_output,"matched_IDs"),recursive = TRUE)
+	#unlink(file.path(path_output, "matched_IDs"), recursive = TRUE)
 
 
 	# Construct sequence table and remove chimeras
@@ -504,7 +504,7 @@ mergetab.nochim <- removeBimeraDenovo(mergetab, method="consensus", multithread=
 
 
 cat(paste0(round((1-sum(mergetab.nochim)/sum(mergetab))*100,2),"% of reads (",dim(mergetab)[2]-dim(mergetab.nochim)[2]," of ",dim(mergetab)[2]," ASVs) were chimeric and will be removed (DADA2)"))
-uniquesToFasta(getUniques(mergetab.nochim), fout=paste0(path_output,"/uniqueSeqs.fna"), ids=paste0("ASV", seq(length(getUniques(mergetab.nochim)))))
+uniquesToFasta(getUniques(mergetab.nochim), fout=file.path(path_output, "uniqueSeqs.fna"), ids=paste0("ASV", seq(length(getUniques(mergetab.nochim)))))
 #saveRDS(seqtab, path_output) 
 cat("\nDADA2 clustering finished\n")
 
