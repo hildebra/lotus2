@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 # autoInstaller for lotus
 # Copyright (C) 2014  Falk Hildebrand, Joachim Fritscher
 
