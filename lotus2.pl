@@ -849,7 +849,8 @@ sub sdmStep1{
 			$sdmOptStr = "";
 		}
 		if ($ClusterPipe == 7){ #dada2.. no rd pair info in head!
-			$sdmOptStr .= "-pairedRD_HD_out 0 -pairedDemulti 1 -derep_format fq -derepPerSR 1 -DemultiBPperSR 1e8";
+			$sdmOptStr .= "-pairedRD_HD_out 0 -derep_format fq -derepPerSR 1 -DemultiBPperSR 1e8";
+			$sdmOptStr .= " -pairedDemulti 1" if ($numInput > 1);
 			$sdmDemultiDir = "$lotus_tempDir/demultiplexed/" if ($saveDemulti == 0);
 		}
 	}
@@ -2612,11 +2613,13 @@ sub announce_options{
 
 	}
 	printL "------------ I/O configuration --------------\n", 0;
-	printL( "Input=   $input\nOutput=  $outdir\n", 0 );    #InputFileNum=$numInput\n
+	printL "Input       $input\n";
+	printL "Output      $outdir\n";    #InputFileNum=$numInput\n
 	if ( $barcodefile ne "" ) {
 		printL("Barcodes= $barcodefile\n",0);
 	}
-	printL "TempDir= $lotus_tempDir\n",                                     0;
+	printL "TempDir     $lotus_tempDir\n";
+	printL "SDM options $sdmOpt\n";
 	printL "------------ Configuration LotuS --------------\n", 0;
 	printL( "Sequencing platform=$platform\nAmpliconType=$ampliconType\n", 0 );
 	if ( $ClusterPipe == 2 ) {

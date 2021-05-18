@@ -13,6 +13,7 @@ TruncateSequenceLength	250
 maxAmbiguousNT	0
 *maxAmbiguousNT	2
 
+
 #sequence is discarded if a homonucleotide run in sequence is longer
 maxHomonucleotide	8
 
