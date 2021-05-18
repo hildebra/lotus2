@@ -82,7 +82,7 @@ sub annotateFaProTax;
 sub systemW;
 
 #versioning
-my $selfID = "LotuS 2.04"; #release candidate: 2.0
+my $selfID = "LotuS 2.05"; #release candidate: 2.0
 
 #keep track of time
 my $start = time;
@@ -3028,8 +3028,8 @@ sub help {
 # HELP BLOCK LOTUS2
 
 #HELPPARSEBEGIN
-my $usage_string = "perl lotus2.pl -i <input fasta|fastq|dir> -o <output_dir> -m/-map <mapping_file>";
-my $usage_example = "perl lotus2.pl -i testDir/ -o testOut/ -m testDir/mymap.txt -CL dada2";
+my $usage_string = "lotus2 -i <input fasta|fastq|dir> -o <output_dir> -m/-map <mapping_file>";
+my $usage_example = "lotus2 -i testDir/ -o testOut/ -m testDir/mymap.txt -CL dada2";
 my $basic_heading = "Basic Options";
 my %basic_options = (
   '-i <file|dir>', 'In case that fastqFile or fnaFile and qualFile were specified in the mapping file, this has to be the directory with input files',
@@ -3054,7 +3054,7 @@ my %workflow_options = (
   '-reversePrimer <string>','give the reverse primer used to amplify DNA region (e.g. 16S primer rev)',
   '-verbosity <0-3>', 'Level of verbosity from printing all program calls and program output (3) to not even printing errors (0). Default: 1',
   '-saveDemultiplex <0|1|2|3>', '(1) Saves all demultiplexed reads (unfiltered) in the [outputdir]/demultiplexed folder, for easier data upload. (2) Only saves quality filtered demultiplexed reads and continues LotuS2 run subsequently. (3) Saves demultiplexed file into a single fq, saving sample ID in fastq/a header. (0) No demultiplexed reads are saved. (Default: 0)',
-  '-taxOnly <file>', 'Skip most of the lotus pipeline and only run a taxonomic classification on a fasta file. E.g. ./lotus2.pl -taxOnly <some16S.fna> -refDB SLV',
+  '-taxOnly <file>', 'Skip most of the lotus pipeline and only run a taxonomic classification on a fasta file. E.g. lotus2 -taxOnly <some16S.fna> -refDB SLV',
   '-redoTaxOnly <0|1>', '(1) Only redo the taxonomic assignments (useful for replacing a DB used on a finished lotus run). (0) Normal lotus run. (Default: 0)',
   '-keepOfftargets <0|1>', '(0)?!?: keep offtarget hits against offtargetDB in output fasta and otu matrix, default 0',
   '-keepTmpFiles <0|1>', '(1) save extra tmp files like chimeric OTUs or the raw blast output in extra dir. (0) do not save these. (Default: 0)',
@@ -3101,7 +3101,7 @@ my $other_heading = "Other uses of pipeline (quits after execution)";
 my %other_options = (
   '-v', 'Print LotuS2 version',
   '-check_map <file>', 'Mapping_file: only checks mapping file and exists.',
-  '-create_map <file>', 'mapping_file: creates a new mapping file at location, based on already demultiplexed input (-i) dir. E.g. ./lotus2.pl -create_map mymap.txt -i /home/dir_with_demultiplex_fastq',
+  '-create_map <file>', 'mapping_file: creates a new mapping file at location, based on already demultiplexed input (-i) dir. E.g. lotus2 -create_map mymap.txt -i /home/dir_with_demultiplex_fastq',
   '-link_usearch <file>', 'Provide the absolute path to your local usearch binary file, this will be installed to be useable with LotuS2 in the future.',
 );
 #HELPPARSEEND
@@ -5539,7 +5539,7 @@ sub autoMap{
 
 	print "Map is $ofile\n";
 	print "Please check that all files required are present in map $ofile.\n";
-	print "==========================\nTo start analysis:\n./lotus2.pl -m $ofile -i $pathPre/ -o [outdir] [further parameters if desired]\n==========================\n";
+	print "==========================\nTo start analysis:\nlotus2 -m $ofile -i $pathPre/ -o [outdir] [further parameters if desired]\n==========================\n";
 	exit(0);
 
 }
