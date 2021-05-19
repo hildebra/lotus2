@@ -282,7 +282,8 @@ sub finishAI($){
 sub getInstallVer($){
 	my ($sdmsrc) = @_;
 	my $lver=0.1;
-	open Q,"<","$ldir/lotus2.pl" or die("Can't find LotuS main script file (lotus2.pl)\n");
+	system "chmod +x $ldir/lotus2";
+	open Q,"<","$ldir/./lotus2" or die("Can't find LotuS main script file (lotus2)\n");
 	while(<Q>){if (m/my.*selfID\s*=\s*\"LotuS\s(.*)\".*/){$lver=$1;last;}}
 	close Q;
 	my $sver=1.5;
@@ -1315,7 +1316,7 @@ sub user_options(){
 		my $rerun = 0;
 		if ($inp eq "1" || $forceUpdate){
 			my ($lsv,$msgEnd) = checkLtsVer($lver);
-			#higher version? reinstall lotus2.pl, autoinstall.pl, sdm
+			#higher version? reinstall lotus2, autoinstall.pl, sdm
 			if ($lsv ne $lver || $forceUpdate){
 				print "New LotuS version available: updating from $lver to $lsv\n";
 				getS2("http://lotus2.earlham.ac.uk/lotus/lotus/updates/$lsv/files.tar.gz","files.tar.gz");
@@ -1328,7 +1329,7 @@ sub user_options(){
 						exit(0);
 					} else {print "Failed to rerun autoInstall.pl, please rerun manually after install\n";}
 				}
-				system("rm autoInstall.pl\ncp updates/autoInstall.pl . \nrm lotus2.pl\ncp updates/lotus2.pl .;rm -rf sdm_src;mv updates/sdm_src . ;rm -rf LCA_src;mv updates/LCA_src . ;rm -rf rtk_src;mv updates/rtk_src ."); 
+				system("rm autoInstall.pl\ncp updates/autoInstall.pl . \nrm lotus2\ncp updates/lotus2 .;rm -rf sdm_src;mv updates/sdm_src . ;rm -rf LCA_src;mv updates/LCA_src . ;rm -rf rtk_src;mv updates/rtk_src ."); 
 				my $nsdmp = compile_sdm("sdm_src"); 
 				@txt = addInfoLtS("sdm",$nsdmp,\@txt,1);
 				$nsdmp = compile_LCA("LCA_src");
