@@ -82,7 +82,7 @@ sub annotateFaProTax;
 sub systemW;
 
 #versioning
-my $selfID = "LotuS 2.05"; #release candidate: 2.0
+my $selfID = "LotuS 2.06"; #release candidate: 2.0
 
 #keep track of time
 my $start = time;
