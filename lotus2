@@ -2549,7 +2549,10 @@ sub readPaths {    #read tax databases and setup correct usage
                     printL "Using Silva LSU ref seq database.\n", 0;
                     push @TAX_REFDB, $TAX_REFDB_SLV_LSU;
                     push @TAX_RANKS, $SLVinfile_LSU;
-                }
+                }elsif ( $ampliconType eq "LSU" ) {
+				} else {
+					printL"Ensure that amplicon type is either SSU, LSU or ITS. Current option: $ampliconType\n",52;
+				}
                 if ( !-f $TAX_REFDB[-1] || !-f $TAX_RANKS[-1] ) {
                     printL "Could not find Silva DB files at \n$TAX_REFDB[-1]\n$TAX_RANKS[-1]\nPlease check that these files exist.\n",55;
                 }
