@@ -151,7 +151,7 @@ isBimeraDenovo2 = function (unqs, minFoldParentOverAbundance = 2, minParentAbund
 #ARGS parsing
 #args=c("/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//tmpFiles//demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//tmpFiles/","0","2","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//primary/in.map","/hpc-home/hildebra/grp/data/results/lotus/Angela/Test1.16S//tmpFiles//derep.fas")
 #args=c("/hpc-home/hildebra/grp/data/results/lotus/Anh//tmpFiles//demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Anh//tmpFiles/","0","14","/hpc-home/hildebra/grp/data/results/lotus/Anh//primary/in.map","/hpc-home/hildebra/grp/data/results/lotus/Anh//tmpFiles//derep.fas")
-#args=c("/hpc-home/hildebra/grp/data/results/lotus/Anh//tmpFiles//demultiplexed/","/hpc-home/hildebra/grp/data/results/lotus/Anh//tmpFiles/","0","14","/hpc-home/hildebra/grp/data/results/lotus/Anh//primary/in.map","/hpc-home/hildebra/grp/data/results/lotus/Anh//tmpFiles//derep.fas")
+#args=c("/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/data/data/test_data/lotus2/Arabi_output/Arabidopsis_ITSd2/tmpFiles//demultiplexed/","/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/data/data/test_data/lotus2/Arabi_output/Arabidopsis_ITSd2/tmpFiles/","0","12","/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/data/data/test_data/lotus2/Arabi_output/Arabidopsis_ITSd2/primary/in.map","/ei/projects/8/88e80936-2a5d-4f4a-afab-6f74b374c765/data/data/test_data/lotus2/Arabi_output/Arabidopsis_ITSd2/tmpFiles//derep.fas")
 
 args = commandArgs(trailingOnly=TRUE)
 # test if all the arguments are there: 

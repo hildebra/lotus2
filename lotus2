@@ -885,6 +885,7 @@ sub sdmStep1{
 	my $dmgCmd = "";
 	if ($damagedFQ) { $dmgCmd = "-ignore_IO_errors 1"; }
 	my $mainSDMlog = "$logDir/demulti.log";
+	my $mainSDMdereplog = "$logDir/demulti.dereplication.log";
 	if ($TaxOnly ne "0"){
 		printL("Skipping Quality Filtering & demultiplexing & dereplication step\n",0);
 		return ($sdmIn,$derepOutHQ,$qualOffset,$filterOutAdd,$filterOut,$derepOutHQ2,$derepOutMap,$sdmDemultiDir);
@@ -934,6 +935,7 @@ sub sdmStep1{
 			systemL "tar zcf $logDir/SDMperFile.tar.gz $logDir/SDMperFile/; rm -r $logDir/SDMperFile/;";
 		}
 		my $readSdmLog = `cat $mainSDMlog`;
+		my $readSdmDereLog =  `cat $mainSDMdereplog`;
 		if ( $readSdmLog =~ m/binomial est\. errors/ ) {
 			$citations .= "Poisson binomial model based read filtering: Fernando Puente-Sánchez, Jacobo Aguirre, Víctor Parro (2015).A novel conceptual approach to read-filtering in high-throughput amplicon sequencing studies. Nucleic Acids Res.(2015).\n";
 		}
@@ -945,6 +947,15 @@ sub sdmStep1{
 		$shrtRpt .= "\n".$1;
 		$readSdmLog =~ m/(Accepted \(Mid\+High qual\):.*)/;
 		$shrtRpt .= "\n".$1;
+		#die "$readSdmDereLog\n";
+		if (defined $readSdmDereLog && $readSdmDereLog ne ""){
+			if ($readSdmDereLog =~ m/(Dereplication: .*)/){
+				$shrtRpt .= "\n$1";
+			}
+			if ($readSdmDereLog =~ m/([\d,]+\/[\d,]+ not passing derep.*)/){
+				$shrtRpt .= "\n$1";
+			}
+		}
 		printL( frame("Finished primary read processing with sdm:\n".$shrtRpt."\nFor an extensive report see $mainSDMlog\n",1,3),0 );
 
 		#postprocessing of output files
@@ -1178,7 +1189,7 @@ sub ITSxOTUs {
 	$hr = readFasta($otusFA); my %FNA = %{$hr};
 	
 	if ( scalar( keys(%ITSo) ) == 0 ) {
-		printL "Could not find any valid ITS ${OTU_prefix}'s. Aborting run.\n Remaining OTUs can be found in $outBFile*\n", 923;
+		printL "Could not find any valid ITS ${OTU_prefix}'s. Aborting run.\n Note: this is sometimes caused by the wrong hmmsearch version installed on the cluster. We're currently working on automatically resolving this, but you can  check this in $progOutPut file. Remaining OTUs can be found in $outBFile*\n", 923;
 	}
 	
 	#check which OTUs existed before, but are not longer listed in ITSx output
@@ -1344,7 +1355,10 @@ sub contamination_rem($ $ $ ) {
 		$contRemStr += $contRem;
 	}
 	#nothing found? don't bother writing file again..
-	printL (frame( $Lreport), 0) if ($Lreport ne "");
+	if ($Lreport ne ""){
+		printL (frame( $Lreport), 0);
+		$citations .= "Offtarget removal: Bedarf, J.R., Beraza, N., (2021). Much ado about nothing? Off-target amplification can lead to false-positive bacterial brain microbiome detection in healthy and Parkinson's disease individuals. Microbiome 9, 75.\n";
+	}
 	my @kh = keys %totHits;
 	#print @kh. "   @kh\n";
 	return \%totHits; #if ($contRemStr == 0);
@@ -3081,7 +3095,7 @@ my %taxonomy_options = (
   '-greengenesSpecies <0|1>', '(1) Create greengenes output labels instead of OTU (to be used with greengenes specific programs such as BugBase). (Default: 0)',
   '-ITSx <0|1>', '(1) use ITSx to only retain OTUs fitting to ITS1/ITS2 hmm models; (0) deactivate. (Default: 1)',
   '-itsx_partial <0-100>', 'Parameters for ITSx to extract partial (%) ITS regions as well. (0) deactivate. (Default: 0)',
-  '-lulu <0|1>', '(1) use LULU (https://github.com/tobiasgf/lulu) to merge OTUs based on their occurence. (Default: 1)',
+  '-lulu <0|1>', '(1) use LULU (https://github.com/tobiasgf/lulu) to merge OTUs based on their occurrence. (Default: 1)',
   '-buildPhylo <0,1,2,>','(0) do not build OTU phylogeny; (1) use fasttree2; (2) use iqtree2. (Default: 1)',
 );
 
@@ -5836,7 +5850,7 @@ sub buildOTUs($) {
 		if ( $noChimChk == 1 || $noChimChk == 2 ) {  #deactivate chimera de novo
 			$xtraOptions .= " -uparse_break -999 ";
 		}
-		$entrMessage = "UPARSE core routine\nCluster at ". 100 * $id_OTU ;
+		$entrMessage = "UPARSE ${OTU_prefix} clustering\nCluster at ". 100 * $id_OTU ;
 		#"\n =========================================================================\n UPARSE core routine\n Cluster at ". 100 * $id_OTU. "%\n=========================================================================\n",0);
 		
 
@@ -5856,10 +5870,10 @@ sub buildOTUs($) {
 		$cmd .= "rm -r $sdmDemultiDir;" if ($saveDemulti==0);
 		#die "$cmd\n";
 		$citations .= "DADA2 ASV clustering - Callahan BJ, McMurdie PJ, Rosen MJ, et al. DADA2: High-resolution sample inference from Illumina amplicon data. Nat Methods 2016;13:581–3. doi:10.1038/nmeth.3869\n";
-		$entrMessage = "DADA2 ASV clustering\ncheck progress at $progOutPut";
+		$entrMessage = "DADA2 ${OTU_prefix} clustering\ncheck progress at $progOutPut";
 	}
 	elsif ( $ClusterPipe == 6 ) { #unoise3
-		$entrMessage = "UNOISE core routine\n Cluster at ". 100 * $id_OTU . "%";
+		$entrMessage = "UNOISE ${OTU_prefix} sequence clustering";#\n Cluster at ". 100 * $id_OTU . "%";
 		#printL("\n =========================================================================\n UNOISE core routine\n Cluster at ". 100 * $id_OTU . "%\n=========================================================================\n",0);
 
 		$cmd = "$usBin -unoise3 $derepl -zotus $OTUfastaTmp -tabbedout $logDir/unoise3_longreport.txt -log $logDir/unoise3.log;";    # -threads $uthreads"; # -uc ".$UCguide[2]."

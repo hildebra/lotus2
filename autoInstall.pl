@@ -941,6 +941,8 @@ sub get_DBs{
 		#die "X\n";
 		
 	}
+	
+	
 
 	
 	#-------BIG DB INSTALL END
@@ -962,8 +964,20 @@ sub get_DBs{
 	system("gunzip $DB.gz");
 	@txt = addInfoLtS("UCHIME_REFDB",$DB,\@txt,1);
 
-	#ITS chimera check ref DB
 	if ($ITSready){
+		#ITS DB
+		my $tarUN = "$ddir/qITSfa.zip";
+		getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta.zip",$tarUN);
+		#getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/sh_qiime_release_02.03.2015.zip",$tarUN);
+		system("rm -r $ddir/UNITE;unzip -o $tarUN -d $ddir/UNITE/");
+		@txt = addInfoLtS("TAX_REFDB_ITS_UNITE","$ddir/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta",\@txt,1);
+		getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt.zip",$tarUN);
+		system("unzip -o $tarUN -d $ddir/UNITE/;rm -rf $ddir/UNITE/__MACOSX/");
+		@txt = addInfoLtS("TAX_RANK_ITS_UNITE","$ddir/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt",\@txt,1);
+		unlink($tarUN);
+	}
+	
+	if ($ITSready){#ITS chimera check ref DB
 		my $itsDB = "http://lotus2.earlham.ac.uk/lotus/packs/DB/uchime_reference_dataset_11.03.2015.zip";
 		getS2($itsDB,"$ddir/uchITS.zip");
 		system "rm -r $ddir/ITS_chimera/";
@@ -991,19 +1005,7 @@ sub get_DBs{
 sub get_programs{
 	#-----------  exit prog here, if set
 	#-----------------------
-	if ($ITSready){
-		#ITS DB
-		my $tarUN = "$ddir/qITSfa.zip";
-		getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta.zip",$tarUN);
-		#getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/sh_qiime_release_02.03.2015.zip",$tarUN);
-		system("rm -r $ddir/UNITE;unzip -o $tarUN -d $ddir/UNITE/");
-		@txt = addInfoLtS("TAX_REFDB_ITS_UNITE","$ddir/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta",\@txt,1);
-		getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt.zip",$tarUN);
-		system("unzip -o $tarUN -d $ddir/UNITE/;rm -rf $ddir/UNITE/__MACOSX/");
-		@txt = addInfoLtS("TAX_RANK_ITS_UNITE","$ddir/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt",\@txt,1);
-		unlink($tarUN);
-		
-
+	if ($ITSready){ #ITSx
 		#itsx
 		print "Downloading ITSX to detect valid ITS regions..\n";
 		my $tarUTN = "$bdir/ITSx_1.1.3.tar.gz";
