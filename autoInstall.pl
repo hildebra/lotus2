@@ -2,6 +2,8 @@
 # autoInstaller for lotus
 # Copyright (C) 2014  Falk Hildebrand, Joachim Fritscher
 
+### use "perl autoInstall.pl -condaDBinstall -lambdaIndex" to install LotuS2 on Galaxy server
+
 #This program is free software: you can redistribute it and/or modify
 #it under the terms of the GNU General Public License as published by
 #the Free Software Foundation, either version 3 of the License, or
@@ -60,8 +62,10 @@ sub user_options;
 
 my $forceUpdate=0;
 my $condaDBinstall=0;
+my $compile_lambda=0;
 if (@ARGV > 0 && $ARGV[0] eq "-forceUpdate"){$forceUpdate=1};
 if (@ARGV > 0 && $ARGV[0] eq "-condaDBinstall"){$condaDBinstall=1};
+if (@ARGV > 1 && $ARGV[1] eq "-lambdaIndex"){$compile_lambda=1};
 #die "$ARGV[0] $forceUpdate\n";
 
 my $isMac = 1;
@@ -400,6 +404,29 @@ sub parse_PR2($ $){
 	system "rm $DBin; mv $DBin.tmp $DBin";
 }
 
+
+sub buildIndex($){
+	my ($DBfna) = @_;
+	return unless ($compile_lambda);
+	my $lambdaIdxBin = "";#find where lambda is installed in
+	foreach my $line (@txt){
+		if ($line =~ m/^lambda_index\s+(\S+)/ ) {
+			$lambdaIdxBin = $1;
+		}
+	}
+	my $BlastCores = 8; #just pick reasonable number
+	my $xtraLmbdI = "";
+	my $cmdIdx =  "$lambdaIdxBin -p blastn -t $BlastCores -d $DBfna $xtraLmbdI;";
+	system "touch $DBfna.dna5.fm.lf.drv.wtc.24;";
+	print "###################################\nCompiling lambda database for $DBfna using 6 cores\n";
+	if ( system($cmdIdx) ) {
+		print "Could not compile index for $DBfna with call\n$cmdIdx\n\n";
+	} else {
+		print "Compile index for $DBfna \n\n";
+	}
+	#die "$DBfna\n";
+}
+
 sub getbeetax($){
 	my ($aref) = @_;
 	my @txt = @{$aref};
@@ -412,6 +439,7 @@ sub getbeetax($){
 	#parse_PR2($DB,$DBtax); #unlink ($DBtax.".pre");
 	@txt = addInfoLtS("TAX_REFDB_BEE",$DB,\@txt,1);
 	@txt = addInfoLtS("TAX_RANK_BEE",$DBtax,\@txt,1);
+	buildIndex($DB);
 	return (@txt);
 }
 
@@ -429,6 +457,7 @@ sub getPR2db($){
 	#parse_PR2($DB,$DBtax); #unlink ($DBtax.".pre");
 	@txt = addInfoLtS("TAX_REFDB_PR2",$DB,\@txt,1);
 	@txt = addInfoLtS("TAX_RANK_PR2",$DBtax,\@txt,1);
+	buildIndex($DB);
 	return (@txt);
 }
 sub getHITdb($){
@@ -442,6 +471,7 @@ sub getHITdb($){
 	parse_hitdb($DBtax.".pre",$DBtax); unlink ($DBtax.".pre");
 	@txt = addInfoLtS("TAX_REFDB_HITdb",$DB,\@txt,1);
 	@txt = addInfoLtS("TAX_RANK_HITdb",$DBtax,\@txt,1);
+	buildIndex($DB);
 	return (@txt);
 }
 sub getGG($){
@@ -459,6 +489,7 @@ sub getGG($){
 	system("gunzip -c $DB.gz > $DB");
 	unlink("$DB.gz");
 	@txt = addInfoLtS("TAX_REFDB_GG",$DB,\@txt,1);
+	buildIndex($DB);
 	$DB = "$ddir/gg_13_5_taxonomy";
 	#system("wget -O $DB.gz $gg2");
 	getS2($gg2,"$DB.gz");
@@ -468,6 +499,7 @@ sub getGG($){
 	@txt = addInfoLtS("TAX_RANK_GG",$DB,\@txt,1);
 	return @txt;
 }
+
 sub getSLV($){
 	my ($aref) = @_;
 	my @txt = @{$aref};
@@ -513,6 +545,8 @@ sub getSLV($){
 	
 	@txt = addInfoLtS("TAX_REFDB_SSU_SLV",$DB,\@txt,1);
 	@txt = addInfoLtS("TAX_RANK_SSU_SLV",$DB2,\@txt,1);
+	buildIndex($DB);
+	
 #------------------------------ LSU SLV DB --------------------------
 	$DB = "$ddir/$baseLN"."_LSU.fasta";
 	$DB2 = "$ddir/$baseLN"."_LSU.tax";
@@ -536,6 +570,7 @@ sub getSLV($){
 	unlink("$ddir/LSUSILVA.fasta"); unlink("$ddir/SLVtaxLSU.csv");unlink("$ddir/SLVtaxSSU.csv");
 	@txt = addInfoLtS("TAX_REFDB_LSU_SLV",$DB,\@txt,1);
 	@txt = addInfoLtS("TAX_RANK_LSU_SLV",$DB2,\@txt,1);
+	buildIndex($DB);
 
 	return @txt;
 }
