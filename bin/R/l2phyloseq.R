@@ -83,6 +83,7 @@ if (dim(tax)[1] < dim(otu)[1]){
 	#tax=rbind (tax, taxA)
 }
 #actual conversion
+colnames(tax)=c("Domain", "Phylum","Class","Order","Family","Genus","Species")
 sam1 <- sample_data(sd) 
 otu1 <- otu_table(otu, taxa_are_rows=TRUE)
 tax1 <- tax_table(tax)
