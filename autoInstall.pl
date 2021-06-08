@@ -46,6 +46,7 @@ if (`whereis wget` eq ""){
 
 sub addInfoLtS;sub finishAI;
 sub getGG;sub getSLV;sub getHITdb; sub getPR2db;sub getbeetax;
+sub buildIndex;
 sub get_DBs;
 sub getS2;
 sub getInfoLtS;
@@ -585,8 +586,10 @@ my %taxG;
 open I,"<",$taxGuide or die "Can't find taxguide file $taxGuide\n";
 while (my $line = <I>){
 	chomp($line); my @splg = split("\t",$line);
-	my $newN =  $splg[0]; #lc
-	$taxG{$newN} =  $splg[2];
+	if (scalar(@splg) > 0){
+		my $newN =  $splg[0]; #lc
+		$taxG{$newN} =  $splg[2];
+	}
 } 
 close I;
 
@@ -1005,7 +1008,10 @@ sub get_DBs{
 		getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta.zip",$tarUN);
 		#getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/sh_qiime_release_02.03.2015.zip",$tarUN);
 		system("rm -r $ddir/UNITE;unzip -o $tarUN -d $ddir/UNITE/");
-		@txt = addInfoLtS("TAX_REFDB_ITS_UNITE","$ddir/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta",\@txt,1);
+		my $UNITEdb = "$ddir/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta";
+		@txt = addInfoLtS("TAX_REFDB_ITS_UNITE",$UNITEdb,\@txt,1);
+		buildIndex($UNITEdb);
+
 		getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt.zip",$tarUN);
 		system("unzip -o $tarUN -d $ddir/UNITE/;rm -rf $ddir/UNITE/__MACOSX/");
 		@txt = addInfoLtS("TAX_RANK_ITS_UNITE","$ddir/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt",\@txt,1);

@@ -3084,7 +3084,7 @@ my $taxonomy_heading = "Taxonomy Options";
 my %taxonomy_options = (
   '-refDB <SLV|GG|HITdb|PR2|UNITE|beetax>', '(SLV) Silva LSU (23/28S) or SSU (16/18S), (GG greengenes (only SSU available), (HITdb) (SSU, human gut specific), (PR2) LSU spezialized on Ocean environmentas, (UNITE) ITS fungi specific, (beetax) bee gut specific database and tax names. \nDecide which reference DB will be used for a similarity based taxonomy annotation. Databases can be combined, with the first having the highest prioirty. E.g. "PR2,SLV" would first use PR2 to assign OTUs and all unaasigned OTUs would be searched for with SILVA, given that \"-amplicon_type LSU\" was set. Can also be a custom fasta formatted database: in this case provide the path to the fasta file as well as the path to the taxonomy for the sequences using -tax4refDB. See also online help on how to create a custom DB. (Default: GG)',
   '-tax4refDB <file>', 'In conjunction with a custom fasta file provided to argument -refDB, this file contains for each fasta entry in the reference DB a taxonomic annotation string, with the same number of taxonomic levels for each, tab separated.',
-  '-amplicon_type <LSU|SSU>', '(LSU) large subunit (23S/28S) or (SSU) small subunit (16S/18S). (Default: SSU)',
+  '-amplicon_type <SSU|LSU|ITS|ITS1|ITS2>', '(SSU) small subunit (16S/18S), (LSU) large subunit (23S/28S) or internal transcribed spacer (ITS|ITS1|ITS2). (Default: SSU)',
   '-tax_group <bacteria|fungi>', '(bacteria) bacterial 16S rDNA annnotation, (fungi) fungal 18S/23S/ITS annotation. (Default: bacteria)',
   '-rdp_thr <0-1>', 'Confidence thresshold for RDP.(Default: 0.8)',
   '-utax_thr <0-1>', 'Confidence thresshold for UTAX. (Default: 0.8)',
