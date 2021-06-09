@@ -94,7 +94,7 @@ if (length(args) == 3) {
   physeq = phyloseq(otu1,tax1,sam1)}else if (length(args) == 4)
       {physeq = phyloseq(otu1,tax1,sam1,tree)}
  
- 
+physeq=subset_taxa(physeq, Domain != "?")
 # Save the phyloseq object as an R object:
 save(physeq,file=paste0(strsplit(path_TABLE,"O")[[1]][1],"phyloseq.Rdata"))
 
