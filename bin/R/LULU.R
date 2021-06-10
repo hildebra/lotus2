@@ -120,7 +120,7 @@ if (dim(otuM)[1] <= 1){
 }
 
 lulu <- lulu(otuM, matchs)
-write.table(lulu$curated_table,quote =FALSE,sep="\t",file=otuF)
+write.table(lulu$curated_table,quote =FALSE,sep="\t",file=otuF,col.names = NA)
 write.table(lulu$discarded_otus,quote =FALSE,sep="\t",file=paste0(matchL,".rm"),col.names =FALSE,row.names =FALSE)
 #save the lulu object for log purposes
 save(lulu,file=paste0(logD,"LULU.Rdata"));

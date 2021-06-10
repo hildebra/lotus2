@@ -82,7 +82,7 @@ sub annotateFaProTax;
 sub systemW;
 
 #versioning
-my $selfID = "LotuS 2.08"; #release candidate
+my $selfID = "LotuS 2.09"; #release candidate
 
 #keep track of time
 my $start = time;
@@ -3406,37 +3406,37 @@ sub calcHighTax($ $ $ $ $) {
     my %assTax;
     my %unassTax;
 	my @addedUnclOTUs=();
-    foreach my $l (@lvls) {
-        $cnt++;
-        next if ( $cnt == 1 );    #domain doesn't need a file..
-        my $lvlSmplCnt       = 0;
-        my $assignedCnt      = 0;
-        my $taxAssingedCnt   = 0;
-        my $taxUnAssingedCnt = 0;
-        my $isUnassigned     = 0;
-        my @avTax            = sort( keys( %{ $Taxo{$l} } ) );
-        my $outF             = $highLvlDir . $l . ".txt";
-        open O, ">", $outF;
+	foreach my $l (@lvls) {
+		$cnt++;
+		next if ( $cnt == 1 );    #domain doesn't need a file..
+		my $lvlSmplCnt       = 0;
+		my $assignedCnt      = 0;
+		my $taxAssingedCnt   = 0;
+		my $taxUnAssingedCnt = 0;
+		my $isUnassigned     = 0;
+		my @avTax            = sort( keys( %{ $Taxo{$l} } ) );
+		my $outF             = $highLvlDir . $l . ".txt";
+		open O, ">", $outF;
 
-        #header
-        print O $l . $SEP . join( $SEP, @avSmps );
+		#header
+		print O $l . $SEP . join( $SEP, @avSmps );
 		my %matOTUsTT = %matOTUs; 
 
-        #smplWise counts, summed up to tax
-        foreach my $ta (@avTax) {
-            print O "\n" . $ta;
-            if ( $ta =~ m/\?$/ ) {
-                $isUnassigned = 1;
-                $taxUnAssingedCnt++;
-            }
-            else { $taxAssingedCnt++; }
-            my @OTUli = @{ $Taxo{$l}{$ta} };
+		#smplWise counts, summed up to tax
+		foreach my $ta (@avTax) {
+			print O "\n" . $ta;
+			if ( $ta =~ m/\?$/ ) {
+				$isUnassigned = 1;
+				$taxUnAssingedCnt++;
+			}
+			else { $taxAssingedCnt++; }
+			my @OTUli = @{ $Taxo{$l}{$ta} };
 			#first mark which OTUs get hit at all at this level (to count unclassis)
 			foreach (@OTUli) {
 				$matOTUsTT{$_} = 1;
 			}
 
-            #die(join("-",@OTUli)." ".$ta."\n");
+			#die(join("-",@OTUli)." ".$ta."\n");
 			foreach my $sm (@avSmps) {
 				printL("Sample $sm does not exist\n"), 0  if ( !exists( $OTUmat{$sm} ) );
 				my $smplTaxCnt = 0;
@@ -3452,12 +3452,12 @@ sub calcHighTax($ $ $ $ $) {
 				$assignedCnt += $smplTaxCnt if ( !$isUnassigned );
 				$lvlSmplCnt  += $smplTaxCnt;
 				print O $SEP . $smplTaxCnt;
-            }
-            $isUnassigned = 0;
+			}
+			$isUnassigned = 0;
 			
 						#now write out the unclassified ones
 
-        }
+		}
 		if ($keepUnclassified){
 			print O "\n" . "noHit;";
 			my @OTUli = ();
@@ -3486,28 +3486,26 @@ sub calcHighTax($ $ $ $ $) {
     }
 
 	if ($keepUnclassified){
-		printL "Adding " .join(",",@addedUnclOTUs) . " unclassified OTUs to ".join(",",@lvls) ." levels, respectively\n";
+		printL "Adding " . $addedUnclOTUs[0] . " unclassified ${OTU_prefix}'s to output matrices\n";
 	}
 
     #print some stats
-    $cnt = 0;
-    foreach my $l (@lvls) {
-        $cnt++;
-        next if ( $cnt == 1 );    #domain doesn't need a file..
-        if ( $cnt == 2 ) {
-            printL
-"Total reads in matrix: $totCnt{$l}\nTaxLvl	%AssignedReads	%AssignedTax\n",
-              0;
-        }
-        my $assPerc = 0;
-        $assPerc = $assCnt{$l} / $totCnt{$l} if ( $totCnt{$l} > 0 );
-        my $assPerc2 = 0;
+	$cnt = 0;
+	foreach my $l (@lvls) {
+		$cnt++;
+		next if ( $cnt == 1 );    #domain doesn't need a file..
+		if ( $cnt == 2 ) {
+			printL "Total reads in matrix: $totCnt{$l}\nTaxLvl	%Assigned_Reads	%Assigned_${OTU_prefix}s\n", 0;
+		}
+		my $assPerc = 0;
+		$assPerc = $assCnt{$l} / $totCnt{$l} if ( $totCnt{$l} > 0 );
+		my $assPerc2 = 0;
 		my $lsum=( $assTax{$l} + $unassTax{$l} );
-        $assPerc2 = $assTax{$l} / $lsum if ( $lsum > 0 );
-        printL "$l\t" . int( 100 * $assPerc ) . "\t" . int( 100 * $assPerc2 ) . "\n", 0;
-    }
-    printL "\n", 0;
-    return $tax4RefHR;
+		$assPerc2 = $assTax{$l} / $lsum if ( $lsum > 0 );
+		printL "$l\t" . int( 100 * $assPerc ) . "\t" . int( 100 * $assPerc2 ) . "\n", 0;
+	}
+	printL "\n", 0;
+	return $tax4RefHR;
 }
 
 sub buildTree($ $) {

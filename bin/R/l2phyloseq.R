@@ -7,17 +7,11 @@ if(!require("phyloseq",quietly=TRUE,warn.conflicts =FALSE)){
 
 library("phyloseq")
 #packageVersion("phyloseq")
-# â1.30.0'
-
 #path_TABLE=$outdir/OTU.txt
 #Classification_method   #phyloseq option needs to have a flag specifying  the output of the classification to use (for ex BLAST)
 #path_TAX=$outdir/*$Classification_method*.txt   
 #path_SD=$map
-
 #RScript lotus2-phyloseq.R $outdir/OTU.tx $outdir/*$Classification_method*.txt $map
-
-
-
 
 args = commandArgs(trailingOnly=TRUE)
 
