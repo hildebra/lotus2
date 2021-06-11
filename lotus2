@@ -6028,8 +6028,9 @@ sub buildOTUs($) {
 				#$cmd .= "rm $derepl;cat $dereplPre.*.fas > $derepl;" ;
 				convertFastqs2fna(["$dereplPre.*.fas"],$derepl);
 			}
-
-			$cmd = "$VSBin --usearch_global ". $derepl. " -db $outfile -uc $UCguide[0] $userachDffOpt $vsearchSpcfcOpt;";    #-threads  $BlastCores";
+			$cmd = "";
+			$cmd .= "rm $UCguide[0];";
+			$cmd .= "$VSBin --usearch_global ". $derepl. " -db $outfile -uc $UCguide[0] $userachDffOpt $vsearchSpcfcOpt;";    #-threads  $BlastCores";
 				   #die $cmd."\n";
 			if ( systemL($cmd) != 0 ) {
 				printL( "vsearch backmapping command aborted:\n$cmd\n", 1 );
