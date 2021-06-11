@@ -60,7 +60,6 @@ sub check_version;
 sub user_options;
 
 
-
 my $forceUpdate=0;
 my $condaDBinstall=0;
 my $compile_lambda=0;
@@ -1007,13 +1006,13 @@ sub get_DBs{
 		my $tarUN = "$ddir/qITSfa.zip";
 		getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta.zip",$tarUN);
 		#getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/sh_qiime_release_02.03.2015.zip",$tarUN);
-		system("rm -r $ddir/UNITE;unzip -o $tarUN -d $ddir/UNITE/");
+		system("rm -r $ddir/UNITE;unzip -q -o $tarUN -d $ddir/UNITE/");
 		my $UNITEdb = "$ddir/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta";
 		@txt = addInfoLtS("TAX_REFDB_ITS_UNITE",$UNITEdb,\@txt,1);
 		buildIndex($UNITEdb);
 
 		getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt.zip",$tarUN);
-		system("unzip -o $tarUN -d $ddir/UNITE/;rm -rf $ddir/UNITE/__MACOSX/");
+		system("unzip -q -o $tarUN -d $ddir/UNITE/;rm -rf $ddir/UNITE/__MACOSX/");
 		@txt = addInfoLtS("TAX_RANK_ITS_UNITE","$ddir/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt",\@txt,1);
 		unlink($tarUN);
 	}
@@ -1022,7 +1021,7 @@ sub get_DBs{
 		my $itsDB = "http://lotus2.earlham.ac.uk/lotus/packs/DB/uchime_reference_dataset_11.03.2015.zip";
 		getS2($itsDB,"$ddir/uchITS.zip");
 		system "rm -r $ddir/ITS_chimera/";
-		if (system("unzip -o $ddir/uchITS.zip -d $ddir/ITS_chimera") != 0){ die "Failed to unzip $ddir/uchITS.zip";}
+		if (system("unzip -q -o $ddir/uchITS.zip -d $ddir/ITS_chimera") != 0){ die "Failed to unzip $ddir/uchITS.zip";}
 		unlink("$ddir/uchITS.zip");
 		#die "$ddir/ITS_chimera/uchime_sh_refs_dynamic_original_985_11.03.2015.fasta";
 		@txt = addInfoLtS("UCHIME_REFDB_ITS","$ddir/ITS_chimera/uchime_sh_refs_dynamic_original_985_11.03.2015.fasta",\@txt,1);
@@ -1110,7 +1109,7 @@ sub get_programs{
 	#
 	my $swarmtar = "http://lotus2.earlham.ac.uk/lotus/packs/swarm2.1.13.zip";#"https://github.com/torognes/swarm/archive/master.zip";#"http://lotus2.earlham.ac.uk/lotus/packs/swarm206d.tgz";
 	getS2($swarmtar,$tars);
-	system("unzip -o -d $bdir $tars");
+	system("unzip -q -o -d $bdir $tars");
 	unlink($tars);
 	my $callrets = system("make -C $swarmdir/src/");
 	#die($sexe."\n");
@@ -1126,17 +1125,25 @@ sub get_programs{
 	}
 	#vsearch
 	print "Downloading vsearch executables..\n";
-	my $vexe = "$bdir/vsearch-2.0.4";
+	my $vtars = "$bdir/vsearch.tar.gz";
 	if ($isMac){
-		getS2("http://lotus2.earlham.ac.uk/lotus/packs/vsearch/vsearch-2.0.4-osx-x86_64/bin/vsearch",$vexe);
+		#getS2("http://lotus2.earlham.ac.uk/lotus/packs/vsearch/vsearch-2.0.4-osx-x86_64/bin/vsearch",$vexe);
+		getS2("https://github.com/torognes/vsearch/releases/download/v2.15.0/vsearch-2.15.0-macos-x86_64.tar.gz",$vtars);
 	} else {
-		getS2("http://lotus2.earlham.ac.uk/lotus/packs/vsearch/vsearch-2.0.4-linux-x86_64/bin/vsearch",$vexe);
+		#getS2("http://lotus2.earlham.ac.uk/lotus/packs/vsearch/vsearch-2.0.4-linux-x86_64/bin/vsearch",$vexe);
+		getS2("https://github.com/torognes/vsearch/releases/download/v2.15.0/vsearch-2.15.0-linux-x86_64.tar.gz",$vtars);
 	}
-	if (-e $vexe){ #not essential
-		system("chmod +x $vexe");
+	system("tar -xzf $vtars -C $bdir");
+	my $vexe = "$bdir/vsearch-2.15.0-linux-x86_64/bin/vsearch";
+	system("chmod +x $vexe");
+	my $vsearchVer = `$vexe -v`;chomp $vsearchVer;
+	print "\n$vsearchVer\n";
+	if (-s $vexe){# && $vsearchVer =~ m/vsearch v2.*/){ #not essential
 		@txt = addInfoLtS("vsearch",$vexe,\@txt,1);
 	} else {
-		print "vsearch exe did not exist at $vexe\n Therefore vsearch was not installed (fallback to usearch).\n";
+		#system "rm $vexe";
+		print "\n\nWARNING::\nvsearch exe did not exist at $vexe\n Therefore vsearch was not installed (fallback to usearch).\n\n";
+		$finalWarning .= "vsearch exe did not exist at $vexe\n Therefore vsearch was not installed (fallback to usearch).\n";
 	}
 
 	#infernal
@@ -1153,6 +1160,7 @@ sub get_programs{
 		@txt = addInfoLtS("infernal",$iexe,\@txt,2);
 	} else {
 		print "infernal binary dir did not exist at $iexe\n Therefore infernal was not installed (fallback to de novo clustal omega).\n";
+		$finalWarning .= "infernal binary dir did not exist at $iexe\n Therefore infernal was not installed (fallback to de novo clustal omega).\n";
 	}
 	system "rm -f $iexe" if (-e $iexe);
 
@@ -1166,7 +1174,8 @@ sub get_programs{
 	@txt = addInfoLtS("vxtractor",$vxexe,\@txt,1);
 	$vxexe = "$bdir/vxtr/HMM.zip";
 	getS2("http://lotus2.earlham.ac.uk/lotus/packs/VXtractor/HMMs.zip",$vxexe);
-	system("unzip  -o -q $vxexe -d $bdir/vxtr/;rm $vxexe;");
+	print("unzip -o -q $vxexe -d $bdir/vxtr/;rm $vxexe;");
+	system("unzip -o -q $vxexe -d $bdir/vxtr/;rm $vxexe;");
 	@txt = addInfoLtS("vxtractorHMMs","$bdir/vxtr/HMMs/",\@txt,2);
 	#die "$bdir/vxtr/HMMs/";
 
@@ -1190,6 +1199,7 @@ sub get_programs{
 		system("chmod +x $dexe");
 		@txt = addInfoLtS("minimap2",$dexe,\@txt,1);
 	} else {
+		$finalWarning .= "minimap2 exe did not exist at $dexe\n Therefore minimap2 was not installed (please manually install).\n";
 		print "minimap2 exe did not exist at $dexe\n Therefore minimap2 was not installed (please manually install).\n";
 	}
 
@@ -1210,6 +1220,7 @@ sub get_programs{
 		system("chmod +x $dexe");
 		@txt = addInfoLtS("iqtree",$dexe,\@txt,1);
 	} else {
+		$finalWarning .= "iqtree2 exe did not exist at $dexe\n Therefore iqtree2 was not installed (please manually install).\n";
 		print "iqtree2 exe did not exist at $dexe\n Therefore iqtree2 was not installed (please manually install).\n";
 	}
 
@@ -1232,6 +1243,7 @@ sub get_programs{
 		system("chmod +x $dexe");
 		@txt = addInfoLtS("mafft",$dexe,\@txt,1);
 	} else {
+		$finalWarning .= "MAFFT exe did not exist at $dexe\n Therefore MAFFT was not installed (please manually install).\n";
 		print "MAFFT exe did not exist at $dexe\n Therefore MAFFT was not installed (please manually install).\n";
 	}
 
@@ -1250,7 +1262,10 @@ sub get_programs{
 		$finalWarning .= "fasttree compiled without multithreading support (you can not use the -thr LotuS option.\n";
 		$exe = "$bdir/FastTree";
 		$callret = system("gcc -DNO_SSE -O3 -finline-functions -funroll-loops -Wall -o $exe $exe1 -lm");}
-	if ($callret != 0){print "\n\n=================\nfasttree compilation failed. This is most likely an issue with your gcc version or the openMP libraries. See info on:\nhttp://www.microbesonline.org/fasttree/#Install\n"; exit(4);}
+	if ($callret != 0){
+		$finalWarning .= "fasttree compilation failed. This is most likely an issue with your gcc version or the openMP libraries. See info on:\nhttp://www.microbesonline.org/fasttree/#Install\n";
+		print "\n\n=================\nfasttree compilation failed. This is most likely an issue with your gcc version or the openMP libraries. See info on:\nhttp://www.microbesonline.org/fasttree/#Install\n"; exit(4);
+	}
 
 	system("chmod +x $exe");
 	@txt = addInfoLtS("fasttree",$exe,\@txt,1);
@@ -1444,6 +1459,7 @@ sub user_options(){
 	while (<>){
 		chomp($_); 
 		if ($_ == 1 ||$_ == 4 || $_ == 3 ||$_ == 2 ||$_ == 5 ||$_ == 0 ||$_ == 8){
+			$refDBinstall[8] = 0;
 			$refDBinstall[$_] = 1;
 			last;
 		}

@@ -8,6 +8,8 @@ lotus.pl
 lOTUs.cfg
 config.txt
 ITSx_out.summary.txt
+lotusInstal
+configs/sdm_miSeq_t.txt
 debug.sh
 myTestRun2
 bin/ncbi-blast-*

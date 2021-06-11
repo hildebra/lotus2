@@ -1757,13 +1757,13 @@ sub forceMerge_fq2fna($ $ $ $ $) {
         #$rawFileSrchStr1 = '.*1\.f[^\.]*q\.gz$';
     }
 #main file with merged reads
-	if (-e $mfq){
+	if (-s $mfq){
 		open I, "<", $mfq or die "Couldn't open merge file $mfq\n";
 		while ( my $line = <I> ) {
 			chomp $line;
 			if ( $line =~ m/^@/ && $lnCnt == 0 ) {
 				$line =~ s/^@/>/;
-				$line =~ s/.\d$// if ($line =~ m/[OTUASV]+_\d+\.\d+/);
+				$line =~ s/\.\d$// if ($line =~ m/[OTUASV]+_\d+\.\d+/);
 				print O $line . "\n"; $seedCnt++;
 				#print $line . "\n"; 
 			}
@@ -1792,7 +1792,7 @@ sub forceMerge_fq2fna($ $ $ $ $) {
 			#chomp $line2;
 			if ( $line =~ m/^@/ && $lnCnt == 0 ) {
 				$line =~ s/^@/>/;
-				$line =~ s/.\d$//;
+				$line =~ s/\.\d$//;
 
 				#print $line."\n";
 				print O $line . "\n"; $seedCnt++;
@@ -1816,7 +1816,7 @@ sub forceMerge_fq2fna($ $ $ $ $) {
 			if ( $line =~ m/^@/ && $lnCnt == 0 ) {
 				$line =~ s/$endRmvs// if ($check4endStr);
 				$line =~ s/^@/>/;
-				$line =~ s/.\d$//;
+				$line =~ s/\.\d$//;
 				print O $line . "\n";$seedCnt++;
 			}
 			if ( $lnCnt == 1 ) {
