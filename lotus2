@@ -1432,7 +1432,7 @@ sub chimera_denovo($){
 			addSize2OTUfna($OTUfa,$hr);
 			$cmd = "$usBin -sortbysize $OTUfa -fastaout $OTUfa.srt; \n";
 			$cmd .= "$usBin -uchime3_denovo $OTUfa.srt -chimeras $chimOut -nonchimeras $lotus_tempDir/tmp1.fa -log $logDir/chimera_dn.log;";
-			$cmd .= "rm $OTUfa.srt\n";
+			$cmd .= "rm -f $OTUfa.srt\n";
 			$progUsed = "usearch uchime3";
 			#die "$cmd\n";
 		}
@@ -1446,7 +1446,7 @@ sub chimera_denovo($){
 	
 
 	#die $cmd."\n";
-	$cmd .= "\nrm $OTUfa\nmv -f $lotus_tempDir/tmp1.fa $OTUfa";
+	$cmd .= "\nrm -f $OTUfa\nmv -f $lotus_tempDir/tmp1.fa $OTUfa";
 	if ( systemL($cmd) != 0 ) {
 		printL( "uchime de novo failed// aborting\n", 1 );
 	}
@@ -1499,7 +1499,7 @@ sub chimera_ref_rem($) {
 	else {
 		$citations .= "Vsearch reference based chimera detection: \n";
 	}
-	systemL "rm $otusFA; mv $outfile $otusFA";
+	systemL "rm -f $otusFA; mv $outfile $otusFA";
 	#print $outfile."\n";
 
 	
@@ -1573,7 +1573,7 @@ sub lulu{
 	printL(frame( "$LULUcnt ${OTU_prefix}'s removed with LULU\n"),0);
 
 	$citations .= "LULU: Frøslev, T. G., Kjøller, R., Bruun, H. H., Ejrnæs, R., Brunbjerg, A. K., Pietroni, C., & Hansen, A. J. (2017). Algorithm for post-clustering curation of DNA amplicon data yields reliable biodiversity estimates. Nature Communications, 8(1), 1188.\n";
-	systemL "rm $lotus_tempDir/lulu_match_list.txt*";
+	systemL "rm -f $lotus_tempDir/lulu_match_list.txt*";
 	return \%ret;
 }
 
@@ -4058,7 +4058,7 @@ sub revComplFasta {
     }
     close I;
     close O;
-    systemL "rm $inF; mv $inF.tmp $inF;";
+    systemL "rm -f $inF; mv $inF.tmp $inF;";
 }
 
 sub reverse_complement_IUPAC {
@@ -4130,7 +4130,7 @@ sub swarm4us_size($) {
     close O;
 
     #	die $otuf."\n";
-    systemL "rm $otuf;mv $otuf.ttmp $otuf;";
+    systemL "rm -f $otuf;mv $otuf.ttmp $otuf;";
 }
 
 sub replaceFastaHd($ $) {
@@ -4886,7 +4886,7 @@ sub doDBblasting($ $ $) {
             && !-f "$DB.dna5.fm.lf.drv.wtc.24" )
         {
             printL "Rewriting taxonomy DB to Lambda > 0.9 version\n", 0;
-            systemL "rm -r $DB.*;";
+            systemL "rm -rf $DB.*;";
         }
         if ( !-f $DB . ".dna5.fm.sa.val" ) {
             print "Building LAMBDA index anew (may take up to an hour first time)..\n";
@@ -4912,7 +4912,7 @@ sub doDBblasting($ $ $) {
         $cmd .= "mv $tmptaxblastf $taxblastf;";
 
         #lambda is not guranteed to return sorted list <- apparently it does
-        #$cmd .= "sort $tmptaxblastf > $taxblastf;rm $tmptaxblastf";
+        #$cmd .= "sort $tmptaxblastf > $taxblastf;rm -f $tmptaxblastf";
 
         if ( !-s $query ) { $cmd = "rm -f $taxblastf;touch $taxblastf\n"; }
         else { $citations .= "Lambda taxonomic similarity search: Hauswedell H, Singer J, Reinert K. 2014. Lambda: the local aligner for massive biological data. Bioinformatics 30: i349-i355\n" unless ( $citations =~ m/Lambda taxonomic similarity search:/ );
@@ -5178,7 +5178,7 @@ sub makeAbundTable2($ $) {
                 last if ( $leftOver == 0 );
             }
             printL "Assigned @refDBname Taxonomy to ${OTU_prefix}'s\n", 0;
-            systemL "rm $OTUfa" . "__U*;" if ( $DBi > 0 );
+            systemL "rm -f $OTUfa" . "__U*;" if ( $DBi > 0 );
         }
 
         #here do the same check on ref seqs
@@ -5899,7 +5899,7 @@ sub buildOTUs($) {
 		$cmd .= "cp $lotus_tempDir/dada2.uc $UCguide[0];";
 		$cmd .= "rm -f $OTUfastaTmp;cp $lotus_tempDir/uniqueSeqs.fna $OTUfastaTmp;";
 		#$cmd .= "cp $sdmDemultiDir/uniqueSeqs.fna $outdir/primary/;gzip $outdir/primary//uniqueSeqs.fna;";
-		$cmd .= "rm -r $sdmDemultiDir;" if ($saveDemulti==0);
+		$cmd .= "rm -rf $sdmDemultiDir;" if ($saveDemulti==0);
 		#die "$cmd\n";
 		$citations .= "DADA2 ASV clustering - Callahan BJ, McMurdie PJ, Rosen MJ, et al. DADA2: High-resolution sample inference from Illumina amplicon data. Nat Methods 2016;13:581–3. doi:10.1038/nmeth.3869\n";
 		$entrMessage = "DADA2 ${OTU_prefix} clustering\ncheck progress at $progOutPut";
@@ -6025,11 +6025,11 @@ sub buildOTUs($) {
 		
 			if ($ClusterPipe==7){#fq to fna.. only 4 dada2
 				my $dereplPre = $derepl; $dereplPre =~ s/\.fas//;
-				#$cmd .= "rm $derepl;cat $dereplPre.*.fas > $derepl;" ;
+				#$cmd .= "rm -f $derepl;cat $dereplPre.*.fas > $derepl;" ;
 				convertFastqs2fna(["$dereplPre.*.fas"],$derepl);
 			}
 			$cmd = "";
-			$cmd .= "rm $UCguide[0];";
+			$cmd .= "rm -f $UCguide[0];";
 			$cmd .= "$VSBin --usearch_global ". $derepl. " -db $outfile -uc $UCguide[0] $userachDffOpt $vsearchSpcfcOpt;";    #-threads  $BlastCores";
 				   #die $cmd."\n";
 			if ( systemL($cmd) != 0 ) {
@@ -6113,7 +6113,7 @@ sub buildOTUs($) {
 #my @lotsFiles2 = ($derepl,$derepl.".rest");
         my $restUC = "$lotus_tempDir/rests.uc";
 		$cmd = "";
-		$cmd .= "$sdmBin -i $derepl.rest -o_fna $derepl.rest1;rm $derepl.rest;mv $derepl.rest1 $derepl.rest;" if ($VSused);
+		$cmd .= "$sdmBin -i $derepl.rest -o_fna $derepl.rest1;rm -f $derepl.rest;mv $derepl.rest1 $derepl.rest;" if ($VSused);
         $cmd .=  "$VSBin -usearch_global $derepl.rest -db $OTUfastaTmp -uc $restUC $userachDffOpt $vsearchSpcfcOpt;";#-threads  $BlastCores";
         if ( -s $OTUfastaTmp ) {
 			printL(frame("Backmapping low qual reads to ${OTU_prefix}'s",1,2),0);
