@@ -82,7 +82,7 @@ sub annotateFaProTax;
 sub systemW;
 
 #versioning
-my $selfID = "LotuS 2.09"; #release candidate
+my $selfID = "LotuS 2.09.1"; #release candidate
 
 #keep track of time
 my $start = time;
@@ -196,7 +196,7 @@ my $finalWarnings    = "";
 my $remFromEnd       = ""; #fix for strange behavior of flash, where overlaps of too short amplicons can include rev primer / adaptor
 my $doPhiX			 = 1;
 my $dada2Seed        = 0; #seed for dada2 to produce reproducible results
-my $useBackmap4dada2 = 1;
+my $useBackmap4dada2 = 0;
 my $buildPhylo       = 1; #iqtree(2), fastree (1)
 
 
