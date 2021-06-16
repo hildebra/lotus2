@@ -3053,33 +3053,34 @@ my %basic_options = (
 
 my $further_heading = "Further Options";
 my %further_options = (
-  '-q <file>', 'input qual file (not defined in case of fastq or input directory)', 
-  '-barcode|-MID <file>', 'Filepath to fastq formated file with barcodes (this is a processed mi/hiSeq format). The complementary option in a mapping file would be the column "MIDfqFile"',
-  '-s|sdmopt <file>', 'SDM option file, defaults to "configs/sdm_miSeq.txt" in current dir',
-  '-c <file>', 'LotuS.cfg, config file with program paths',
-  '-p <454/miSeq/hiSeq/PacBio>', 'sequencing platform: PacBio, 454, miSeq or hiSeq',
-  '-t|-threads <num>', 'number of threads to be used',
-  '-tmp|-tmpDir <dir>', 'temporary directory used to save intermediate results'
+  '-q <file>', '.qual file associated to fasta file. This is an old format that was replaced by fastq format and is rarely used nowadays. (Default: "")', 
+  '-barcode|-MID <file>', 'Filepath to fastq formated file with barcodes (this is a processed mi/hiSeq format). The complementary option in a mapping file would be the column "MIDfqFile". (Default: "")',
+  '-s|sdmopt <file>', 'SDM option file, defaults to "configs/sdm_miSeq.txt" in current dir. (Default: miSeq)',
+  '-c <file>', 'LotuS.cfg, config file with program paths. (Default: <LotuS2_dir>/lOTUs.cfg)',
+  '-p <454/miSeq/hiSeq/PacBio>', 'sequencing platform: PacBio, 454, miSeq or hiSeq. (Default: miSeq)',
+  '-t|-threads <num>', 'number of threads to be used. (Default: 1)',
+  '-tmp|-tmpDir <dir>', 'temporary directory used to save intermediate results. (Default: <outputDir>/tmpDir)'
 );
 
 my $workflow_heading = "Workflow Options";
 my %workflow_options = (
   '-forwardPrimer <string>','give the forward primer used to amplify DNA region (e.g. 16S primer fwd)',
   '-reversePrimer <string>','give the reverse primer used to amplify DNA region (e.g. 16S primer rev)',
-  '-verbosity <0-3>', 'Level of verbosity from printing all program calls and program output (3) to not even printing errors (0). Default: 1',
+  '-verbosity <0-3>', 'Level of verbosity from printing all program calls and program output (3) to not even printing errors (0). (Default: 1)',
   '-saveDemultiplex <0|1|2|3>', '(1) Saves all demultiplexed reads (unfiltered) in the [outputdir]/demultiplexed folder, for easier data upload. (2) Only saves quality filtered demultiplexed reads and continues LotuS2 run subsequently. (3) Saves demultiplexed file into a single fq, saving sample ID in fastq/a header. (0) No demultiplexed reads are saved. (Default: 0)',
   '-taxOnly <file>', 'Skip most of the lotus pipeline and only run a taxonomic classification on a fasta file. E.g. lotus2 -taxOnly <some16S.fna> -refDB SLV',
   '-redoTaxOnly <0|1>', '(1) Only redo the taxonomic assignments (useful for replacing a DB used on a finished lotus run). (0) Normal lotus run. (Default: 0)',
   '-offtargetDB <file>', 'Remove likely contaminant OTUs/ASVs based on alignment to provided fasta. This option is useful for low-bacterial biomass samples, to remove possible host genome contaminations (e.g. human/mouse genome)',
-  '-keepOfftargets <0|1>', '(0)?!?: keep offtarget hits against offtargetDB in output fasta and otu matrix, default 0',
+  '-keepOfftargets <0|1>', '(0)?!?: keep offtarget hits against offtargetDB in output fasta and otu matrix. (Default 0)',
   '-keepTmpFiles <0|1>', '(1) save extra tmp files like chimeric OTUs or the raw blast output in extra dir. (0) do not save these. (Default: 0)',
   '-keepUnclassified <0|1>', '(1) Includes unclassified OTUs (i.e. no match in RDP/Blast database) in OTU and taxa abundance matrix calculations. (0) does not take these OTUs into account. (Default: 1)',
-  '-tolerateCorruptFq <0|1>', '(1) Continue reading fastq files, even if single entries are incomplete (e.g. half of qual values missing). (0) Abort lotus run, if fastq file is corrupt. (Default: 0)'
+  '-tolerateCorruptFq <0|1>', '(1) Continue reading fastq files, even if single entries are incomplete (e.g. half of qual values missing). (0) Abort lotus run, if fastq file is corrupt. (Default: 0)',
+  '-useVsearch <0|1>', '(0) Use usearch for internal tasks such as remapping reads on OTUs, chimera checks. (1) will use vsearch for these tasks. This option is independent of the -CL UPARSE/UNOISE option, and -taxAligner assignment usearch/vsearch options. (Default: 0)'
 );
 
 my $taxonomy_heading = "Taxonomy Options";
 my %taxonomy_options = (
-  '-refDB <SLV|GG|HITdb|PR2|UNITE|beetax>', '(SLV) Silva LSU (23/28S) or SSU (16/18S), (GG greengenes (only SSU available), (HITdb) (SSU, human gut specific), (PR2) LSU spezialized on Ocean environmentas, (UNITE) ITS fungi specific, (beetax) bee gut specific database and tax names. \nDecide which reference DB will be used for a similarity based taxonomy annotation. Databases can be combined, with the first having the highest prioirty. E.g. "PR2,SLV" would first use PR2 to assign OTUs and all unaasigned OTUs would be searched for with SILVA, given that \"-amplicon_type LSU\" was set. Can also be a custom fasta formatted database: in this case provide the path to the fasta file as well as the path to the taxonomy for the sequences using -tax4refDB. See also online help on how to create a custom DB. (Default: GG)',
+  '-refDB <SLV|GG|HITdb|PR2|UNITE|beetax>', '(SLV) Silva LSU (23/28S) or SSU (16/18S), (GG greengenes (only SSU available), (HITdb) (SSU, human gut specific), (PR2) LSU spezialized on Ocean environmentas, (UNITE) ITS fungi specific, (beetax) bee gut specific database and tax names. \nDecide which reference DB will be used for a similarity based taxonomy annotation. Databases can be combined, with the first having the highest prioirty. E.g. "PR2,SLV" would first use PR2 to assign OTUs and all unaasigned OTUs would be searched for with SILVA, given that \"-amplicon_type LSU\" was set. Can also be a custom fasta formatted database: in this case provide the path to the fasta file as well as the path to the taxonomy for the sequences using -tax4refDB. See also online help on how to create a custom DB. (Default: SLV)',
   '-tax4refDB <file>', 'In conjunction with a custom fasta file provided to argument -refDB, this file contains for each fasta entry in the reference DB a taxonomic annotation string, with the same number of taxonomic levels for each, tab separated.',
   '-amplicon_type <SSU|LSU|ITS|ITS1|ITS2>', '(SSU) small subunit (16S/18S), (LSU) large subunit (23S/28S) or internal transcribed spacer (ITS|ITS1|ITS2). (Default: SSU)',
   '-tax_group <bacteria|fungi>', '(bacteria) bacterial 16S rDNA annnotation, (fungi) fungal 18S/23S/ITS annotation. (Default: bacteria)',
@@ -3103,14 +3104,15 @@ my %clustering_options = (
   '-swarm_distance <1,2,3,..> ', 'Clustering distance for OTUs when using swarm clustering. (Default: 1)',
   '-chim_skew <num>', 'Skew in chimeric fragment abundance (uchime option). (Default: 2)',
   '-count_chimeras<T/F>', 'Add chimeras to count up OTUs/ASVs. (Default: F)',
-  #'Minimum size of dereplicated clustered, one form of noise removal. Can be complex terms like "10:1,3:3" -> meaning at least 10x in 1 sample or 3x in 3 different samples. (Default: 2)',
   '-deactivateChimeraCheck <0|1|2|3>', '(0) do OTU chimera checks. (1) no chimera check at all. (2) Deactivate deNovo chimera check. (3) Deactivate ref based chimera check. (Default: 0)',
-  '-derepMin<num>','Minimum size of dereplicated clustered, one form of noise removal. Can also have a more complex syntax, see examples. Default 1',
+  '-derepMin<num>','Minimum size of dereplicated clustered, one form of noise removal. Can also have a more complex syntax, see examples. (Default: 1)',
   '-readOverlap <num>', 'The maximum number of basepairs that two reads are overlapping. (Default: 300)',
-  '-flash_param <string>', 'custom flash parameters, since this contains spaces the command needs to be in parentheses: e.g. -flash_param "-r 150 -s 20". Note that this option completely replaces the default -m and -M flash options (i.e. need to be reinserted, if wanted)]',
   '-endRem <string>', 'DNA sequence, usually reverse primer or reverse adaptor; all sequence beyond this point will be removed from OTUs. This is redundant with the "ReversePrimer" option from the mapping file, but gives more control (e.g. there is a problem with adaptors in the OTU output). (Default: "")',
   '-xtalk <0|1>', '(1) check for crosstalk. Note that this requires in most cases 64bit usearch. (Default: 0)'
 );
+
+
+
 
 my $other_heading = "Other uses of pipeline (quits after execution)";
 my %other_options = (
@@ -3120,6 +3122,11 @@ my %other_options = (
   '-link_usearch <file>', 'Provide the absolute path to your local usearch binary file, this will be installed to be useable with LotuS2 in the future.',
 );
 #HELPPARSEEND
+
+
+  #'Minimum size of dereplicated clustered, one form of noise removal. Can be complex terms like "10:1,3:3" -> meaning at least 10x in 1 sample or 3x in 3 different samples. (Default: 2)',
+  #'-flash_param <string>', 'custom flash parameters, since this contains spaces the command needs to be in parentheses: e.g. -flash_param "-r 150 -s 20". Note that this option completely replaces the default -m and -M flash options (i.e. need to be reinserted, if wanted)]',
+
 
 my $option_indent = 2;
 my $option_width = 24;
