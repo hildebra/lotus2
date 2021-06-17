@@ -49,7 +49,7 @@ cat("\nPhyloseq object is being created...\n");
 # Read the OTU or ASV table:
 #otu=as.matrix(read.table(path_TABLE,row.names=1,header=TRUE,sep="\t"))
 
-otu <- read.delim(path_TABLE,row.names = 1,head=TRUE,sep="\t")
+otu <- read.delim(path_TABLE,row.names = 1,head=TRUE,sep="\t",check.names=FALSE)
 
 # Read the metadata:
 #sd=read.table(text = gsub(",", "\t", readLines(path_SD)))
@@ -76,6 +76,21 @@ if (dim(tax)[1] < dim(otu)[1]){
 	#rownames(taxA) = dimnames(otu)[[1]][idx]
 	#tax=rbind (tax, taxA)
 }
+
+#First let's check whether any of the samples names starts with a number. If so, phyloseq does not include these samples in the phyloseq object
+#If so, we will add "S_" in the beginning of the sample name:
+sample_names=rownames(sd)
+start_nr <- grep("^\\d", sample_names)
+new_names=replace(sample_names, start_nr, paste0("S_", sample_names[start_nr]))
+rownames(sd)=new_names
+
+if(length(start_nr)!=0){sample_names_otu=colnames(otu); start_nr_otu <- grep("^\\d", sample_names_otu)
+new_names_otu=replace(sample_names_otu, start_nr_otu, paste0("S_", sample_names_otu[start_nr_otu]))
+colnames(otu)=new_names_otu}
+
+
+if(!(all(sample_names==new_names))) {cat("WARNING: Phyloseq doesn't recognize sample names starting with a number. Some of the sample names start with a number..\"S_\" is added into beginning of these sample names.\n")}
+
 #actual conversion
 colnames(tax)=c("Domain", "Phylum","Class","Order","Family","Genus","Species")
 sam1 <- sample_data(sd) 
