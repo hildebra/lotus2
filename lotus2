@@ -319,7 +319,7 @@ GetOptions(
     "amplicon_type=s"       => \$ampliconType,       #SSU LSU ITS ITS1 ITS2
     "tax_group=s"           => \$organism,           #fungi bacteria, euakaryote
     "readOverlap=i"         => \$maxReadOverlap,
-	"mergePreClusterReads=i"     => \$mergePreCluster,
+	"mergePreClusterReads=i"=> \$mergePreCluster,
     "endRem=s"              => \$remFromEnd,
     "swarm_distance=i"      => \$swarmClus_d,
 	"dada2seed=i"           => \$dada2Seed,
@@ -327,14 +327,14 @@ GetOptions(
     "count_chimeras"        => \$chimCnt,            #T or F
     "offtargetDB=s"         => \$custContamCheckDB,
     "flash_param=s"         => \$flashCustom,
-    "deactivateChimeraCheck=i" => \$noChimChk,
+    "deactivateChimeraCheck=i"=> \$noChimChk,
 	#"VsearchChimera=i"		=> \$useVsearch,
-	"useVsearch=i"		=> \$useVsearch,
-	"removePhiX=i"			=> \$doPhiX,
+	"useVsearch=i"          => \$useVsearch,
+	"removePhiX=i"          => \$doPhiX,
 	"buildPhylo=i"          => \$buildPhylo,
 	"forwardPrimer=s"       => \$fwdPrimSeq,
 	"reversePrimer=s"       => \$revPrimSeq,
-	
+	"backmapDADA2=i"    => \$useBackmap4dada2,
 	"link_usearch=s"        => \$installUsearch,
 
     # "flashAvgLength" => \$flashLength,
