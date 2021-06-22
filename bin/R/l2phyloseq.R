@@ -19,6 +19,7 @@ path_TABLE=args[1]
 path_TAX=args[2]
 path_SD=args[3]
 path_TREE=args[4]
+keepUnclass=args[5] #0 or anything else than 0
 
 
 # Test if taxonomy table is produced: 
@@ -103,7 +104,8 @@ if (length(args) == 3) {
   physeq = phyloseq(otu1,tax1,sam1)}else if (length(args) == 4)
       {physeq = phyloseq(otu1,tax1,sam1,tree)}
  
-physeq=subset_taxa(physeq, Domain != "?")
+if(keepUnclass==0){
+physeq=subset_taxa(physeq, Domain != "?")}
 # Save the phyloseq object as an R object:
 save(physeq,file=paste0(strsplit(path_TABLE,"O")[[1]][1],"phyloseq.Rdata"))
 
