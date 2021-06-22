@@ -82,7 +82,7 @@ sub annotateFaProTax;
 sub systemW;
 
 #versioning
-my $selfID = "LotuS 2.09.1"; #release candidate
+my $selfID = "LotuS 2.10"; #release candidate
 
 #keep track of time
 my $start = time;
@@ -196,7 +196,7 @@ my $finalWarnings    = "";
 my $remFromEnd       = ""; #fix for strange behavior of flash, where overlaps of too short amplicons can include rev primer / adaptor
 my $doPhiX			 = 1;
 my $dada2Seed        = 0; #seed for dada2 to produce reproducible results
-my $useBackmap4dada2 = 0;
+my $useBackmap4dada2 = 1; #map reads back on ASVs instead of relying on dada2 abundance estimates
 my $buildPhylo       = 1; #iqtree(2), fastree (1)
 
 
@@ -1016,7 +1016,7 @@ sub runPhyloObj{
 	return 0 if (!-f $phyloLnk || !-f $Rscript);
 	die "Incorrect phyloLnk script defined $phyloLnk" unless (-f $phyloLnk);
 	die "Incorrect R installation (can't find Rscript)" unless (-f $Rscript);
-	my $cmd = "$Rscript $defRscriptOpt $phyloLnk $OTUmFile $SIM_hierFile $cpMapFile $treeF;";
+	my $cmd = "$Rscript $defRscriptOpt $phyloLnk $OTUmFile $SIM_hierFile $cpMapFile $keepUnclassified $treeF;";
 	#die "$cmd\n";
 	if ((systemL $cmd)){
 		printL "Could not create phyloseq object\n","w";

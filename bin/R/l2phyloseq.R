@@ -4,6 +4,10 @@ if(!require("phyloseq",quietly=TRUE,warn.conflicts =FALSE)){
 	source("https://raw.githubusercontent.com/joey711/phyloseq/master/inst/scripts/installer.R",local=TRUE);
 	require("phyloseq")
 }
+if(!require("ape",quietly=TRUE,warn.conflicts =FALSE)){
+	install.packages("ape",repos="https://cloud.r-project.org",quiet=TRUE);require(ape)
+}
+
 
 library("phyloseq")
 #packageVersion("phyloseq")
@@ -18,8 +22,8 @@ args = commandArgs(trailingOnly=TRUE)
 path_TABLE=args[1]
 path_TAX=args[2]
 path_SD=args[3]
-path_TREE=args[4]
-keepUnclass=args[5] #0 or anything else than 0
+keepUnclass=args[4] #0 or anything else than 0
+path_TREE=args[5]
 
 
 # Test if taxonomy table is produced: 
@@ -36,10 +40,8 @@ if(!(file.exists(path_TAX))) {
 
 # Test if phylogenetic tree is produced:
 # If the phylogenetic tree exists, require the "ape" package and read the tree:
+tree=NULL
 if((file.exists(path_TREE))) {
-	if(!require("ape",quietly=TRUE,warn.conflicts =FALSE)){
-		install.packages("ape",repos="https://cloud.r-project.org",quiet=TRUE);require(ape)
-	}
 	tree=read.tree(path_TREE)
 }
 
