@@ -1,7 +1,7 @@
 
 #How a matchlist is obtained (matchid 0.99): vsearch --usearch_global otus.fa --db otus.fa --self --id .99 --iddef 1 --userout match_list.txt -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits 10
 
-#We have three input files: matchlist, otutable and hiera_blast:
+#We have three input files: otutable matchlist and hiera_blast:
 args = commandArgs(trailingOnly=TRUE)
 
 path_TABLE=args[1]
