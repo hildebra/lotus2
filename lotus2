@@ -1036,7 +1036,7 @@ sub runPhyloObj{
 		my $xtr = "--strand plus";
 		if ($VSused){$xtr = "--iddef 1";}
 		my $matchFile = "$lotus_tempDir/ASVcl.hits";
-		my $idMin = 0.99;
+		my $idMin = 0.97;
 		my $cmd = "$VSBin --usearch_global $OTUfa --db $OTUfa --self --id $idMin $xtr --userout $matchFile -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits 10;";
 		systemL $cmd,"vsearch for ASVcl",1;
 		
