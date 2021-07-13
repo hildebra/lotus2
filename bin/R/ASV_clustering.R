@@ -1,13 +1,29 @@
 
-#How a matchlist is obtained (matchid 0.84): vsearch --usearch_global OTU.fna --db OTU.fna --self --id .84 --iddef 1 --userout match_list.txt -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits 10
+#How a matchlist is obtained (matchid 0.84): vsearch --usearch_global OTU.fna --db OTU.fna --self --id .97 --iddef 1 --userout match_list.txt -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits 10
 
-
-#We have three input files: matchlist, otutable and hiera_blast:
+#We have five/six input files:
 args = commandArgs(trailingOnly=TRUE)
 
 path_TABLE=args[1]
 path_TAX=args[2]
 path_matchlist=args[3]
+path_SD=args[4]
+keepUnclass=args[5] #0 or anything else than 0
+path_TREE=args[6]
+
+
+# Test if taxonomy table is produced: 
+RDPhier=FALSE
+if(!(file.exists(path_TAX))) {
+  #stop(paste("Please run the taxonomic classification first:",path_TAX), call.=FALSE)
+  path_TAX = gsub("hiera_BLAST.txt","hiera_RDP.txt",path_TAX)
+  RDPhier=TRUE
+  if(!(file.exists(path_TAX))) { #still doesn't exist
+    cat("Could not find taxonomy file.. aborting l2phyloseq\n")
+    q("no")
+  }
+}
+
 
 otutable <- read.delim(path_TABLE) #rownames are ASV names
 hiera_BLAST <- read.delim(path_TAX) #First columns is "OTU" names
@@ -38,7 +54,7 @@ for (line in 1:dim(tab)[1]){
   shouldbemerged=which(corM[line,]>0.70)
   
   
-  for (i in potential_parents){
+ for (i in potential_parents){
     rel_cooccur=sum((daughter_samples[tab[i, ] > 0]) > 0)/sum(daughter_samples > 0)
     relative_abund=suppressWarnings(min(tab[i, ][daughter_samples > 0]/daughter_samples[daughter_samples > 0]))
     inv_relative_abund=suppressWarnings(min(daughter_samples[daughter_samples > 0]/tab[i, ][daughter_samples > 0]))
@@ -111,6 +127,76 @@ write.table(merged_table,file="clustered_ASVs.txt",row.names=FALSE,sep="\t")
 write.table(tab_denoised,file="OTU.txt",sep="\t")
 write.table(tax_new[,-8],file="hiera_BLAST.txt",row.names=TRUE,sep="\t")
 
-#tab_denoised and tax_new can be passed into the phyloseq object as an argument.
-#However, phylogenetic tree should be generated after this script, since some ASVs will be removed and this will make problem while mergeing the phyloseq object otherwise.
-#That's why I did not bind this script and l2phyloseq.R together.
+#### Create a phyloseq object ###:
+cat("\nPhyloseq object is being created...\n");
+
+
+# Require the pyloseq package:
+if(!require("phyloseq",quietly=TRUE,warn.conflicts =FALSE)){
+  source("https://raw.githubusercontent.com/joey711/phyloseq/master/inst/scripts/installer.R",local=TRUE);
+  require("phyloseq")
+}
+if(!require("ape",quietly=TRUE,warn.conflicts =FALSE)){
+  install.packages("ape",repos="https://cloud.r-project.org",quiet=TRUE);require(ape)
+}
+
+library("phyloseq")
+
+# Test if phylogenetic tree is produced:
+# If the phylogenetic tree exists, require the "ape" package and read the tree:
+tree=NULL
+if((file.exists(path_TREE))) {
+  tree=read.tree(path_TREE)
+}
+
+#Read the sample data:
+sdA=scan(file=path_SD,nlines =1,sep ="\t",what="character")
+sd=read.table(path_SD,sep="\t",row.names=1,header=FALSE,comment.char="#",as.is=TRUE)
+colnames(sd) = sdA[-1]
+
+otu=tab_denoised
+tax_phylo=tax_new[,-8]
+if (dim(tax_phylo)[1] < dim(otu)[1]){
+  taxA = matrix("?", nrow(otu), ncol(tax_phylo))
+  rownames(taxA) = dimnames(otu)[[1]]
+  idx = dimnames(otu)[[1]] %in% dimnames(tax)[[1]] 
+  taxA[idx,] = tax_phylo[dimnames(otu)[[1]][idx],,drop=FALSE]
+  tax_phylo = taxA
+  #rownames(taxA) = dimnames(otu)[[1]][idx]
+  #tax=rbind (tax, taxA)
+}
+
+
+tax=as.matrix(tax_phylo)
+
+
+#First let's check whether any of the samples names starts with a number. If so, phyloseq does not include these samples in the phyloseq object
+#If so, we will add "S_" in the beginning of the sample name:
+sample_names=rownames(sd)
+start_nr <- grep("^\\d", sample_names)
+new_names=replace(sample_names, start_nr, paste0("S_", sample_names[start_nr]))
+rownames(sd)=new_names
+
+if(length(start_nr)!=0){sample_names_otu=colnames(otu); start_nr_otu <- grep("^\\d", sample_names_otu)
+new_names_otu=replace(sample_names_otu, start_nr_otu, paste0("S_", sample_names_otu[start_nr_otu]))
+colnames(otu)=new_names_otu}
+
+
+if(!(all(sample_names==new_names))) {cat("WARNING: Phyloseq doesn't recognize sample names starting with a number. Some of the sample names start with a number..\"S_\" is added into beginning of these sample names.\n")}
+
+
+#actual conversion
+colnames(tax)=c("Domain", "Phylum","Class","Order","Family","Genus","Species")
+sam1 <- sample_data(sd) 
+otu1 <- otu_table(otu, taxa_are_rows=TRUE)
+tax1 <- tax_table(tax)
+
+#Create the phyloseq object
+if (length(args) == 5) {
+physeq = phyloseq(otu1,tax1,sam1)}else if (length(args) == 6)
+{physeq = phyloseq(otu1,tax1,sam1,tree)}
+
+if(keepUnclass==0){
+  physeq=subset_taxa(physeq, Domain != "?")}
+# Save the phyloseq object as an R object:
+save(physeq,file=paste0(strsplit(path_TABLE,"O")[[1]][1],"phyloseq.Rdata"))
