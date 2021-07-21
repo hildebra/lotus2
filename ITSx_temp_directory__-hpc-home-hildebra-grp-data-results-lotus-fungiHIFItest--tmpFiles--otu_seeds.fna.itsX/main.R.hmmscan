@@ -1,0 +1,834 @@
+## New query:	OTU_137	866
+OTU_137	2_5.8_Rhizaria_58S_start_six_long	866	1	!	13.8	0.0	2.8e-05	8.9e-05	15	45	.]	233	263	..	227	263	..	0.93
+OTU_137	4_LSU_Rhizaria_4_LSU_start_three_long	866	1	!	20.7	0.0	2.4e-07	7.5e-07	22	45	.]	827	850	..	824	850	..	0.96
+//
+## New query:	OTU_185	728
+OTU_185	2_5.8_Rhizaria_58S_start_sevenb_long	728	1	!	32.5	0.0	4.4e-11	1.8e-10	2	45	.]	160	203	..	159	203	..	0.97
+//
+## New query:	OTU_104	707
+OTU_104	2_5.8_Rhizaria_58S_start_sevenb_long	707	1	!	30.3	0.0	5e-10	8.9e-10	1	45	[]	270	314	..	270	314	..	0.97
+OTU_104	3_End_Rhizaria_58S_end_four_long	707	1	!	17.7	0.0	5.5e-06	9.8e-06	1	44	[.	374	426	..	374	427	..	0.78
+OTU_104	4_LSU_Rhizaria_4_LSU_start_three_long	707	1	!	39.0	0.0	8.3e-13	1.5e-12	5	45	.]	651	691	..	649	691	..	0.96
+//
+## New query:	OTU_139	866
+//
+## New query:	OTU_158	1016
+OTU_158	2_5.8_Rhizaria_58S_start_six_long	1016	2	!	13.6	0.0	3.4e-05	0.00011	15	45	.]	331	361	..	325	361	..	0.93
+OTU_158	4_LSU_Rhizaria_4_LSU_start_three_long	1016	2	!	20.5	0.0	2.8e-07	9e-07	22	45	.]	976	999	..	973	999	..	0.96
+//
+## New query:	OTU_155	948
+OTU_155	2_5.8_Rhizaria_58S_start_six_long	948	2	!	13.7	0.0	3.1e-05	9.9e-05	15	45	.]	273	303	..	267	303	..	0.93
+OTU_155	4_LSU_Rhizaria_4_LSU_start_three_long	948	2	!	20.6	0.0	2.6e-07	8.3e-07	22	45	.]	909	932	..	906	932	..	0.96
+//
+## New query:	OTU_113	867
+//
+## New query:	OTU_108	944
+//
+## New query:	OTU_186	1019
+OTU_186	4_LSU_Rhizaria_4_LSU_start_three_long	1019	1	!	22.6	0.0	4.8e-08	2e-07	5	45	.]	963	1003	..	960	1003	..	0.95
+//
+## New query:	OTU_98	758
+//
+## New query:	OTU_180	702
+OTU_180	2_5.8_Rhizaria_58S_start_sevenb_long	702	1	!	33.6	0.0	4.6e-11	7.8e-11	1	45	[]	213	257	..	213	257	..	0.97
+OTU_180	3_End_Rhizaria_58S_end_four_long	702	1	!	14.7	0.0	5.2e-05	8.8e-05	1	41	[.	317	366	..	317	369	..	0.73
+OTU_180	4_LSU_Rhizaria_4_LSU_start_fiveb_long	702	1	!	39.0	0.0	8.6e-13	1.5e-12	8	45	.]	649	686	..	646	686	..	0.97
+//
+## New query:	OTU_133	1003
+OTU_133	4_LSU_Rhizaria_4_LSU_start_three_long	1003	1	!	22.6	0.0	5.8e-08	2e-07	5	45	.]	947	987	..	945	987	..	0.95
+//
+## New query:	OTU_92	702
+//
+## New query:	OTU_211	1194
+OTU_211	2_5.8_Rhizaria_58S_start_sevenb_long	1194	1	!	26.0	0.0	9.3e-09	2e-08	2	45	.]	811	855	..	810	855	..	0.93
+OTU_211	4_LSU_Rhizaria_4_LSU_start_fiveb_long	1194	1	!	22.5	0.0	9.6e-08	2.1e-07	13	45	.]	1146	1178	..	1139	1178	..	0.91
+//
+## New query:	OTU_212	948
+OTU_212	2_5.8_Rhizaria_58S_start_sevenb_long	948	1	!	38.3	0.0	1.3e-12	2.5e-12	1	43	[.	371	413	..	371	415	..	0.96
+OTU_212	3_End_Rhizaria_58S_end_three_long	948	2	!	11.3	0.0	0.00035	0.00067	22	45	.]	507	530	..	498	530	..	0.94
+OTU_212	4_LSU_Rhizaria_4_LSU_start_three_long	948	1	!	39.7	0.0	4.6e-13	9.1e-13	5	45	.]	892	932	..	890	932	..	0.97
+//
+## New query:	OTU_143	888
+//
+## New query:	OTU_142	917
+//
+## New query:	OTU_231	771
+//
+## New query:	OTU_164	760
+OTU_164	2_5.8_Rhizaria_58S_start_sevenb_long	760	1	!	34.2	0.0	2.4e-11	5e-11	1	45	[]	302	346	..	302	346	..	0.97
+OTU_164	4_LSU_Rhizaria_4_LSU_start_three_long	760	1	!	32.5	0.0	7.7e-11	1.6e-10	7	45	.]	706	744	..	703	744	..	0.96
+//
+## New query:	OTU_166	787
+//
+## New query:	OTU_169	702
+OTU_169	2_5.8_Rhizaria_58S_start_sevenb_long	702	1	!	32.5	0.0	9.3e-11	1.7e-10	2	45	.]	345	388	..	344	388	..	0.97
+OTU_169	3_End_Rhizaria_58S_end_four_long	702	1	!	15.2	0.0	3.2e-05	6.1e-05	1	44	[.	448	500	..	448	501	..	0.79
+OTU_169	4_LSU_Rhizaria_4_LSU_start_fiveb_long	702	1	!	25.4	0.0	1.4e-08	2.7e-08	6	45	.]	647	686	..	645	686	..	0.93
+//
+## New query:	OTU_209	989
+OTU_209	2_5.8_Rhizaria_58S_start_sevenb_long	989	1	!	11.0	0.0	0.00035	0.0011	1	45	[]	457	502	..	457	502	..	0.92
+OTU_209	4_LSU_Rhizaria_4_LSU_start_threeb_long	989	1	!	26.1	0.0	5.6e-09	1.8e-08	5	45	.]	933	973	..	932	973	..	0.96
+//
+## New query:	OTU_170	732
+OTU_170	2_5.8_Rhizaria_58S_start_sevenb_long	732	1	!	40.3	0.0	3.6e-13	6.1e-13	1	45	[]	294	338	..	294	338	..	0.98
+OTU_170	3_End_Rhizaria_58S_end_four_long	732	2	!	15.5	0.0	3e-05	5.1e-05	1	44	[.	398	450	..	398	451	..	0.73
+OTU_170	4_LSU_Rhizaria_4_LSU_start_three_long	732	1	!	39.2	0.0	7.4e-13	1.3e-12	5	45	.]	677	717	..	673	717	..	0.95
+//
+## New query:	OTU_144	975
+//
+## New query:	OTU_64	1054
+OTU_64	2_5.8_Rhizaria_58S_start_sevenb_long	1054	1	!	33.7	0.0	2e-11	7.4e-11	1	45	[]	200	244	..	200	244	..	0.97
+OTU_64	3_End_Rhizaria_58S_end_four_long	1054	1	!	12.6	0.0	0.00011	0.00042	1	41	[.	304	354	..	304	357	..	0.76
+//
+## New query:	OTU_202	710
+OTU_202	2_5.8_Rhizaria_58S_start_sevenb_long	710	1	!	24.3	0.0	3.8e-08	7.1e-08	2	45	.]	199	242	..	198	242	..	0.90
+OTU_202	4_LSU_Rhizaria_4_LSU_start_sixb_long	710	1	!	32.6	0.0	9.4e-11	1.8e-10	5	45	.]	654	694	..	653	694	..	0.97
+//
+## New query:	OTU_175	701
+//
+## New query:	OTU_122	717
+OTU_122	2_5.8_Rhizaria_58S_start_two_long	717	1	!	27.9	0.0	1.6e-09	3.4e-09	7	45	.]	251	289	..	246	289	..	0.91
+OTU_122	4_LSU_Rhizaria_4_LSU_start_sixb_long	717	1	!	26.9	0.0	5.1e-09	1.1e-08	12	45	.]	668	701	..	662	701	..	0.91
+//
+## New query:	OTU_97	846
+OTU_97	2_5.8_Rhizaria_58S_start_sevenb_long	846	1	!	17.1	0.0	4.5e-06	1.3e-05	1	45	[]	409	453	..	409	453	..	0.97
+OTU_97	4_LSU_Rhizaria_4_LSU_start_two_long	846	1	!	32.0	0.0	7.5e-11	2.2e-10	5	45	.]	789	829	..	788	829	..	0.96
+//
+## New query:	OTU_177	902
+//
+## New query:	OTU_83	705
+//
+## New query:	OTU_179	715
+OTU_179	2_5.8_Rhizaria_58S_start_sevenb_long	715	1	!	37.5	0.0	2.7e-12	4.7e-12	1	45	[]	255	299	..	255	299	..	0.97
+OTU_179	3_End_Rhizaria_58S_end_four_long	715	1	!	16.9	0.0	1e-05	1.7e-05	1	43	[.	359	410	..	359	411	..	0.74
+OTU_179	4_LSU_Rhizaria_4_LSU_start_three_long	715	1	!	35.4	0.0	1.1e-11	1.9e-11	5	45	.]	659	699	..	656	699	..	0.96
+//
+## New query:	OTU_91	941
+//
+## New query:	OTU_181	717
+//
+## New query:	OTU_182	791
+OTU_182	2_5.8_Rhizaria_58S_start_sevenb_long	791	1	!	32.9	0.0	7.4e-11	1.3e-10	1	45	[]	223	267	..	223	267	..	0.98
+OTU_182	3_End_Rhizaria_58S_end_four_long	791	1	!	15.6	0.0	2.7e-05	4.7e-05	1	44	[.	327	379	..	327	380	..	0.70
+OTU_182	4_LSU_Rhizaria_4_LSU_start_three_long	791	1	!	38.9	0.0	8.9e-13	1.6e-12	5	45	.]	734	774	..	731	774	..	0.96
+//
+## New query:	OTU_171	732
+OTU_171	2_5.8_Rhizaria_58S_start_seven_long	732	1	!	26.1	0.0	8.5e-09	1.6e-08	7	45	.]	424	462	..	418	462	..	0.91
+OTU_171	4_LSU_Rhizaria_4_LSU_start_sixb_long	732	1	!	33.6	0.0	4.3e-11	8.1e-11	6	45	.]	677	716	..	676	716	..	0.97
+//
+## New query:	OTU_96	887
+//
+## New query:	OTU_72	987
+OTU_72	2_5.8_Rhizaria_58S_start_two_long	987	1	!	31.6	0.0	9.7e-11	2.5e-10	2	40	..	574	612	..	572	618	..	0.91
+OTU_72	4_LSU_Rhizaria_4_LSU_start_sixb_long	987	1	!	29.3	0.0	7.6e-10	1.9e-09	8	45	.]	934	971	..	931	971	..	0.94
+//
+## New query:	OTU_214	856
+//
+## New query:	OTU_99	716
+//
+## New query:	OTU_85	879
+OTU_85	2_5.8_Rhizaria_58S_start_two_long	879	1	!	31.5	0.0	1.3e-10	2.7e-10	3	45	.]	349	391	..	348	391	..	0.97
+OTU_85	4_LSU_Rhizaria_4_LSU_start_three_long	879	1	!	28.4	0.0	1.4e-09	2.9e-09	8	45	.]	826	863	..	824	863	..	0.97
+//
+## New query:	OTU_198	741
+OTU_198	2_5.8_Rhizaria_58S_start_two_long	741	1	!	34.0	0.0	1.9e-11	4.5e-11	7	43	..	245	281	..	240	283	..	0.90
+OTU_198	4_LSU_Rhizaria_4_LSU_start_sixb_long	741	1	!	29.5	0.0	6.9e-10	1.7e-09	8	45	.]	688	725	..	684	725	..	0.94
+//
+## New query:	OTU_168	722
+//
+## New query:	OTU_59	702
+//
+## New query:	OTU_178	719
+//
+## New query:	OTU_258	863
+//
+## New query:	OTU_157	731
+OTU_157	2_5.8_Rhizaria_58S_start_sevenb_long	731	1	!	30.2	0.0	5.2e-10	9.3e-10	1	45	[]	243	287	..	243	287	..	0.97
+OTU_157	3_End_Rhizaria_58S_end_four_long	731	1	!	15.7	0.0	2.4e-05	4.3e-05	1	44	[.	347	399	..	347	400	..	0.70
+OTU_157	4_LSU_Rhizaria_4_LSU_start_three_long	731	1	!	39.0	0.0	8.1e-13	1.4e-12	5	45	.]	675	715	..	672	715	..	0.96
+//
+## New query:	OTU_81	810
+//
+## New query:	OTU_80	721
+//
+## New query:	OTU_165	1070
+OTU_165	4_LSU_Rhizaria_4_LSU_start_eight_long	1070	1	!	25.3	0.0	8.9e-09	3.3e-08	20	45	.]	1031	1056	..	1027	1056	..	0.96
+//
+## New query:	OTU_249	770
+//
+## New query:	OTU_78	713
+//
+## New query:	OTU_115	722
+//
+## New query:	OTU_152	733
+//
+## New query:	OTU_82	707
+OTU_82	2_5.8_Rhizaria_58S_start_sevenb_long	707	1	!	37.5	0.0	2.6e-12	4.6e-12	1	45	[]	232	276	..	232	276	..	0.97
+OTU_82	4_LSU_Rhizaria_4_LSU_start_three_long	707	1	!	36.0	0.0	7e-12	1.2e-11	3	45	.]	649	691	..	647	691	..	0.95
+//
+## New query:	OTU_147	1014
+//
+## New query:	OTU_71	706
+OTU_71	4_LSU_Rhizaria_4_LSU_start_sixb_long	706	1	!	22.3	0.0	7.7e-08	3.2e-07	8	45	.]	653	690	..	644	690	..	0.94
+//
+## New query:	OTU_62	715
+OTU_62	2_5.8_Rhizaria_58S_start_sevenb_long	715	1	!	37.5	0.0	2.5e-12	4.7e-12	1	45	[]	214	258	..	214	258	..	0.97
+OTU_62	3_End_Rhizaria_58S_end_four_long	715	1	!	13.8	0.0	9e-05	0.00017	1	43	[.	321	372	..	321	373	..	0.72
+OTU_62	4_LSU_Rhizaria_4_LSU_start_three_long	715	1	!	33.8	0.0	3.3e-11	6.2e-11	7	45	.]	661	699	..	657	699	..	0.95
+//
+## New query:	OTU_60	1052
+//
+## New query:	OTU_134	706
+//
+## New query:	OTU_90	827
+OTU_90	2_5.8_Rhizaria_58S_start_sevenb_long	827	1	!	39.5	0.0	5.8e-13	1e-12	1	45	[]	271	315	..	271	315	..	0.97
+OTU_90	3_End_Rhizaria_58S_end_three_long	827	1	!	26.8	0.0	5.6e-09	1e-08	1	44	[.	385	428	..	385	429	..	0.95
+OTU_90	4_LSU_Rhizaria_4_LSU_start_three_long	827	2	!	31.3	0.0	2e-10	3.6e-10	3	45	.]	769	811	..	768	811	..	0.98
+//
+## New query:	OTU_126	845
+OTU_126	2_5.8_Rhizaria_58S_start_two_long	845	1	!	54.7	0.0	6.6e-18	1.5e-17	1	45	[]	309	353	..	309	353	..	0.98
+OTU_126	3_End_Rhizaria_58S_end_two_long	845	1	!	19.5	0.0	7.8e-07	1.8e-06	12	45	.]	434	466	..	422	466	..	0.90
+OTU_126	4_LSU_Rhizaria_4_LSU_start_two_long	845	1	!	24.0	0.0	3.1e-08	7e-08	5	45	.]	789	829	..	788	829	..	0.97
+//
+## New query:	OTU_120	723
+OTU_120	2_5.8_Rhizaria_58S_start_sevenb_long	723	1	!	40.5	0.0	2.6e-13	5.3e-13	1	45	[]	266	310	..	266	310	..	0.98
+OTU_120	4_LSU_Rhizaria_4_LSU_start_fiveb_long	723	1	!	31.9	0.0	1.2e-10	2.4e-10	5	45	.]	667	707	..	661	707	..	0.96
+//
+## New query:	OTU_127	845
+OTU_127	2_5.8_Rhizaria_58S_start_sevenb_long	845	1	!	35.7	0.0	8.7e-12	1.7e-11	1	43	[.	322	364	..	322	366	..	0.96
+OTU_127	3_End_Rhizaria_58S_end_three_long	845	2	!	15.2	0.0	2.1e-05	4.1e-05	22	45	.]	457	480	..	448	480	..	0.96
+OTU_127	4_LSU_Rhizaria_4_LSU_start_three_long	845	1	!	39.9	0.0	4.1e-13	7.9e-13	5	45	.]	789	829	..	787	829	..	0.97
+//
+## New query:	OTU_163	760
+//
+## New query:	OTU_151	834
+OTU_151	2_5.8_Rhizaria_58S_start_sevenb_long	834	1	!	12.3	0.0	0.00012	0.00044	1	45	[]	349	393	..	349	393	..	0.96
+OTU_151	4_LSU_Rhizaria_4_LSU_start_sixb_long	834	1	!	28.4	0.1	1e-09	3.7e-09	6	45	.]	778	817	..	773	817	..	0.96
+//
+## New query:	OTU_67	758
+OTU_67	2_5.8_Rhizaria_58S_start_sevenb_long	758	1	!	25.7	0.0	1.5e-08	2.6e-08	13	45	.]	354	386	..	343	386	..	0.90
+OTU_67	3_End_Rhizaria_58S_end_four_long	758	1	!	19.7	0.0	1.4e-06	2.4e-06	1	44	[.	447	500	..	447	501	..	0.78
+OTU_67	4_LSU_Rhizaria_4_LSU_start_three_long	758	1	!	39.1	0.0	7.8e-13	1.3e-12	5	45	.]	702	742	..	698	742	..	0.95
+//
+## New query:	OTU_149	737
+OTU_149	2_5.8_Rhizaria_58S_start_five_long	737	1	!	18.8	0.0	1.1e-06	2.6e-06	18	45	.]	345	372	..	334	372	..	0.91
+OTU_149	3_End_Rhizaria_58S_end_four_long	737	1	!	13.3	0.0	0.00011	0.00025	2	44	..	434	485	..	433	486	..	0.63
+OTU_149	4_LSU_Rhizaria_4_LSU_start_three_long	737	1	!	31.9	0.0	1.1e-10	2.4e-10	5	45	.]	680	721	..	676	721	..	0.94
+//
+## New query:	OTU_135	728
+//
+## New query:	OTU_73	1075
+OTU_73	2_5.8_Rhizaria_58S_start_sevenb_long	1075	1	!	35.6	0.0	4.8e-12	1.8e-11	2	45	.]	204	247	..	203	247	..	0.97
+OTU_73	3_End_Rhizaria_58S_end_four_long	1075	1	!	14.5	0.0	2.8e-05	0.0001	1	44	[.	306	358	..	306	359	..	0.79
+//
+## New query:	OTU_65	730
+//
+## New query:	OTU_63	708
+OTU_63	2_5.8_Rhizaria_58S_start_sevenb_long	708	1	!	40.5	0.0	2.5e-13	5.2e-13	1	45	[]	252	296	..	252	296	..	0.98
+OTU_63	4_LSU_Rhizaria_4_LSU_start_fiveb_long	708	1	!	27.5	0.0	2.9e-09	5.9e-09	5	45	.]	652	691	..	646	691	..	0.95
+//
+## New query:	OTU_102	814
+OTU_102	4_LSU_Rhizaria_4_LSU_start_sixb_long	814	2	!	28.4	0.1	1.1e-09	3.7e-09	6	45	.]	759	798	..	756	798	..	0.96
+//
+## New query:	OTU_58	714
+OTU_58	2_5.8_Rhizaria_58S_start_two_long	714	1	!	36.0	0.0	3.7e-12	1e-11	2	45	.]	272	315	..	271	315	..	0.98
+OTU_58	4_LSU_Rhizaria_4_LSU_start_fiveb_long	714	1	!	19.6	0.0	6.2e-07	1.7e-06	4	35	..	660	692	..	657	706	..	0.89
+//
+## New query:	OTU_103	703
+//
+## New query:	OTU_105	700
+OTU_105	2_5.8_Rhizaria_58S_start_two_long	700	1	!	28.0	0.0	1.5e-09	3.3e-09	7	45	.]	230	268	..	225	268	..	0.91
+OTU_105	4_LSU_Rhizaria_4_LSU_start_sixb_long	700	1	!	26.9	0.0	4.9e-09	1.1e-08	12	45	.]	651	684	..	645	684	..	0.91
+//
+## New query:	OTU_84	749
+OTU_84	2_5.8_Rhizaria_58S_start_six_long	749	1	!	14.0	0.0	2.4e-05	7.7e-05	15	45	.]	205	235	..	200	235	..	0.93
+OTU_84	4_LSU_Rhizaria_4_LSU_start_three_long	749	1	!	21.1	0.0	1.8e-07	5.6e-07	22	45	.]	710	733	..	705	733	..	0.95
+//
+## New query:	OTU_112	910
+OTU_112	2_5.8_Rhizaria_58S_start_sevenb_long	910	1	!	34.0	0.0	3.3e-11	5.8e-11	1	45	[]	479	523	..	479	523	..	0.97
+OTU_112	3_End_Rhizaria_58S_end_four_long	910	1	!	17.2	0.0	8.3e-06	1.5e-05	1	44	[.	583	635	..	583	636	..	0.78
+OTU_112	4_LSU_Rhizaria_4_LSU_start_three_long	910	1	!	34.4	0.0	2.2e-11	3.9e-11	5	45	.]	854	894	..	853	894	..	0.96
+//
+## New query:	OTU_167	818
+//
+## New query:	OTU_187	723
+//
+## New query:	OTU_189	921
+//
+## New query:	OTU_221	721
+//
+## New query:	OTU_194	709
+//
+## New query:	OTU_266	703
+//
+## New query:	OTU_196	706
+OTU_196	2_5.8_Rhizaria_58S_start_sevenb_long	706	1	!	34.4	0.0	2.1e-11	4.3e-11	1	45	[]	279	323	..	279	323	..	0.97
+OTU_196	4_LSU_Rhizaria_4_LSU_start_fiveb_long	706	1	!	31.1	0.0	2e-10	4.2e-10	5	45	.]	649	690	..	647	690	..	0.92
+//
+## New query:	OTU_197	743
+OTU_197	2_5.8_Rhizaria_58S_start_sevenb_long	743	1	!	29.3	0.0	3.5e-10	1.8e-09	2	45	.]	206	249	..	205	249	..	0.96
+//
+## New query:	OTU_200	709
+//
+## New query:	OTU_201	760
+OTU_201	2_5.8_Rhizaria_58S_start_sevenb_long	760	1	!	30.2	0.0	5.5e-10	9.7e-10	1	45	[]	269	313	..	269	313	..	0.97
+OTU_201	3_End_Rhizaria_58S_end_four_long	760	1	!	15.6	0.0	2.5e-05	4.5e-05	1	44	[.	373	425	..	373	426	..	0.70
+OTU_201	4_LSU_Rhizaria_4_LSU_start_fiveb_long	760	1	!	33.0	0.0	6.1e-11	1.1e-10	5	45	.]	703	744	..	702	744	..	0.95
+//
+## New query:	OTU_153	765
+//
+## New query:	OTU_87	792
+//
+## New query:	OTU_203	1070
+OTU_203	2_5.8_Rhizaria_58S_start_sevenb_long	1070	1	!	28.4	0.0	1.7e-09	3.6e-09	2	45	.]	156	200	..	155	200	..	0.94
+OTU_203	3_End_Rhizaria_58S_end_four_long	1070	1	!	13.1	0.0	0.00013	0.00028	1	45	[]	260	312	..	260	312	..	0.79
+OTU_203	4_LSU_Rhizaria_4_LSU_start_fiveb_long	1070	1	!	24.7	0.0	2e-08	4.4e-08	6	45	.]	466	505	..	464	505	..	0.93
+//
+## New query:	OTU_205	711
+OTU_205	2_5.8_Rhizaria_58S_start_two_long	711	1	!	27.6	0.0	1.9e-09	4.5e-09	2	45	.]	227	270	..	226	270	..	0.98
+OTU_205	4_LSU_Rhizaria_4_LSU_start_fiveb_long	711	1	!	36.0	0.0	5.3e-12	1.3e-11	3	45	.]	653	695	..	652	695	..	0.98
+//
+## New query:	OTU_208	726
+//
+## New query:	OTU_216	712
+OTU_216	2_5.8_Rhizaria_58S_start_sevenb_long	712	1	!	32.9	0.0	5.6e-11	1.3e-10	3	45	.]	268	310	..	266	310	..	0.95
+OTU_216	4_LSU_Rhizaria_4_LSU_start_three_long	712	1	!	23.1	0.0	6.1e-08	1.4e-07	22	45	.]	672	695	..	660	695	..	0.92
+//
+## New query:	OTU_219	702
+OTU_219	2_5.8_Rhizaria_58S_start_sevenb_long	702	1	!	40.3	0.0	3e-13	5.8e-13	1	45	[]	248	292	..	248	292	..	0.98
+OTU_219	3_End_Rhizaria_58S_end_four_long	702	1	!	11.3	0.0	0.00054	0.001	1	43	[.	353	404	..	353	405	..	0.73
+OTU_219	4_LSU_Rhizaria_4_LSU_start_three_long	702	1	!	31.4	0.0	1.8e-10	3.5e-10	5	45	.]	646	686	..	643	686	..	0.95
+//
+## New query:	OTU_89	838
+OTU_89	4_LSU_Rhizaria_4_LSU_start_threeb_long	838	1	!	26.0	0.0	4.8e-09	2e-08	5	45	.]	782	822	..	776	822	..	0.95
+//
+## New query:	OTU_218	727
+//
+## New query:	OTU_220	847
+//
+## New query:	OTU_222	741
+//
+## New query:	OTU_114	707
+OTU_114	2_5.8_Rhizaria_58S_start_sevenb_long	707	1	!	34.3	0.0	2.7e-11	4.6e-11	1	45	[]	289	333	..	289	333	..	0.97
+OTU_114	3_End_Rhizaria_58S_end_four_long	707	3	!	10.8	0.0	0.00087	0.0015	1	41	[.	393	442	..	393	445	..	0.73
+OTU_114	4_LSU_Rhizaria_4_LSU_start_three_long	707	1	!	39.1	0.0	8.1e-13	1.4e-12	5	45	.]	651	691	..	648	691	..	0.96
+//
+## New query:	OTU_79	984
+OTU_79	2_5.8_Rhizaria_58S_start_sevenb_long	984	1	!	16.9	0.0	5.8e-06	1.6e-05	2	45	.]	354	397	..	353	397	..	0.90
+OTU_79	4_LSU_Rhizaria_4_LSU_start_sixb_long	984	1	!	36.5	0.0	3.7e-12	1e-11	5	45	.]	928	968	..	926	968	..	0.97
+//
+## New query:	OTU_225	754
+OTU_225	2_5.8_Rhizaria_58S_start_six_long	754	1	!	14.0	0.0	2.5e-05	7.8e-05	15	45	.]	203	233	..	198	233	..	0.93
+OTU_225	4_LSU_Rhizaria_4_LSU_start_three_long	754	1	!	21.2	0.0	1.7e-07	5.4e-07	22	45	.]	715	738	..	708	738	..	0.94
+//
+## New query:	OTU_136	761
+//
+## New query:	OTU_109	710
+OTU_109	2_5.8_Rhizaria_58S_start_sevenb_long	710	1	!	17.4	0.0	3.6e-06	1.1e-05	2	45	.]	301	344	..	300	344	..	0.90
+OTU_109	4_LSU_Rhizaria_4_LSU_start_sixb_long	710	1	!	33.8	0.0	2.4e-11	7e-11	7	45	.]	656	694	..	654	694	..	0.97
+//
+## New query:	OTU_226	728
+//
+## New query:	OTU_161	747
+//
+## New query:	OTU_229	906
+//
+## New query:	OTU_210	726
+OTU_210	2_5.8_Rhizaria_58S_start_sevenb_long	726	1	!	36.3	0.0	3e-12	1.1e-11	2	45	.]	184	227	..	183	227	..	0.97
+OTU_210	3_End_Rhizaria_58S_end_four_long	726	1	!	15.2	0.0	1.7e-05	6.3e-05	1	44	[.	285	337	..	285	338	..	0.79
+//
+## New query:	OTU_206	780
+//
+## New query:	OTU_68	859
+//
+## New query:	OTU_262	791
+//
+## New query:	OTU_261	719
+OTU_261	2_5.8_Rhizaria_58S_start_two_long	719	1	!	27.5	0.0	2.5e-09	4.6e-09	2	45	.]	225	268	..	224	268	..	0.98
+OTU_261	3_End_Rhizaria_58S_end_four_long	719	1	!	14.1	0.0	7.1e-05	0.00013	1	41	[.	328	377	..	328	380	..	0.87
+OTU_261	4_LSU_Rhizaria_4_LSU_start_fiveb_long	719	1	!	40.0	0.0	3.7e-13	6.9e-13	3	45	.]	660	702	..	659	702	..	0.98
+//
+## New query:	OTU_227	946
+//
+## New query:	OTU_230	724
+OTU_230	2_5.8_Rhizaria_58S_start_sevenb_long	724	1	!	29.9	0.0	5.5e-10	1.1e-09	1	45	[]	258	305	..	258	305	..	0.84
+OTU_230	4_LSU_Rhizaria_4_LSU_start_fiveb_long	724	1	!	26.1	0.0	7.6e-09	1.6e-08	5	45	.]	666	707	..	660	707	..	0.93
+//
+## New query:	OTU_232	730
+//
+## New query:	OTU_233	769
+OTU_233	2_5.8_Rhizaria_58S_start_sevenb_long	769	1	!	37.3	0.0	3e-12	5.1e-12	1	45	[]	346	390	..	346	390	..	0.97
+OTU_233	3_End_Rhizaria_58S_end_four_long	769	2	!	21.1	0.0	5.1e-07	8.7e-07	1	45	[]	450	503	..	450	503	..	0.79
+OTU_233	4_LSU_Rhizaria_4_LSU_start_three_long	769	1	!	35.0	0.0	1.5e-11	2.6e-11	5	45	.]	713	753	..	710	753	..	0.96
+//
+## New query:	OTU_234	901
+//
+## New query:	OTU_236	740
+//
+## New query:	OTU_148	827
+//
+## New query:	OTU_238	733
+//
+## New query:	OTU_240	825
+//
+## New query:	OTU_242	702
+//
+## New query:	OTU_204	722
+OTU_204	2_5.8_Rhizaria_58S_start_sevenb_long	722	1	!	37.5	0.0	2.8e-12	4.7e-12	1	45	[]	250	294	..	250	294	..	0.97
+OTU_204	3_End_Rhizaria_58S_end_four_long	722	2	!	12.6	0.0	0.00025	0.00042	1	43	[.	354	405	..	354	406	..	0.79
+OTU_204	4_LSU_Rhizaria_4_LSU_start_three_long	722	2	!	36.0	0.0	7.5e-12	1.3e-11	3	45	.]	663	705	..	661	705	..	0.95
+//
+## New query:	OTU_195	1053
+OTU_195	2_5.8_Rhizaria_58S_start_sevenb_long	1053	1	!	32.3	0.0	9e-11	2e-10	3	45	.]	616	658	..	614	658	..	0.95
+OTU_195	4_LSU_Rhizaria_4_LSU_start_three_long	1053	1	!	22.4	0.0	1e-07	2.3e-07	22	45	.]	1014	1037	..	1002	1037	..	0.91
+//
+## New query:	OTU_244	1053
+//
+## New query:	OTU_173	840
+//
+## New query:	OTU_246	739
+//
+## New query:	OTU_74	956
+//
+## New query:	OTU_248	729
+//
+## New query:	OTU_94	752
+OTU_94	2_5.8_Rhizaria_58S_start_two_long	752	1	!	30.3	0.0	3.1e-10	6.1e-10	1	45	[]	182	226	..	182	226	..	0.98
+OTU_94	4_LSU_Rhizaria_4_LSU_start_sixb_long	752	1	!	34.5	0.0	2.2e-11	4.4e-11	5	45	.]	696	736	..	689	736	..	0.96
+//
+## New query:	OTU_188	832
+OTU_188	4_LSU_Rhizaria_4_LSU_start_sixb_long	832	1	!	27.5	0.1	1.9e-09	6.9e-09	5	45	.]	775	815	..	760	815	..	0.95
+//
+## New query:	OTU_251	724
+OTU_251	2_5.8_Rhizaria_58S_start_sevenb_long	724	1	!	32.5	0.0	9.6e-11	1.8e-10	2	45	.]	367	410	..	366	410	..	0.97
+OTU_251	3_End_Rhizaria_58S_end_four_long	724	1	!	15.2	0.0	3.4e-05	6.3e-05	1	44	[.	470	522	..	470	523	..	0.79
+OTU_251	4_LSU_Rhizaria_4_LSU_start_fiveb_long	724	1	!	25.2	0.0	1.6e-08	3e-08	6	45	.]	669	708	..	668	708	..	0.92
+//
+## New query:	OTU_176	710
+//
+## New query:	OTU_253	728
+OTU_253	2_5.8_Rhizaria_58S_start_sevenb_long	728	1	!	30.0	0.0	6.6e-10	1.1e-09	1	45	[]	276	320	..	276	320	..	0.97
+OTU_253	3_End_Rhizaria_58S_end_four_long	728	1	!	16.5	0.0	1.4e-05	2.4e-05	1	45	[]	380	433	..	380	433	..	0.73
+OTU_253	4_LSU_Rhizaria_4_LSU_start_three_long	728	1	!	39.8	0.0	5e-13	8.5e-13	3	45	.]	670	712	..	668	712	..	0.95
+//
+## New query:	OTU_250	736
+OTU_250	2_5.8_Rhizaria_58S_start_sevenb_long	736	1	!	29.2	0.0	4.7e-10	1.9e-09	2	45	.]	196	239	..	195	239	..	0.97
+//
+## New query:	OTU_154	703
+//
+## New query:	OTU_199	719
+//
+## New query:	OTU_254	822
+//
+## New query:	OTU_255	718
+OTU_255	2_5.8_Rhizaria_58S_start_two_long	718	1	!	34.4	0.0	1.5e-11	3.3e-11	2	44	..	279	321	..	278	322	..	0.97
+OTU_255	4_LSU_Rhizaria_4_LSU_start_fiveb_long	718	1	!	32.6	0.0	6.6e-11	1.4e-10	4	45	.]	660	702	..	657	702	..	0.93
+//
+## New query:	OTU_118	948
+OTU_118	2_5.8_Rhizaria_58S_start_sevenb_long	948	1	!	16.9	0.0	4.4e-06	1.5e-05	2	45	.]	574	617	..	573	617	..	0.90
+OTU_118	4_LSU_Rhizaria_4_LSU_start_sixb_long	948	1	!	35.6	0.0	5.7e-12	1.9e-11	4	45	.]	891	932	..	885	932	..	0.95
+//
+## New query:	OTU_111	765
+//
+## New query:	OTU_257	845
+OTU_257	2_5.8_Rhizaria_58S_start_sevenb_long	845	1	!	38.5	0.0	1.2e-12	2.2e-12	1	43	[.	319	361	..	319	363	..	0.96
+OTU_257	3_End_Rhizaria_58S_end_three_long	845	2	!	15.3	0.0	2.2e-05	3.9e-05	22	45	.]	455	478	..	439	478	..	0.95
+OTU_257	4_LSU_Rhizaria_4_LSU_start_three_long	845	1	!	36.3	0.0	5.5e-12	9.9e-12	5	45	.]	788	828	..	786	828	..	0.97
+//
+## New query:	OTU_259	700
+//
+## New query:	OTU_129	709
+OTU_129	2_5.8_Rhizaria_58S_start_two_long	709	1	!	22.1	0.0	9.7e-08	2.2e-07	2	45	.]	274	317	..	273	317	..	0.94
+OTU_129	4_LSU_Rhizaria_4_LSU_start_fiveb_long	709	1	!	38.4	0.0	9.8e-13	2.2e-12	4	45	.]	653	694	..	650	694	..	0.97
+//
+## New query:	OTU_223	846
+OTU_223	2_5.8_Rhizaria_58S_start_two_long	846	1	!	47.0	0.0	2.1e-15	3.8e-15	1	45	[]	345	389	..	345	389	..	0.98
+OTU_223	3_End_Rhizaria_58S_end_three_long	846	1	!	21.9	0.0	1.8e-07	3.3e-07	10	42	..	468	500	..	459	503	..	0.80
+OTU_223	4_LSU_Rhizaria_4_LSU_start_three_long	846	1	!	46.4	0.0	3.9e-15	7.3e-15	3	45	.]	788	830	..	787	830	..	0.98
+//
+## New query:	OTU_263	925
+//
+## New query:	OTU_264	1013
+//
+## New query:	OTU_215	723
+//
+## New query:	OTU_265	752
+//
+## New query:	OTU_267	831
+OTU_267	2_5.8_Rhizaria_58S_start_sevenb_long	831	1	!	12.3	0.0	0.00012	0.00044	1	45	[]	347	391	..	347	391	..	0.96
+OTU_267	4_LSU_Rhizaria_4_LSU_start_sixb_long	831	1	!	28.4	0.1	1e-09	3.7e-09	6	45	.]	776	815	..	771	815	..	0.96
+//
+## New query:	OTU_269	945
+//
+## New query:	OTU_270	867
+//
+## New query:	OTU_217	716
+//
+## New query:	OTU_131	801
+OTU_131	2_5.8_Rhizaria_58S_start_sevenb_long	801	1	!	17.2	0.0	3.6e-06	1.2e-05	2	45	.]	181	224	..	180	224	..	0.90
+OTU_131	4_LSU_Rhizaria_4_LSU_start_sixb_long	801	1	!	31.6	0.0	1.1e-10	3.6e-10	3	45	.]	744	785	..	742	785	..	0.90
+//
+## New query:	OTU_243	709
+OTU_243	1_SSU_Rhizaria_1_SSU_end_nine_long	709	1	!	43.9	0.0	3.1e-14	4.2e-14	1	45	[]	128	171	..	128	171	..	0.97
+OTU_243	2_5.8_Rhizaria_58S_start_sevenb_long	709	1	!	33.8	0.0	4.8e-11	6.6e-11	1	45	[]	334	378	..	334	378	..	0.97
+OTU_243	3_End_Rhizaria_58S_end_four_long	709	1	!	13.7	0.0	0.00014	0.00019	1	45	[]	438	491	..	438	491	..	0.80
+OTU_243	4_LSU_Rhizaria_4_LSU_start_fiveb_long	709	1	!	25.2	0.0	2.1e-08	2.9e-08	6	45	.]	654	693	..	653	693	..	0.92
+//
+## New query:	OTU_69	971
+//
+## New query:	OTU_235	700
+OTU_235	2_5.8_Rhizaria_58S_start_sevenb_long	700	1	!	33.9	0.0	3.5e-11	6.5e-11	1	45	[]	328	372	..	328	372	..	0.97
+OTU_235	3_End_Rhizaria_58S_end_four_long	700	1	!	17.7	0.0	5.3e-06	9.8e-06	1	45	[]	432	485	..	432	485	..	0.87
+OTU_235	4_LSU_Rhizaria_4_LSU_start_fiveb_long	700	1	!	25.3	0.0	1.5e-08	2.9e-08	6	45	.]	645	684	..	644	684	..	0.92
+//
+## New query:	OTU_213	993
+OTU_213	4_LSU_Rhizaria_4_LSU_start_two_long	993	1	!	27.8	0.0	1e-09	4.7e-09	8	45	.]	941	978	..	938	978	..	0.97
+//
+## New query:	OTU_191	1105
+//
+## New query:	OTU_138	911
+OTU_138	4_LSU_Rhizaria_4_LSU_start_sixb_long	911	1	!	28.2	0.1	1.2e-09	4.3e-09	6	45	.]	856	895	..	853	895	..	0.96
+//
+## New query:	OTU_125	757
+OTU_125	4_LSU_Rhizaria_4_LSU_start_sixb_long	757	1	!	27.6	0.0	1.8e-09	6.5e-09	5	45	.]	701	741	..	698	741	..	0.96
+//
+## New query:	OTU_228	875
+OTU_228	2_5.8_Rhizaria_58S_start_sevenb_long	875	1	!	37.1	0.0	1.7e-12	6e-12	1	45	[]	211	255	..	211	255	..	0.97
+OTU_228	3_End_Rhizaria_58S_end_four_long	875	1	!	14.0	0.0	4.2e-05	0.00014	1	41	[.	315	364	..	315	367	..	0.73
+//
+## New query:	OTU_271	702
+//
+## New query:	OTU_237	808
+OTU_237	2_5.8_Rhizaria_58S_start_sevenb_long	808	1	!	33.1	0.0	3.3e-11	1.1e-10	2	45	.]	124	167	..	123	167	..	0.97
+OTU_237	3_End_Rhizaria_58S_end_four_long	808	1	!	24.4	0.0	2.2e-08	7.4e-08	1	41	[.	227	276	..	227	280	..	0.81
+//
+## New query:	OTU_273	787
+OTU_273	2_5.8_Rhizaria_58S_start_sevenb_long	787	1	!	32.3	0.0	5.3e-11	2e-10	2	45	.]	148	191	..	147	191	..	0.97
+OTU_273	3_End_Rhizaria_58S_end_four_long	787	1	!	11.5	0.0	0.00024	0.00091	1	45	[]	252	306	..	252	306	..	0.71
+//
+## New query:	OTU_107	890
+//
+## New query:	OTU_57	971
+//
+## New query:	OTU_56	724
+//
+## New query:	OTU_55	792
+//
+## New query:	OTU_184	748
+OTU_184	2_5.8_Rhizaria_58S_start_six_long	748	1	!	20.3	0.0	2.8e-07	8.8e-07	13	45	.]	126	158	..	124	158	..	0.96
+OTU_184	4_LSU_Rhizaria_4_LSU_start_three_long	748	1	!	20.9	0.0	2e-07	6.5e-07	22	45	.]	709	732	..	707	732	..	0.96
+//
+## New query:	OTU_54	1044
+OTU_54	4_LSU_Rhizaria_4_LSU_start_three_long	1044	1	!	17.9	0.0	1.1e-06	5.8e-06	5	45	.]	989	1028	..	985	1028	..	0.94
+//
+## New query:	OTU_95	849
+//
+## New query:	OTU_183	1028
+//
+## New query:	OTU_101	742
+//
+## New query:	OTU_70	795
+//
+## New query:	OTU_53	704
+//
+## New query:	OTU_224	718
+//
+## New query:	OTU_100	707
+OTU_100	2_5.8_Rhizaria_58S_start_two_long	707	1	!	18.3	0.0	1.2e-06	3.6e-06	2	45	.]	273	314	..	272	314	..	0.87
+OTU_100	4_LSU_Rhizaria_4_LSU_start_fiveb_long	707	1	!	38.4	0.0	7.5e-13	2.2e-12	4	45	.]	649	690	..	643	690	..	0.97
+//
+## New query:	OTU_117	954
+OTU_117	2_5.8_Rhizaria_58S_start_sevenb_long	954	1	!	16.9	0.0	4.5e-06	1.5e-05	2	45	.]	346	389	..	345	389	..	0.90
+OTU_117	4_LSU_Rhizaria_4_LSU_start_sixb_long	954	1	!	35.4	0.0	6.5e-12	2.2e-11	4	45	.]	897	938	..	895	938	..	0.96
+//
+## New query:	OTU_52	766
+//
+## New query:	OTU_61	735
+OTU_61	1_SSU_Rhizaria_1_SSU_end_one_long	735	1	!	11.4	0.0	0.00036	0.00057	27	45	.]	27	45	..	24	45	..	0.94
+OTU_61	2_5.8_Rhizaria_58S_start_sevenb_long	735	2	!	34.3	0.0	3e-11	4.8e-11	1	45	[]	311	355	..	311	355	..	0.97
+OTU_61	3_End_Rhizaria_58S_end_four_long	735	1	!	15.5	0.0	3.2e-05	5.1e-05	1	44	[.	415	467	..	415	468	..	0.73
+OTU_61	4_LSU_Rhizaria_4_LSU_start_three_long	735	1	!	38.9	0.0	9.8e-13	1.5e-12	5	45	.]	679	719	..	677	719	..	0.96
+//
+## New query:	OTU_51	732
+//
+## New query:	OTU_190	704
+OTU_190	2_5.8_Rhizaria_58S_start_sevenb_long	704	1	!	25.9	0.0	9.2e-09	2.1e-08	3	45	.]	263	305	..	260	305	..	0.94
+OTU_190	4_LSU_Rhizaria_4_LSU_start_three_long	704	1	!	24.9	0.0	1.7e-08	3.8e-08	8	45	.]	651	688	..	643	688	..	0.92
+//
+## New query:	OTU_50	847
+//
+## New query:	OTU_48	773
+OTU_48	2_5.8_Rhizaria_58S_start_sevenb_long	773	1	!	36.2	0.0	3.2e-12	1.2e-11	2	45	.]	179	222	..	178	222	..	0.97
+OTU_48	3_End_Rhizaria_58S_end_four_long	773	1	!	15.1	0.0	1.8e-05	6.8e-05	1	44	[.	282	334	..	282	335	..	0.79
+//
+## New query:	OTU_47	738
+//
+## New query:	OTU_46	957
+OTU_46	2_5.8_Rhizaria_58S_start_sevenb_long	957	1	!	33.1	0.0	3.1e-11	1.2e-10	2	45	.]	183	226	..	182	226	..	0.95
+OTU_46	3_End_Rhizaria_58S_end_four_long	957	1	!	14.7	0.0	2.4e-05	8.9e-05	1	44	[.	285	337	..	285	338	..	0.79
+//
+## New query:	OTU_239	774
+//
+## New query:	OTU_45	1042
+//
+## New query:	OTU_150	842
+OTU_150	2_5.8_Rhizaria_58S_start_two_long	842	1	!	39.4	0.0	2.1e-13	8.8e-13	2	45	.]	135	178	..	134	178	..	0.95
+OTU_150	3_End_Rhizaria_58S_end_four_long	842	1	!	10.5	0.0	0.00045	0.0019	22	42	..	265	285	..	236	290	..	0.83
+//
+## New query:	OTU_44	1012
+OTU_44	1_SSU_Rhizaria_1_SSU_end_one_long	1012	1	!	11.9	0.0	0.00025	0.00042	27	45	.]	571	589	..	543	589	..	0.82
+OTU_44	2_5.8_Rhizaria_58S_start_two_long	1012	1	!	39.1	0.0	6.7e-13	1.1e-12	2	45	.]	135	178	..	134	178	..	0.95
+OTU_44	3_End_Rhizaria_58S_end_four_long	1012	1	!	10.2	0.1	0.0014	0.0023	22	42	..	266	286	..	246	291	..	0.82
+OTU_44	4_LSU_Rhizaria_4_LSU_start_sixb_long	1012	1	!	32.1	0.0	1.5e-10	2.5e-10	8	45	.]	491	528	..	488	528	..	0.94
+//
+## New query:	OTU_43	702
+//
+## New query:	OTU_42	859
+//
+## New query:	OTU_41	1037
+OTU_41	4_LSU_Rhizaria_4_LSU_start_three_long	1037	1	!	20.5	0.0	2.1e-07	8.8e-07	8	45	.]	984	1021	..	982	1021	..	0.94
+//
+## New query:	OTU_146	1088
+OTU_146	2_5.8_Rhizaria_58S_start_sevenb_long	1088	1	!	31.7	0.0	1.6e-10	3e-10	2	45	.]	171	214	..	170	214	..	0.97
+OTU_146	4_LSU_Rhizaria_4_LSU_start_eight_long	1088	1	!	18.5	0.0	2.2e-06	4.3e-06	24	45	.]	499	520	..	494	520	..	0.94
+//
+## New query:	OTU_172	1055
+OTU_172	4_LSU_Rhizaria_4_LSU_start_three_long	1055	1	!	20.5	0.0	2.2e-07	9e-07	8	45	.]	1001	1038	..	999	1038	..	0.94
+//
+## New query:	OTU_77	712
+//
+## New query:	OTU_40	750
+//
+## New query:	OTU_39	889
+OTU_39	2_5.8_Rhizaria_58S_start_sevenb_long	889	1	!	12.6	0.0	0.00011	0.00034	10	45	.]	336	371	..	322	371	..	0.85
+OTU_39	4_LSU_Rhizaria_4_LSU_start_two_long	889	1	!	28.7	0.0	7.5e-10	2.4e-09	9	45	.]	836	872	..	832	872	..	0.95
+//
+## New query:	OTU_124	1028
+OTU_124	2_5.8_Rhizaria_58S_start_sevenb_long	1028	1	!	31.7	0.0	6.3e-11	3.2e-10	2	45	.]	191	234	..	190	234	..	0.97
+//
+## New query:	OTU_38	730
+//
+## New query:	OTU_245	700
+OTU_245	2_5.8_Rhizaria_58S_start_sevenb_long	700	1	!	27.6	0.0	2.6e-09	6.3e-09	3	45	.]	247	290	..	245	290	..	0.91
+OTU_245	4_LSU_Rhizaria_4_LSU_start_three_long	700	1	!	23.7	0.0	3.7e-08	8.9e-08	21	45	.]	660	684	..	649	684	..	0.87
+//
+## New query:	OTU_76	786
+OTU_76	2_5.8_Rhizaria_58S_start_sevenb_long	786	1	!	36.0	0.0	4.4e-12	1.4e-11	2	45	.]	144	187	..	143	187	..	0.97
+OTU_76	3_End_Rhizaria_58S_end_four_long	786	1	!	24.5	0.0	2.3e-08	7.2e-08	1	41	[.	249	298	..	249	302	..	0.81
+//
+## New query:	OTU_37	812
+//
+## New query:	OTU_36	942
+OTU_36	4_LSU_Rhizaria_4_LSU_start_threeb_long	942	1	!	25.6	0.0	6.3e-09	2.6e-08	5	45	.]	886	926	..	884	926	..	0.95
+//
+## New query:	OTU_34	738
+OTU_34	4_LSU_Rhizaria_4_LSU_start_three_long	738	1	!	10.8	0.0	4.6e-05	0.00094	14	42	..	52	77	..	46	78	..	0.83
+//
+## New query:	OTU_75	1033
+OTU_75	2_5.8_Rhizaria_58S_start_sevenb_long	1033	1	!	12.1	0.0	0.00012	0.00049	10	45	.]	358	393	..	350	393	..	0.86
+OTU_75	4_LSU_Rhizaria_4_LSU_start_two_long	1033	1	!	27.7	0.0	1.2e-09	4.9e-09	8	45	.]	980	1017	..	977	1017	..	0.97
+//
+## New query:	OTU_141	750
+//
+## New query:	OTU_33	879
+OTU_33	2_5.8_Rhizaria_58S_start_sevenb_long	879	1	!	32.0	0.0	1.4e-10	2.6e-10	2	45	.]	518	561	..	517	561	..	0.97
+OTU_33	3_End_Rhizaria_58S_end_four_long	879	1	!	11.3	0.0	0.00056	0.001	1	44	[.	621	673	..	621	674	..	0.72
+OTU_33	4_LSU_Rhizaria_4_LSU_start_fiveb_long	879	2	!	25.0	0.0	1.9e-08	3.5e-08	6	45	.]	824	863	..	822	863	..	0.93
+//
+## New query:	OTU_32	868
+//
+## New query:	OTU_31	705
+OTU_31	2_5.8_Rhizaria_58S_start_sevenb_long	705	1	!	33.0	0.0	3.7e-11	1.3e-10	3	45	.]	250	292	..	248	292	..	0.95
+OTU_31	4_LSU_Rhizaria_4_LSU_start_three_long	705	1	!	14.2	0.0	2.4e-05	8.1e-05	21	45	.]	664	689	..	653	689	..	0.82
+//
+## New query:	OTU_272	700
+//
+## New query:	OTU_29	751
+//
+## New query:	OTU_174	826
+OTU_174	2_5.8_Rhizaria_58S_start_sevenb_long	826	1	!	19.0	0.0	1.3e-06	3.2e-06	2	45	.]	365	408	..	364	408	..	0.97
+OTU_174	4_LSU_Rhizaria_4_LSU_start_threeb_long	826	1	!	26.4	0.0	6e-09	1.4e-08	5	45	.]	770	810	..	769	810	..	0.96
+//
+## New query:	OTU_28	725
+//
+## New query:	OTU_27	780
+OTU_27	2_5.8_Rhizaria_58S_start_sevenb_long	780	1	!	36.2	0.0	3.2e-12	1.2e-11	2	45	.]	181	224	..	180	224	..	0.97
+OTU_27	3_End_Rhizaria_58S_end_four_long	780	1	!	14.7	0.0	2.5e-05	9.1e-05	1	44	[.	284	337	..	284	338	..	0.78
+//
+## New query:	OTU_93	714
+//
+## New query:	OTU_110	703
+//
+## New query:	OTU_26	719
+//
+## New query:	OTU_25	702
+//
+## New query:	OTU_116	736
+//
+## New query:	OTU_241	852
+//
+## New query:	OTU_24	796
+OTU_24	1_SSU_Rhizaria_1_SSU_end_one_long	796	1	!	58.9	0.0	6.5e-19	8.6e-19	1	45	[]	126	170	..	126	170	..	0.98
+OTU_24	2_5.8_Rhizaria_58S_start_two_long	796	1	!	36.5	0.0	5.5e-12	7.3e-12	1	45	[]	348	392	..	348	392	..	0.98
+OTU_24	4_LSU_Rhizaria_4_LSU_start_three_long	796	1	!	42.3	0.0	9.9e-14	1.3e-13	5	45	.]	740	780	..	736	780	..	0.96
+//
+## New query:	OTU_106	880
+OTU_106	2_5.8_Rhizaria_58S_start_six_long	880	1	!	17.3	0.0	2.4e-06	7.6e-06	15	45	.]	111	141	..	106	141	..	0.93
+OTU_106	4_LSU_Rhizaria_4_LSU_start_three_long	880	1	!	20.7	0.0	2.5e-07	7.8e-07	22	45	.]	841	864	..	839	864	..	0.96
+//
+## New query:	OTU_162	954
+OTU_162	4_LSU_Rhizaria_4_LSU_start_threeb_long	954	1	!	25.6	0.0	6.3e-09	2.6e-08	5	45	.]	898	938	..	895	938	..	0.95
+//
+## New query:	OTU_23	899
+OTU_23	2_5.8_Rhizaria_58S_start_sevenb_long	899	1	!	19.9	0.0	7.8e-07	1.7e-06	2	45	.]	443	486	..	442	486	..	0.91
+OTU_23	4_LSU_Rhizaria_4_LSU_start_sixb_long	899	2	!	36.9	0.0	3.4e-12	7.4e-12	5	45	.]	842	882	..	838	882	..	0.97
+//
+## New query:	OTU_22	737
+//
+## New query:	OTU_21	733
+//
+## New query:	OTU_20	970
+OTU_20	4_LSU_Rhizaria_4_LSU_start_fiveb_long	970	1	!	23.3	0.0	2.8e-08	1.2e-07	5	45	.]	914	954	..	913	954	..	0.95
+//
+## New query:	OTU_66	855
+OTU_66	2_5.8_Rhizaria_58S_start_sevenb_long	855	1	!	37.2	0.0	3.4e-12	5.8e-12	1	45	[]	433	477	..	433	477	..	0.97
+OTU_66	3_End_Rhizaria_58S_end_three_long	855	1	!	12.3	0.0	0.00019	0.00033	21	41	..	567	587	..	551	588	..	0.83
+OTU_66	4_LSU_Rhizaria_4_LSU_start_three_long	855	1	!	38.6	0.0	1.1e-12	1.9e-12	5	45	.]	799	839	..	796	839	..	0.96
+//
+## New query:	OTU_193	859
+OTU_193	2_5.8_Rhizaria_58S_start_sevenb_long	859	1	!	28.9	0.0	1.2e-09	2.4e-09	2	45	.]	442	485	..	441	485	..	0.97
+OTU_193	3_End_Rhizaria_58S_end_four_long	859	2	!	16.0	0.0	1.7e-05	3.4e-05	1	44	[.	545	597	..	545	598	..	0.71
+OTU_193	4_LSU_Rhizaria_4_LSU_start_fiveb_long	859	1	!	27.6	0.0	2.8e-09	5.5e-09	5	45	.]	803	843	..	802	843	..	0.96
+//
+## New query:	OTU_19	737
+OTU_19	2_5.8_Rhizaria_58S_start_sevenb_long	737	1	!	36.3	0.0	3e-12	1.1e-11	2	45	.]	185	228	..	184	228	..	0.97
+OTU_19	3_End_Rhizaria_58S_end_four_long	737	1	!	13.6	0.0	5.3e-05	0.0002	9	44	..	285	328	..	278	329	..	0.77
+//
+## New query:	OTU_260	721
+OTU_260	4_LSU_Rhizaria_4_LSU_start_sixb_long	721	1	!	22.1	0.0	8.6e-08	3.5e-07	8	45	.]	668	705	..	665	705	..	0.94
+//
+## New query:	OTU_252	861
+//
+## New query:	OTU_18	752
+//
+## New query:	OTU_156	706
+//
+## New query:	OTU_119	760
+OTU_119	2_5.8_Rhizaria_58S_start_sevenb_long	760	1	!	17.3	0.0	3.4e-06	1.2e-05	2	45	.]	339	382	..	338	382	..	0.90
+OTU_119	4_LSU_Rhizaria_4_LSU_start_sixb_long	760	1	!	33.8	0.1	2.1e-11	7.2e-11	4	45	.]	703	744	..	697	744	..	0.93
+//
+## New query:	OTU_17	999
+//
+## New query:	OTU_160	729
+OTU_160	4_LSU_Rhizaria_4_LSU_start_sixb_long	729	1	!	22.1	0.0	8.7e-08	3.6e-07	8	45	.]	676	713	..	673	713	..	0.94
+//
+## New query:	OTU_145	764
+OTU_145	2_5.8_Rhizaria_58S_start_sevenb_long	764	1	!	29.1	0.0	5.5e-10	2e-09	2	45	.]	173	216	..	172	216	..	0.97
+OTU_145	3_End_Rhizaria_58S_end_four_long	764	1	!	16.2	0.0	7.8e-06	2.9e-05	1	44	[.	276	328	..	276	329	..	0.71
+//
+## New query:	OTU_16	869
+//
+## New query:	OTU_15	712
+//
+## New query:	OTU_14	924
+OTU_14	2_5.8_Rhizaria_58S_start_two_long	924	1	!	54.6	0.0	7.3e-18	1.7e-17	1	45	[]	323	367	..	323	367	..	0.98
+OTU_14	3_End_Rhizaria_58S_end_two_long	924	1	!	19.4	0.0	8.6e-07	2e-06	12	45	.]	448	480	..	436	480	..	0.90
+OTU_14	4_LSU_Rhizaria_4_LSU_start_two_long	924	1	!	23.9	0.0	3.4e-08	7.7e-08	5	45	.]	868	908	..	867	908	..	0.97
+//
+## New query:	OTU_13	761
+OTU_13	2_5.8_Rhizaria_58S_start_sevenb_long	761	1	!	37.4	0.0	2.9e-12	5e-12	1	45	[]	249	293	..	249	293	..	0.97
+OTU_13	3_End_Rhizaria_58S_end_four_long	761	1	!	17.8	0.0	5.4e-06	9.2e-06	1	41	[.	353	403	..	353	406	..	0.82
+OTU_13	4_LSU_Rhizaria_4_LSU_start_three_long	761	1	!	37.0	0.0	3.7e-12	6.2e-12	8	45	.]	708	745	..	703	745	..	0.96
+//
+## New query:	OTU_121	1122
+OTU_121	2_5.8_Rhizaria_58S_start_sevenb_long	1122	1	!	31.6	0.0	1.9e-10	3.5e-10	2	45	.]	735	778	..	734	778	..	0.97
+OTU_121	4_LSU_Rhizaria_4_LSU_start_fiveb_long	1122	1	!	32.6	0.0	7.7e-11	1.4e-10	5	45	.]	1067	1107	..	1059	1107	..	0.91
+//
+## New query:	OTU_12	826
+OTU_12	2_5.8_Rhizaria_58S_start_sevenb_long	826	1	!	38.7	0.0	5.6e-13	1.9e-12	2	45	.]	180	223	..	179	223	..	0.97
+OTU_12	3_End_Rhizaria_58S_end_four_long	826	1	!	18.5	0.0	1.6e-06	5.6e-06	1	41	[.	282	331	..	282	334	..	0.76
+//
+## New query:	OTU_49	725
+OTU_49	2_5.8_Rhizaria_58S_start_sevenb_long	725	1	!	36.3	0.0	3e-12	1.1e-11	2	45	.]	181	224	..	180	224	..	0.97
+OTU_49	3_End_Rhizaria_58S_end_four_long	725	1	!	15.2	0.0	1.7e-05	6.3e-05	1	44	[.	284	336	..	284	337	..	0.79
+//
+## New query:	OTU_11	713
+OTU_11	2_5.8_Rhizaria_58S_start_two_long	713	1	!	36.0	0.0	4.9e-12	1e-11	2	45	.]	277	320	..	276	320	..	0.98
+OTU_11	4_LSU_Rhizaria_4_LSU_start_fiveb_long	713	1	!	38.4	0.0	1.1e-12	2.3e-12	4	45	.]	656	697	..	653	697	..	0.97
+//
+## New query:	OTU_130	752
+OTU_130	4_LSU_Rhizaria_4_LSU_start_sixb_long	752	1	!	27.6	0.0	1.7e-09	6.5e-09	5	45	.]	696	736	..	693	736	..	0.96
+//
+## New query:	OTU_140	935
+OTU_140	4_LSU_Rhizaria_4_LSU_start_threeb_long	935	1	!	38.9	0.0	4.6e-13	1.6e-12	5	45	.]	879	919	..	878	919	..	0.96
+//
+## New query:	OTU_10	751
+OTU_10	4_LSU_Rhizaria_4_LSU_start_sixb_long	751	1	!	31.4	0.1	1e-10	4.1e-10	6	45	.]	696	735	..	695	735	..	0.97
+//
+## New query:	OTU_35	709
+//
+## New query:	OTU_88	992
+OTU_88	2_5.8_Rhizaria_58S_start_two_long	992	1	!	39.2	0.0	2.6e-13	1.1e-12	2	45	.]	163	206	..	162	206	..	0.95
+OTU_88	3_End_Rhizaria_58S_end_four_long	992	1	!	11.5	0.0	0.00022	0.00091	1	41	[.	264	314	..	264	318	..	0.78
+//
+## New query:	OTU_128	740
+//
+## New query:	OTU_9	725
+//
+## New query:	OTU_86	782
+//
+## New query:	OTU_123	1040
+//
+## New query:	OTU_8	703
+//
+## New query:	OTU_268	718
+//
+## New query:	OTU_207	946
+//
+## New query:	OTU_192	974
+OTU_192	2_5.8_Rhizaria_58S_start_seven_long	974	1	!	25.1	0.0	9.1e-09	3.4e-08	6	45	.]	115	154	..	110	154	..	0.92
+OTU_192	4_LSU_Rhizaria_4_LSU_start_sixb_long	974	1	!	17.1	0.0	3.7e-06	1.4e-05	6	45	.]	369	409	..	368	409	..	0.90
+//
+## New query:	OTU_7	743
+OTU_7	2_5.8_Rhizaria_58S_start_sevenb_long	743	1	!	16.0	0.0	1.2e-05	3e-05	8	45	.]	208	245	..	201	245	..	0.92
+OTU_7	4_LSU_Rhizaria_4_LSU_start_eight_long	743	2	!	20.0	0.0	6.1e-07	1.5e-06	22	45	.]	705	728	..	700	728	..	0.92
+//
+## New query:	OTU_132	924
+OTU_132	2_5.8_Rhizaria_58S_start_two_long	924	1	!	54.6	0.0	7.3e-18	1.7e-17	1	45	[]	323	367	..	323	367	..	0.98
+OTU_132	3_End_Rhizaria_58S_end_two_long	924	1	!	19.4	0.0	8.6e-07	2e-06	12	45	.]	448	480	..	436	480	..	0.90
+OTU_132	4_LSU_Rhizaria_4_LSU_start_two_long	924	1	!	23.9	0.0	3.4e-08	7.7e-08	5	45	.]	868	908	..	867	908	..	0.97
+//
+## New query:	OTU_6	823
+//
+## New query:	OTU_5	781
+//
+## New query:	OTU_247	721
+//
+## New query:	OTU_256	1056
+//
+## New query:	OTU_30	824
+OTU_30	2_5.8_Rhizaria_58S_start_ten_long	824	1	!	17.2	0.0	2e-06	9.1e-06	17	43	..	331	357	..	327	358	..	0.94
+OTU_30	4_LSU_Rhizaria_4_LSU_start_fiveb_long	824	1	!	15.9	0.0	5.4e-06	2.5e-05	21	45	.]	781	806	..	762	806	..	0.80
+//
+## New query:	OTU_4	713
+OTU_4	4_LSU_Rhizaria_4_LSU_start_sixb_long	713	1	!	27.3	0.0	2e-09	8.2e-09	5	45	.]	657	697	..	654	697	..	0.96
+//
+## New query:	OTU_159	1040
+OTU_159	4_LSU_Rhizaria_4_LSU_start_three_long	1040	1	!	22.5	0.0	4.9e-08	2e-07	5	45	.]	984	1024	..	981	1024	..	0.95
+//
+## New query:	OTU_3	713
+//
+## New query:	OTU_2	798
+OTU_2	2_5.8_Rhizaria_58S_start_sevenb_long	798	1	!	25.7	0.0	9.9e-09	2.5e-08	2	45	.]	315	358	..	314	358	..	0.96
+OTU_2	3_End_Rhizaria_58S_end_four_long	798	1	!	13.4	0.0	8.9e-05	0.00023	1	45	[]	418	471	..	418	471	..	0.81
+OTU_2	4_LSU_Rhizaria_4_LSU_start_three_long	798	1	!	35.2	0.0	9e-12	2.3e-11	5	45	.]	741	781	..	737	781	..	0.95
+//
+## New query:	OTU_1	728
+OTU_1	2_5.8_Rhizaria_58S_start_sevenb_long	728	1	!	33.6	0.0	3.9e-11	8e-11	1	45	[]	275	320	..	275	320	..	0.94
+OTU_1	4_LSU_Rhizaria_4_LSU_start_fiveb_long	728	1	!	28.1	0.0	1.8e-09	3.8e-09	5	45	.]	672	712	..	666	712	..	0.96
+//
+## New query:	OTU_0	796
+OTU_0	2_5.8_Rhizaria_58S_start_two_long	796	1	!	47.7	0.0	1.2e-15	2.4e-15	1	45	[]	346	390	..	346	390	..	0.98
+OTU_0	3_End_Rhizaria_58S_end_three_long	796	1	!	17.6	0.0	3.6e-06	7.3e-06	1	45	[]	460	504	..	460	504	..	0.96
+OTU_0	4_LSU_Rhizaria_4_LSU_start_fiveb_long	796	1	!	25.4	0.0	1.3e-08	2.7e-08	4	45	.]	738	779	..	737	779	..	0.97
+//
