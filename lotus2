@@ -567,7 +567,7 @@ my $status = 0;
 #die $sdmcmd."\n";
 if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 	my $mrgSentence = ""; $mrgSentence = "and merging pairs of " if ($mergeOptions ne "");
-    printL (frame("Extending $mrgSentence${OTU_prefix} Seeds"), 0);
+    printL (frame("Extending ${mrgSentence}${OTU_prefix} Seeds"), 0);
     $status = systemL($sdmcmd);
 }
 elsif ($onlyTaxRedo) { printL "Skipping Seed extension step\n", 0; }
@@ -950,9 +950,12 @@ sub sdmStep1{
 		#final report
 		$readSdmLog =~ m/(Reads processed:.*)/;
 		my $shrtRpt = $1;
-		$readSdmLog =~ m/(Rejected:.*)/;
+		$readSdmLog =~ m/(Accepted \(High qual\):.*)/;
 		$shrtRpt .= "\n".$1;
-		$readSdmLog =~ m/(Accepted \(Mid\+High qual\):.*)/;
+		$readSdmLog =~ m/(Accepted \(Mid qual\):.*)/;
+		my $midSent = $1;
+		$shrtRpt .= "\n".$midSent unless ($midSent =~ m/Accepted \(Mid qual\): 0.*/);;
+		$readSdmLog =~ m/(Rejected:.*)/;
 		$shrtRpt .= "\n".$1;
 		#die "$readSdmDereLog\n";
 		if (defined $readSdmDereLog && $readSdmDereLog ne ""){
