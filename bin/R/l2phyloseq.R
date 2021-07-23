@@ -40,19 +40,24 @@ if(!(file.exists(path_TAX))) {
 
 # Test if phylogenetic tree is produced:
 # If the phylogenetic tree exists, require the "ape" package and read the tree:
-tree=NULL
-if((file.exists(path_TREE))) {
-	tree=read.tree(path_TREE)
-}
 
 
-cat("\nPhyloseq object is being created...\n");
+cat("\nCreating Phyloseq object ...\n");
   
   
 # Read the OTU or ASV table:
 #otu=as.matrix(read.table(path_TABLE,row.names=1,header=TRUE,sep="\t"))
 
 otu <- read.delim(path_TABLE,row.names = 1,head=TRUE,sep="\t",check.names=FALSE)
+
+tree=NULL
+if((file.exists(path_TREE))) {
+	tree=read.tree(path_TREE)
+	if (sum(!tree$tip.label %in% rownames(otu)) >0){
+		rmS=tree$tip.label[tree$tip.label %in% rownames(otu)]
+		tree = drop.tip(tree,names(rmS))
+	}
+}
 
 # Read the metadata:
 #sd=read.table(text = gsub(",", "\t", readLines(path_SD)))
@@ -102,14 +107,18 @@ tax1 <- tax_table(tax)
 
 
 # Create the phyloseq object
-if (length(args) == 3) {
-  physeq = phyloseq(otu1,tax1,sam1)}else if (length(args) == 4)
-      {physeq = phyloseq(otu1,tax1,sam1,tree)}
- 
-if(keepUnclass==0){
-physeq=subset_taxa(physeq, Domain != "?")}
+physeq=NULL
+if (is.null(tree)) {
+	physeq = phyloseq(otu1,tax1,sam1)
+} else {
+	physeq = phyloseq(otu1,tax1,sam1,tree)
+}
+
+if(keepUnclass==0 &&!is.null(physeq)){
+	physeq=subset_taxa(physeq, Domain != "?")
+}
 # Save the phyloseq object as an R object:
 save(physeq,file=paste0(strsplit(path_TABLE,"O")[[1]][1],"phyloseq.Rdata"))
 
 
-  cat("Phyloseq object is created: phyloseq.Rdata\n")
+cat("Phyloseq object is created: phyloseq.Rdata\n")
