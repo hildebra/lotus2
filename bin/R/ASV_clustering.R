@@ -15,18 +15,26 @@ path_TREE=args[6]
 # Test if taxonomy table is produced: 
 RDPhier=FALSE
 if(!(file.exists(path_TAX))) {
-  #stop(paste("Please run the taxonomic classification first:",path_TAX), call.=FALSE)
-  path_TAX = gsub("hiera_BLAST.txt","hiera_RDP.txt",path_TAX)
-  RDPhier=TRUE
-  if(!(file.exists(path_TAX))) { #still doesn't exist
-    cat("Could not find taxonomy file.. aborting l2phyloseq\n")
-    q("no")
-  }
+	  #stop(paste("Please run the taxonomic classification first:",path_TAX), call.=FALSE)
+	  path_TAX = gsub("hiera_BLAST.txt","hiera_RDP.txt",path_TAX)
+	  RDPhier=TRUE
+	  if(!(file.exists(path_TAX))) { #still doesn't exist
+		cat("Could not find taxonomy file.. aborting ASV_clustering.R\n")
+		q("no")
+	  }
 }
 
 
 otutable <- read.delim(path_TABLE) #rownames are ASV names
 hiera_BLAST <- read.delim(path_TAX) #First columns is "OTU" names
+
+
+#check if file is empty
+if (!file.exists(path_matchlist) || file.info(path_matchlist)$size == 0){
+	#no matches.. probably nothing to do..
+	cat("No sequence matches found, nothing to do for ASV_clustering.R\n")
+	q("no")
+}
 matchlist <- read.delim(path_matchlist, header=FALSE)
 colnames(matchlist)=c("OTUid","hit","match")
 
@@ -45,36 +53,48 @@ diag(corM)=0
 #Clustering criteria: ASVs having at least 10 reads in total, co-occurence (overlap) & co-abundance (0.70) & no dramatic diff btw counts of two ASVs (<2) & matching tax ("Family"):
 out_list=as.list(1:dim(tab)[1])
 for (line in 1:dim(tab)[1]){
-  
-  potential_ids=as.vector(matchlist[matchlist[,"OTUid"]==rownames(tab)[line],"hit"])
-  potential_parents=match(potential_ids,rownames(tab))
-  daughter_samples <- tab[line, ]
-  
-  # Only include ASVs showing >0.70 corr in abundances:
-  shouldbemerged=which(corM[line,]>0.70)
-  
-  
- for (i in potential_parents){
-    rel_cooccur=sum((daughter_samples[tab[i, ] > 0]) > 0)/sum(daughter_samples > 0)
-    relative_abund=suppressWarnings(min(tab[i, ][daughter_samples > 0]/daughter_samples[daughter_samples > 0]))
-    inv_relative_abund=suppressWarnings(min(daughter_samples[daughter_samples > 0]/tab[i, ][daughter_samples > 0]))
-    highest_rank=min((length(which(tax[line,1:7]!="?"))),(length(which(tax[i,1:7]!="?"))))
-    zero_line=as.numeric(which(tab[line,]==0))
-    zero_i=which(tab[i,]==0)
-    
-    if(rel_cooccur>=0.80
-       && sum(tab[line,])>10 
-       && length(intersect(zero_line,zero_i))/dim(tab)[2]>=0.80 #check if zero abundance happens in most of the same samples
-       && (relative_abund<2) && (inv_relative_abund<2)
-       &&  highest_rank>=5 #Match the tax at least at the Family level
-       &&  tax[which(tax[,"OTU"]==row.names(tab)[line]),highest_rank]==tax[which(tax[,"OTU"]==row.names(tab)[i]),highest_rank]
-       &&  length(shouldbemerged)!=0
-       &&  any(names(corM[line,shouldbemerged])%in%rownames(tab)[i]))#if the potential parent has >0.70 correlation
-    {out_list[[line]]=c(out_list[[line]],i) 
-    
-    }
-    else {next}
-  }}
+
+	potential_ids=as.vector(matchlist[matchlist[,"OTUid"]==rownames(tab)[line],"hit"])
+	potential_parents=match(potential_ids,rownames(tab))
+	daughter_samples <- tab[line, ]
+
+	# Only include ASVs showing >0.70 corr in abundances:
+	shouldbemerged=which(corM[line,]>0.70)
+
+
+	for (i in potential_parents){
+		# this co-occurrence did not take into account the samples of the second vector? [ "/ sum(..)"
+		#rel_cooccur=sum((daughter_samples[tab[i, ] > 0]) > 0)/sum(daughter_samples > 0)
+		rel_cooccur = sum(tab[line, ]>0 & tab[i, ]>0)   /  sum(tab[line, ] + tab[i, ]>0 )
+		
+		relcoabsence = sum(tab[line, ]==0 & tab[i, ]==0)   /  sum(tab[line, ] + tab[i, ]==0 )
+		
+		#suppressWarnings : prob makes this slower, you could just vote to ignore warnings?
+		relative_abund=suppressWarnings(min(tab[i, ][daughter_samples > 0]/daughter_samples[daughter_samples > 0]))
+		inv_relative_abund=suppressWarnings(min(daughter_samples[daughter_samples > 0]/tab[i, ][daughter_samples > 0]))
+		highest_rank=min((length(which(tax[line,1:7]!="?"))),(length(which(tax[i,1:7]!="?"))))
+		zero_line=as.numeric(which(tab[line,]==0))
+		zero_i=which(tab[i,]==0)
+
+
+		#preselection based on some arbitrary criteria
+		if(rel_cooccur>=0.80 #would change to 0.4
+		   && sum(tab[line,])>10  #needed??
+		   
+		   #this term could be too hard on actually abundant samples.. I inserted a value for this above: relcoabsence >= 0.8
+		   && relcoabsence >= 0.8
+		   #&& length(intersect(zero_line,zero_i))/dim(tab)[2]>=0.80 #check if zero abundance happens in most of the same samples
+		   && (relative_abund<2) && (inv_relative_abund<2)
+		   &&  highest_rank>=5 #Match the tax at least at the Family level
+		   &&  tax[which(tax[,"OTU"]==row.names(tab)[line]),highest_rank]==tax[which(tax[,"OTU"]==row.names(tab)[i]),highest_rank]
+		   &&  length(shouldbemerged)!=0
+		   &&  any(names(corM[line,shouldbemerged])%in%rownames(tab)[i]))#if the potential parent has >0.70 correlation
+		{
+			out_list[[line]]=c(out_list[[line]],i) 
+		}
+
+	}
+}
 names(out_list)=rownames(tab)[1:length(out_list)]
 
 
