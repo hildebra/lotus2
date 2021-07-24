@@ -159,7 +159,8 @@ my $sdm454Opt = "$RealBin/configs/sdm_454.txt";
 my $sdmMiseqCDHITOpt = "$RealBin/configs/sdm_miSeq_cdhit.txt";
 my $sdm454CDHITOpt = "$RealBin/configs/sdm_454_cdhit.txt";
 my $sdmHiseqOpt = "$RealBin/configs/sdm_hiSeq.txt";
-my $sdmPacBioOpt = "$RealBin/configs/sdm_PacBio.txt";
+my $sdmPacBioOpt = "$RealBin/configs/sdm_PacBio_LSSU.txt";
+my $sdmPacBioITSOpt = "$RealBin/configs/sdm_PacBio_ITS.txt";
 
 my $ClusterPipe_pre = "?"; #default is unknown..
 my $ClusterPipe     = 1; #use UPARSE (1) or otupipe(0) or SWARM (2) or cd-hit(3), dnaclust (4), micca (5), unoise (6), dada2(7)
@@ -1045,7 +1046,7 @@ sub runPhyloObj{
 		
 		#matchlist, otutable and hiera_blast
 		$cmd = "$Rscript $ASVclscript $OTUmFile $taxHiear $matchFile ;";
-		print "\n\n\n $cmd \n\n\n";
+		#print "\n\n\n $cmd \n\n\n";
 		if ((systemL $cmd)){
 			printL "Could not create phyloseq object\n","w";
 			return 0;
@@ -2815,7 +2816,10 @@ sub prepLtsOptions{
 	} elsif ( $platform eq "pacbio" ) {
 		$dereplicate_minsize_def = 0;
 		$ClusterPipe_pre = "CDHIT" if ($ClusterPipe_pre eq "?");
-		$sdmOpt = $sdmPacBioOpt if ($sdmOpt eq "");
+		if ($sdmOpt eq ""){
+			$sdmOpt = $sdmPacBioOpt ;
+			$sdmOpt = $sdmPacBioITSOpt if (substr( $ampliconType, 0, 3 ) eq "ITS" );
+		}
 	}
 	if ( $dereplicate_minsize !~ m/\D/ && $dereplicate_minsize == -1 ){
 		$dereplicate_minsize = $dereplicate_minsize_def ;
