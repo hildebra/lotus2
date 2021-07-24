@@ -66,6 +66,6 @@ AmpliconShortPE	F
 
 #options for difficulties during sequencing library construction
 #checks if pair1 and pair2 were switched (ignore if single read data)
-CheckForMixedPairs	F
+CheckForMixedPairs	T
 #checks if whole amplicon was reverse-transcribed sequenced (not switched, just reverse translated)
-CheckForReversedSeqs	F
+CheckForReversedSeqs	T

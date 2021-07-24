@@ -82,7 +82,7 @@ sub annotateFaProTax;
 sub systemW;
 
 #versioning
-my $selfID = "LotuS 2.10"; #release candidate
+my $selfID = "LotuS 2.11"; #release candidate
 
 #keep track of time
 my $start = time;
@@ -97,8 +97,9 @@ my $cmdCall = qx/ps -o args $$/;
 my $LCABin      = "";
 my $sdmBin      = "./sdm";
 my $usBin       = ""; #absolute path to usearch binary
-my $dada2Scr    = ""; #absolute path to dada2 pipeline script
-my $LULUscript  = ""; #script for LULU OTU matrix cleanup
+my $dada2Scr    = ""; #R script to dada2 pipeline 
+my $LULUscript  = ""; #R script for LULU OTU matrix cleanup
+my $ASVclscript = ""; #R script to postcluster ASVs/OTUs
 my $phyloLnk    = ""; #R helper script to create phyloSeq objects
 my $Rscript     = ""; #absolute path to Rscript -> also serves as check that Rscript exists on cluster..
 my $defRscriptOpt  = " --vanilla ";
@@ -240,6 +241,7 @@ my $id_OTU_noise =
 my $uthreads                = 1;
 my $dereplicate_minsize_def = 2; # Discard clusters < dereplicate_minsize in error correction round #Default: 2 for UPARSE, 4 for otupipe
 my $dereplicate_minsize = -1;
+my $ASVpostClust = 0;
 my $doXtalk             = -1;    #check for cross talk in OTU tables
 my $usearchVer          = 0; my $usearchsubV = 0;
 my $REFflag = 0;#reference based OTU clustering requested?
@@ -303,6 +305,7 @@ GetOptions(
     "ITSx|itsextraction=i"  => \$doITSx,
 	"VXtr=s"                => \$doVXTR,
 	"lulu=i"                => \$doLULU,
+	"asvPostClust=i"        => \$ASVpostClust,
     "itsx_partial=i"        => \$ITSpartial,
     "utax_thr=f"            => \$utaxConf,
     "LCA_frac=f"            => \$LCAfraction,
@@ -461,6 +464,7 @@ my $highLvlDir   = $outdir . "/higherLvl/";
 my $FunctOutDir = $outdir . "/derrivedFunctions/";
 my $RDP_hierFile = "$outdir/hiera_RDP.txt";
 my $SIM_hierFile = "$outdir/hiera_BLAST.txt";
+my $taxHiear = $RDP_hierFile;
 
 
 #my $currdir=`pwd`;
@@ -563,7 +567,7 @@ my $status = 0;
 #die $sdmcmd."\n";
 if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 	my $mrgSentence = ""; $mrgSentence = "and merging pairs of " if ($mergeOptions ne "");
-    printL (frame("Extending $mrgSentence${OTU_prefix} Seeds"), 0);
+    printL (frame("Extending ${mrgSentence}${OTU_prefix} Seeds"), 0);
     $status = systemL($sdmcmd);
 }
 elsif ($onlyTaxRedo) { printL "Skipping Seed extension step\n", 0; }
@@ -707,11 +711,13 @@ if ( $REFTAX || $RDPTAX ) {
             biomFmt( $OTUmatref2, $SIM_hierFile, "$outdir/OTU_psRef.biom", 1,
                 $taxRefHR );
         }
+		#note down that reftax was used
+		$taxHiear = $SIM_hierFile;
 
     } elsif ($RDPTAX) {
         printL(frame("Calculating Taxonomic Abundance Tables from RDP \nclassifier assignments, Confidence $RDPCONF "),0);
-        $taxRefHR = calcHighTax( $OTUmatref, $RDP_hierFile, $failsR, 0, "" );
-        biomFmt( $OTUmatref, $RDP_hierFile, "$outdir/OTU.biom", 0, {} );
+        $taxRefHR = calcHighTax( $OTUmatref, $RDP_hierFile, $failsR, 1, "" );
+        biomFmt( $OTUmatref, $RDP_hierFile, "$outdir/OTU.biom", 1, {} );
     }
 
 	#   TODO 
@@ -944,9 +950,12 @@ sub sdmStep1{
 		#final report
 		$readSdmLog =~ m/(Reads processed:.*)/;
 		my $shrtRpt = $1;
-		$readSdmLog =~ m/(Rejected:.*)/;
+		$readSdmLog =~ m/(Accepted \(High qual\):.*)/;
 		$shrtRpt .= "\n".$1;
-		$readSdmLog =~ m/(Accepted \(Mid\+High qual\):.*)/;
+		$readSdmLog =~ m/(Accepted \(Mid qual\):.*)/;
+		my $midSent = $1;
+		$shrtRpt .= "\n".$midSent unless ($midSent =~ m/Accepted \(Mid qual\): 0.*/);;
+		$readSdmLog =~ m/(Rejected:.*)/;
 		$shrtRpt .= "\n".$1;
 		#die "$readSdmDereLog\n";
 		if (defined $readSdmDereLog && $readSdmDereLog ne ""){
@@ -1016,12 +1025,33 @@ sub runPhyloObj{
 	return 0 if (!-f $phyloLnk || !-f $Rscript);
 	die "Incorrect phyloLnk script defined $phyloLnk" unless (-f $phyloLnk);
 	die "Incorrect R installation (can't find Rscript)" unless (-f $Rscript);
-	my $cmd = "$Rscript $defRscriptOpt $phyloLnk $OTUmFile $SIM_hierFile $cpMapFile $keepUnclassified $treeF;";
+	my $cmd = "$Rscript $defRscriptOpt $phyloLnk $OTUmFile $taxHiear $cpMapFile $keepUnclassified $treeF;";
 	#die "$cmd\n";
 	if ((systemL $cmd)){
 		printL "Could not create phyloseq object\n","w";
 		return 0;
 	}
+
+#additional post ASV clustering script
+	if ($ASVpostClust){
+		#first v/usearch
+		#search --usearch_global otus.fa --db otus.fa --self --id .99 --iddef 1 --userout match_list.txt -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits 10
+		my $xtr = "--strand plus";
+		if ($VSused){$xtr = "--iddef 1";}
+		my $matchFile = "$lotus_tempDir/ASVcl.hits";
+		my $idMin = 0.97;
+		my $cmd = "$VSBin --usearch_global $OTUfa --db $OTUfa --self --id $idMin $xtr --userout $matchFile -userfields query+target+id --maxaccepts 0 --query_cov .9 --maxhits 10;";
+		systemL $cmd,"vsearch for ASVcl",1;
+		
+		#matchlist, otutable and hiera_blast
+		$cmd = "$Rscript $ASVclscript $OTUmFile $taxHiear $matchFile ;";
+		print "\n\n\n $cmd \n\n\n";
+		if ((systemL $cmd)){
+			printL "Could not create phyloseq object\n","w";
+			return 0;
+		}
+	}
+	
 	return 1;
 }
 
@@ -2196,6 +2226,8 @@ sub readPaths_aligners($) {
 			$phyloLnk = truePath $1;
 		} elsif ( $line =~ m/^LULUR\s+(\S+)/ ) {
 			$LULUscript = truePath $1;
+		} elsif ( $line =~ m/^ASVcl\s+(\S+)/ ) {
+			$ASVclscript = truePath $1;
 		} elsif ( $line =~ m/^vsearch\s+(\S+)/ ) {
 			$VSBin = truePath($1);
 			$VSBinOri = $VSBin;  #deactivate default vsearch again.. prob with chimera finder.
@@ -4228,7 +4260,7 @@ sub readRDPtax($) {
 
         #$AvOTUs{$spl[0]} = 1;
         #push(@AvOTUs,$spl[0]);
-        my $nhier = "";    #$spl[$rankN]."\t";
+        my $nhier = "$spl[0]\t";    #$spl[$rankN]."\t";
         my $tcnt  = 0;     #1,+3
         for ( my $i = $rankN + 0 ; $i <= $rankN + 16 ; $i += 3 ) {
             if ( $taxLvls[$tcnt] eq $spl[ $i + 1 ] ) {
@@ -4241,14 +4273,14 @@ sub readRDPtax($) {
             else             { $nhier .= $spl[$i] . "\t"; }
             if ( $i > @spl ) { last; }
         }
-        $nhier .= "?\t" . $spl[0];
+        $nhier .= "?" ;
         push( @Hiera, $nhier );
     }
     close T;
 
     #write hier
     open H, ">", $RDP_hierFile;
-    print H join( "\t", @taxLvls ) . "\tspecies\tOTU\n";
+    print H "$OTU_prefix\t" . join( "\t", @taxLvls ) . "\tspecies\n";
     foreach (@Hiera) { print H $_ . "\n"; }
     close H;
 
