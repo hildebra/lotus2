@@ -57,7 +57,7 @@ RejectSeqWithoutRevPrim	F
 #*RejectSeqWithoutRevPrim	F
 #sets if sequences without a forward (LinkerPrimerSequence) primer will be accepted (T=reject ; F=accept all); default=F
 RejectSeqWithoutFwdPrim	T
-#*RejectSeqWithoutFwdPrim	T
+#*RejectSeqWithoutFwdPrim	F
 
 #options for difficulties during sequencing library construction
 #checks if pair1 and pair2 were switched (ignore if single read data)
