@@ -82,7 +82,7 @@ sub annotateFaProTax;
 sub systemW;
 
 #versioning
-my $selfID = "LotuS 2.11"; #release candidate
+my $selfID = "LotuS 2.12"; #release candidate
 
 #keep track of time
 my $start = time;
@@ -814,17 +814,19 @@ sub sdmStep1{
 		$filterOutAdd = "$lotus_tempDir/demulti.1.add.fna,$lotus_tempDir/demulti.2.add.fna";
 	}
 	my $filOutCmd = "-o_fna ";
+	my $filOutCmdAdd = "-o_fna2 ";
 	if ($UPARSEfilter) {
 		$filterOut    = "$lotus_tempDir/demulti.fastq";
 		$filOutCmd    = "-o_fastq ";
 		$filterOutAdd = "$lotus_tempDir/demulti.add.fastq";
+		$filOutCmdAdd = "-o_fastq2 ";
 		if ( $numInput > 1 ) {
 			$filterOut    = "$lotus_tempDir/demulti.1.fastq,$lotus_tempDir/demulti.2.fastq";
 			$filterOutAdd = "$lotus_tempDir/demulti.1.add.fastq,$lotus_tempDir/demulti.2.add.fastq";
 		}
 	}
 	my $qualOffset = "-o_qual_offset 33";       #33 for UPARSE
-	my $sdmOut     = $filOutCmd . $filterOut;
+	my $sdmOut     = $filOutCmd . $filterOut . " " . $filOutCmdAdd . $filterOutAdd . " ";
 	my $sdmIn      = "";
 	my $paired     = $numInput;
 
@@ -5786,8 +5788,16 @@ sub dnaClust2UC($ $) {
 
 sub parseLastVUsearch($){
 	my ($tarF) = @_;
-	my $d2rep = `tail $progOutPut | grep 'Matching unique query sequence' `;
-	$d2rep =~ s/Matching unique query sequence://; chomp $d2rep;
+	
+	#only works for vsearch
+	my $d2rep="";
+	if ($useVsearch == 1){
+		$d2rep = `tail $progOutPut | grep 'Matching unique query sequence' `;
+		$d2rep =~ s/Matching unique query sequence://; chomp $d2rep;
+	} else {
+		$d2rep = `tail $progOutPut | grep '\% Searching ' `;
+		$d2rep =~ s/.*\% Searching .*,//; chomp $d2rep;
+	}
 	return $d2rep;
 }
 
@@ -5804,7 +5814,7 @@ sub convertFastqs2fna($ $){
 	open Ofas,">$ofna" or die "Can't open $ofna\n";
 	foreach my $file1 (@infqs){#double loop to allow for wildcards..
 		my @infqs2 = glob $file1;
-		print "rewrite fq 2 fna : $infqs2[0]\n";
+		#print "rewrite fq 2 fna : $infqs2[0]\n";
 		foreach my $inFQ (@infqs2){
 			open Infq, "<", $inFQ;
 			$lnCnt = 0;
@@ -6111,7 +6121,8 @@ sub buildOTUs($) {
         }
         foreach (@allUCs) { unlink; }
     }
-    my @lotsFiles = ($filterOutAdd);
+	$filterOutAdd =~ m/^([^\,]+),?/;
+    my @lotsFiles = ($1,$1.".singl");
     my $dcnt      = 1;
     while ( -f $filterOutAdd . "." . $dcnt && $dcnt < 100000 ) {
         push( @lotsFiles, $filterOutAdd . "." . $dcnt );
@@ -6120,7 +6131,13 @@ sub buildOTUs($) {
 
 	#----------------------------------------------------
     #backmap mid qual reads
+	
+	if (-f $lotsFiles[0] || -f $lotsFiles[1] || -f $derepl . ".rest"){
+		printL(frame("Backmapping additional reads to ${OTU_prefix}'s",1,2),0);
+	}
+	
     foreach my $subF (@lotsFiles) {
+		#print "$subF\n";
         if ( -f $subF && !-z $subF ) {
             #make sure there's at least 2 lines
             open T, "<", $subF;
@@ -6134,8 +6151,9 @@ sub buildOTUs($) {
                 if ( -s $OTUfastaTmp ) {
                     if ( systemL($cmd) != 0 ) { printL( "Failed: $cmd\n", 1 ); }
                 } else { systemL("touch $tmpUC"); }
+				
+				
 				$backMapRep .= "Backmapping  mid qual reads: ".parseLastVUsearch($progOutPut)."\n"; 
-
                 systemL( "cat $tmpUC >> " . $UCguide[0] . ".ADD" );
                 unlink $tmpUC;
 
@@ -6149,9 +6167,10 @@ sub buildOTUs($) {
             }
         }
     }
+	#die;
 
     #add in unique abundant reads
-    if ( -s $derepl . ".rest" && !$VSused) {
+    if ( -s $derepl . ".rest" ) {
 #push(@lotsFiles,$derepl.".rest"); #these are sdm "uniques" that were too small to map
 #my @lotsFiles2 = ($derepl,$derepl.".rest");
         my $restUC = "$lotus_tempDir/rests.uc";
@@ -6159,9 +6178,8 @@ sub buildOTUs($) {
 		$cmd .= "$sdmBin -i $derepl.rest -o_fna $derepl.rest1;rm -f $derepl.rest;mv $derepl.rest1 $derepl.rest;" if ($VSused);
         $cmd .=  "$VSBin -usearch_global $derepl.rest -db $OTUfastaTmp -uc $restUC $userachDffOpt $vsearchSpcfcOpt;";#-threads  $BlastCores";
         if ( -s $OTUfastaTmp ) {
-			printL(frame("Backmapping low qual reads to ${OTU_prefix}'s",1,2),0);
 			if ( systemL($cmd) != 0 ) { exit(1); }
-			printL(frame("Finished backmapping",1,3),0);
+			#printL(frame("Finished backmapping",1,3),0);
         }
         else { systemL("touch $restUC;"); }
         systemL( "cat $restUC >> " . $UCguide[0] . ".REST" );
@@ -6176,7 +6194,7 @@ sub buildOTUs($) {
         }
     }
 	
-	printL frame($backMapRep),0;
+	printL( frame($backMapRep,1,3),0) if ($backMapRep ne "");
 
 #if (systemL("cat ".join(" ",@allUCs)." >> ".$UCguide[0]) != 0){printL "Merge of UC subfiles failed.\n",1;};
 #foreach (@allUCs){unlink;}
