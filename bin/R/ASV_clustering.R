@@ -69,7 +69,7 @@ for (line in 1:dim(tab)[1]){
 		
 		relcoabsence = sum(tab[line, ]==0 & tab[i, ]==0)   /  sum(tab[line, ] + tab[i, ]==0 )
 		
-		#suppressWarnings : prob makes this slower, you could just vote to ignore warnings?
+		#suppressWarnings : prob makes this slower, you could just vote to ignore warnings?  ##Do you mean to suppress them globally?
 		relative_abund=suppressWarnings(min(tab[i, ][daughter_samples > 0]/daughter_samples[daughter_samples > 0]))
 		inv_relative_abund=suppressWarnings(min(daughter_samples[daughter_samples > 0]/tab[i, ][daughter_samples > 0]))
 		highest_rank=min((length(which(tax[line,1:7]!="?"))),(length(which(tax[i,1:7]!="?"))))
@@ -78,8 +78,8 @@ for (line in 1:dim(tab)[1]){
 
 
 		#preselection based on some arbitrary criteria
-		if(rel_cooccur>=0.80 #would change to 0.4
-		   && sum(tab[line,])>10  #needed??
+		if(rel_cooccur>=0.40
+		   && sum(tab[line,])>10  #needed?? if there are ASVs occurring in very low abundance, they are usually identified as being copies; however they are probably just noise.
 		   
 		   #this term could be too hard on actually abundant samples.. I inserted a value for this above: relcoabsence >= 0.8
 		   && relcoabsence >= 0.8
