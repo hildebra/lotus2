@@ -1645,6 +1645,7 @@ sub clean_otu_mat($ $ $ $) {
 	#get headers of OTUs
 	my $hr  = readFasta($OTUfa);
 	my %hds = %{$hr};
+	$hr = {};
 	my $cnt = -1;
 
 	#my @kkk =  keys %hds; die scalar @kkk ."\n";
@@ -1660,7 +1661,6 @@ sub clean_otu_mat($ $ $ $) {
 	my %OTUmat;
 	
 	my $Lreport = "";
-	
 
 	#die "$OTUmFile\n$OTUfa\n";
 	open I, "<$OTUmFile";
@@ -1775,6 +1775,10 @@ sub clean_otu_mat($ $ $ $) {
 		#print "$nonChim - $emptyOTUcnt\n";
 		printL "Empty ${OTU_prefix} matrix.. aborting LotuS run!\n", 87;
 	}
+	#explicit cleanup
+	%hds = undef;
+	%OTUmat = undef; %OTUcnt = undef; %ORDL2 = undef; %ORDL = undef;
+
 
 	printL frame($Lreport),0;
 	return \%ORDL2;
@@ -3152,7 +3156,7 @@ my %clustering_options = (
   '-chim_skew <num>', 'Skew in chimeric fragment abundance (uchime option). (Default: 2)',
   '-count_chimeras<T/F>', 'Add chimeras to count up OTUs/ASVs. (Default: F)',
   '-deactivateChimeraCheck <0|1|2|3>', '(0) do OTU chimera checks. (1) no chimera check at all. (2) Deactivate deNovo chimera check. (3) Deactivate ref based chimera check. (Default: 0)',
-  '-derepMin<num>','Minimum size of dereplicated clustered, one form of noise removal. Can also have a more complex syntax, see examples (http://lotus2.earlham.ac.uk/images/Derep_options.pdf). (Default: 1)',
+  '-derepMin<num>','Minimum size of dereplicated clustered, one form of noise removal. Can also have a more complex syntax, see examples. (Default: 1)',
   '-readOverlap <num>', 'The maximum number of basepairs that two reads are overlapping. (Default: 300)',
   '-endRem <string>', 'DNA sequence, usually reverse primer or reverse adaptor; all sequence beyond this point will be removed from OTUs. This is redundant with the "ReversePrimer" option from the mapping file, but gives more control (e.g. there is a problem with adaptors in the OTU output). (Default: "")',
   '-xtalk <0|1>', '(1) check for crosstalk. Note that this requires in most cases 64bit usearch. (Default: 0)'
