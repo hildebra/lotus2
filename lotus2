@@ -1776,8 +1776,8 @@ sub clean_otu_mat($ $ $ $) {
 		printL "Empty ${OTU_prefix} matrix.. aborting LotuS run!\n", 87;
 	}
 	#explicit cleanup
-	%hds = undef;
-	%OTUmat = undef; %OTUcnt = undef; %ORDL2 = undef; %ORDL = undef;
+	undef(%hds);
+	undef(%OTUmat); undef(%OTUcnt); undef(%ORDL2); undef(%ORDL );
 
 
 	printL frame($Lreport),0;
