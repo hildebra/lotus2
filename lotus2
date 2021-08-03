@@ -1114,7 +1114,7 @@ sub vfxtractor{
 	my $region = $defReg;
 	$region = $doVXTR unless ($doVXTR eq "1");
 
-	my $cmd = "$vxtrBin -o $outBFile -r $region -c $outCFile -hmmdir $hmmsVX/".substr( $ampliconType, 0, 3 )."/bacteria/ -nc $uthreads -hmmsc $hmmsrchBin $otusFA;"; #-nc $uthreads
+	my $cmd = "$vxtrBin -o $outBFile -r $region -c $outCFile -hmmdir $hmmsVX/".substr( $ampliconType, 0, 3 )."/bacteria/ -nc $uthreads  -hmmsc $hmmsrchBin $otusFA;"; #-nc $uthreads
 	$cmd .= "cp $outCFile $logDir/VXtractor.summary.txt\n";
 	if ( systemL($cmd) != 0 ) { printL( "Failed command:\n$cmd\n", 1 ); }
 
@@ -1201,11 +1201,11 @@ sub ITSxOTUs {
 	}
 	#also check correct hmmsearch version
 	$preChk = `$hmmsrchBin -h`;
-	if ($preChk !~ m/HMMER 3.1b1 \(May 2013\);/){
-		printL "Wrong hmmscan version, expected HMMER 3.1b1 (May 2013);",82;
+	if ($preChk !~ m/HMMER 3.3.2 \(Nov 2020\);/){
+		printL "Wrong hmmscan version, expected HMMER 3.3.2 (Nov 2020)",82;
 	}
 	
-	my $cmd = "perl $itsxBin -i $otusFA -o $outBFile --cpu $uthreads --multi_thread T --heuristics T -t $itsxOrg --silent T --fasta T --save_regions $ITSxReg --partial $ITSpartial --hmmBin $hmmsrchBin --preserve T;";
+	my $cmd = "perl $itsxBin -i $otusFA -o $outBFile --cpu $uthreads --multi_thread T --heuristics T -t $itsxOrg --silent T --fasta T --nhmmer F --save_regions $ITSxReg --partial $ITSpartial --hmmBin $hmmsrchBin --preserve T;";
 	$cmd .= "cp $outBFile.summary.txt $logDir/ITSx.summary.txt\n";
 	if ( systemL($cmd) != 0 ) { printL( "Failed command:\n$cmd\n", 1 ); }
 
@@ -1280,7 +1280,7 @@ sub ITSxOTUs {
 	#close O;
 	#die "rm -f $outBFile*;";
 	systemL "rm -f $outBFile*;";
-	$citations .= "ITSx removal of non ITS OTUs: ITSx version $ITSxVer: Johan Bengtsson-Palm et al. (2013) Improved software detection and extraction of ITS1 and ITS2 from ribosomal ITS sequences of fungi and other eukaryotes for use in environmental sequencing. Methods in Ecology and Evolution, 4: 914-919, 2013\n";
+	$citations .= "ITSx removal of non ITS OTUs: ITSx v$ITSxVer: Johan Bengtsson-Palm et al. (2013) Improved software detection and extraction of ITS1 and ITS2 from ribosomal ITS sequences of fungi and other eukaryotes for use in environmental sequencing. Methods in Ecology and Evolution, 4: 914-919, 2013\n";
 	return \%ret;
 	#die $cmd."\n";
 }
@@ -1496,13 +1496,13 @@ sub chimera_denovo($){
 		printL( "uchime de novo failed// aborting\n", 1 );
 	}
 	if ( $usearchVer >= 9 ) {
-		$citations .= "uchime2 chimera detection deNovo: Edgar, R.C. (2016), UCHIME2: Improved chimera detection for amplicon sequences, http://dx.doi.org/10.1101/074252..\n";
+		$citations .= "uchime2 v$usearchVer chimera detection deNovo: Edgar, R.C. (2016), UCHIME2: Improved chimera detection for amplicon sequences, http://dx.doi.org/10.1101/074252..\n";
 	}
 	elsif ($VSused) {
-		$citations .= "Vsearch chimera detection deNovo: [VSEARCH paper]\n";
+		$citations .= "Vsearch chimera detection deNovo: 1. Rognes T, Flouri T, Nichols B, Quince C, Mahé F. 2016. VSEARCH: A versatile open source tool for metagenomics. PeerJ 2016:1–22.\n";
 	}
 	else {
-		$citations .= "uchime chimera detection deNovo: Edgar RC, Haas BJ, Clemente JC, Quince C, Knight R. 2011. UCHIME improves sensitivity and speed of chimera detection. Bioinformatics 27: 2194–200.\n";
+		$citations .= "uchime v$usearchVer chimera detection deNovo: Edgar RC, Haas BJ, Clemente JC, Quince C, Knight R. 2011. UCHIME improves sensitivity and speed of chimera detection. Bioinformatics 27: 2194–200.\n";
 	}
 	
 	
@@ -1536,13 +1536,13 @@ sub chimera_ref_rem($) {
 	#die $cmd."\n";
 	if ( systemL($cmd) != 0 ) { printL( "Failed command:\n$cmd\n", 1 ); }
 	if ( $usearchVer >= 9 ) {
-		$citations .= "uchime2 chimera detection deNovo: Edgar, R.C. (2016), UCHIME2: Improved chimera detection for amplicon sequences, http://dx.doi.org/10.1101/074252..\n";
+		$citations .= "uchime2 v$usearchVer chimera detection deNovo: Edgar, R.C. (2016), UCHIME2: Improved chimera detection for amplicon sequences, http://dx.doi.org/10.1101/074252..\n";
 	}
 	elsif ( $VSused == 0 ) {
-		$citations .= "uchime reference based chimera detection: Edgar RC, Haas BJ, Clemente JC, Quince C, Knight R. 2011. UCHIME improves sensitivity and speed of chimera detection. Bioinformatics 27: 2194–200.\n";
+		$citations .= "uchime v$usearchVer reference based chimera detection: Edgar RC, Haas BJ, Clemente JC, Quince C, Knight R. 2011. UCHIME improves sensitivity and speed of chimera detection. Bioinformatics 27: 2194–200.\n";
 	}
 	else {
-		$citations .= "Vsearch reference based chimera detection: \n";
+		$citations .= "Vsearch reference based chimera detection: Rognes T, Flouri T, Nichols B, Quince C, Mahé F. 2016. VSEARCH: A versatile open source tool for metagenomics. PeerJ 2016:1–22.\n";
 	}
 	systemL "rm -f $otusFA; mv $outfile $otusFA";
 	#print $outfile."\n";
@@ -1896,7 +1896,7 @@ sub mergeRds{
 				if ($VSused == 1){
 					$citations .= "VSEARCH read pair merging: Rognes T, Flouri T, Nichols B, Quince C, Mahé F. (2016) VSEARCH: a versatile open source tool for metagenomics. PeerJ 4:e2584. doi: 10.7717/peerj.2584\n";
 				}else{
-					$citations .= "USEARCH read pair merging: R.C. Edgar (2010), Search and clustering orders of magnitude faster than BLAST, Bioinformatics 26(19) 2460-2461\n";
+					$citations .= "USEARCH v$usearchVer  read pair merging: R.C. Edgar (2010), Search and clustering orders of magnitude faster than BLAST, Bioinformatics 26(19) 2460-2461\n";
 				}
 				#die "$mergCmd\n"; #find out what the unmerged reads are..
 			} elsif ( -f $flashBin ) {
@@ -2549,10 +2549,8 @@ sub readPaths {    #read tax databases and setup correct usage
                 }
                 push @refDBname, "UNITE";
                 $subrdbw = "";
-                $citations .=
-"UNITE ITS chimera DB - Nilsson et al. 2015. A comprehensive, automatically updated fungal ITS sequence dataset for reference-based chimera control in environmental sequencing efforts. Microbes and Environments. \n";
-                $citations .=
-"UNITE ITS taxonomical refDB - Koljalg, Urmas, et al. Towards a unified paradigm for sequence-based identification of fungi. Molecular Ecology 22.21 (2013): 5271-5277.\n";
+                $citations .= "UNITE ITS chimera DB - Nilsson et al. 2015. A comprehensive, automatically updated fungal ITS sequence dataset for reference-based chimera control in environmental sequencing efforts. Microbes and Environments. \n";
+                $citations .= "UNITE ITS taxonomical refDB - Koljalg, Urmas, et al. Towards a unified paradigm for sequence-based identification of fungi. Molecular Ecology 22.21 (2013): 5271-5277.\n";
             }
             if ( $subrdbw =~ m/^HITDB$/ ) {
                 push @TAX_REFDB, $TAX_REFDB_16S_HITdb;
@@ -2581,8 +2579,7 @@ sub readPaths {    #read tax databases and setup correct usage
                 push @refDBname, "greengenes";
                 push @TAX_REFDB, $TAX_REFDB_GG;
                 push @TAX_RANKS, $GGinfile;
-                $citations .=
-"greengenes 16S database - McDonald D, Price MN, Goodrich J, Nawrocki EP, DeSantis TZ, Probst A, Andersen GL, Knight R, Hugenholtz P. 2012. An improved Greengenes taxonomy with explicit ranks for ecological and evolutionary analyses of bacteria and archaea. ISME J 6: 610–8.\n";
+                $citations .= "greengenes 16S database - McDonald D, Price MN, Goodrich J, Nawrocki EP, DeSantis TZ, Probst A, Andersen GL, Knight R, Hugenholtz P. 2012. An improved Greengenes taxonomy with explicit ranks for ecological and evolutionary analyses of bacteria and archaea. ISME J 6: 610–8.\n";
             }
 
             if ( $subrdbw =~ m/^BEETAX$/ ) {
@@ -2640,7 +2637,7 @@ sub readPaths {    #read tax databases and setup correct usage
         printL ("Could not find vsearch binaries at\n$VSBin\n, switching to usearch binaries instead\n","w") if ( !-f $VSBin );
     }
     else {
-        $citations .= "VSEARCH 1.13 (chimera de novo / ref; ${OTU_prefix} alignments): Rognes T (2015) https://github.com/torognes/vsearch\n";
+        $citations .= "VSEARCH (chimera de novo / ref; ${OTU_prefix} alignments): Rognes T, Flouri T, Nichols B, Quince C, Mahé F. 2016. VSEARCH: A versatile open source tool for metagenomics. PeerJ 2016:1–22.\n";
     }
     if ( !-f $mjar && !-f $rdpjar && $doRDPing > 0 ) {
         printL "Could not find rdp jar at\n\"$mjar\"\nor\n\"$rdpjar\"\n.Aborting..\n", 3;
@@ -4901,8 +4898,7 @@ sub doDBblasting($ $ $) {
           ;    #-strand plus both minus
         if ( !-s $query ) { $cmd = "touch $taxblastf;"; }
         else {
-            $citations .=
-"Blast taxonomic similarity search: Altschul SF, Gish W, Miller W, Myers EW, Lipman DJ. 1990. Basic local alignment search tool. J Mol Biol 215: 403–10.\n";
+            $citations .= "Blast taxonomic similarity search: Altschul SF, Gish W, Miller W, Myers EW, Lipman DJ. 1990. Basic local alignment search tool. J Mol Biol 215: 403–10.\n";
         }
         $simMethod = "BLAST";
     
@@ -4926,7 +4922,7 @@ sub doDBblasting($ $ $) {
 		if ($doBlasting == 5){
 			$cmd = "$usBin "; 
 			$simMethod = "USEARCH";
-			$citations .= "USEARCH taxonomic database search: \n" unless ( $citations =~ m/USEARCH taxonomic database search/ );
+			$citations .= "USEARCH v$usearchVer taxonomic database search: Edgar RC. 2010. Search and clustering orders of magnitude faster than BLAST. Bioinforma 26:2460–2461.\n" unless ( $citations =~ m/USEARCH taxonomic database search/ );
 		}
 		$cmd .= "--usearch_global $query --db $udbDB  --id 0.75 --query_cov 0.5 -userfields $outCols -userout $taxblastf --maxaccepts 100 --maxrejects 100 -strand both --threads $BlastCores;";
 		#--blast6out $taxblastf
@@ -5952,7 +5948,7 @@ sub buildOTUs($) {
 		
 
 		$cmd = "$usBin -cluster_otus $derepl -otus $OTUfastaTmp $idLabel $id_OTUup -log $logDir/UPARSE.log $xtraOptions;";    # -threads $uthreads"; # -uc ".$UCguide[2]."
-		$citations .= "UPARSE ${OTU_prefix} clustering - Edgar RC. 2013. UPARSE: highly accurate OTU sequences from microbial amplicon reads. Nat Methods.\n";
+		$citations .= "UPARSE v$usearchVer ${OTU_prefix} clustering - Edgar RC. 2013. UPARSE: highly accurate OTU sequences from microbial amplicon reads. Nat Methods.\n";
 		#die $cmd."\n";
 	}
 	elsif ( $ClusterPipe == 7 ) { #dada2
@@ -5974,7 +5970,7 @@ sub buildOTUs($) {
 		#printL("\n =========================================================================\n UNOISE core routine\n Cluster at ". 100 * $id_OTU . "%\n=========================================================================\n",0);
 
 		$cmd = "$usBin -unoise3 $derepl -zotus $OTUfastaTmp -tabbedout $logDir/unoise3_longreport.txt -log $logDir/unoise3.log;";    # -threads $uthreads"; # -uc ".$UCguide[2]."
-		$citations .= "UNOISE ASV (zOTU) clustering - R.C. Edgar (2016), UNOISE2: improved error-correction for Illumina 16S and ITS amplicon sequencing, https://doi.org/10.1101/081257 \n";
+		$citations .= "UNOISE v$usearchVer ASV (zOTU) clustering - R.C. Edgar (2016), UNOISE2: improved error-correction for Illumina 16S and ITS amplicon sequencing, https://doi.org/10.1101/081257 \n";
 		#die $cmd."\n";
 	} elsif ( $ClusterPipe == 2 ) {
 
@@ -6272,8 +6268,7 @@ sub annotateFaProTax{
 	my ($hir,$FaPr) = @_;
 	return unless (defined($FaPr));
 	
-	 $citations .=
-	"FaProTax (functional abundances based on OTUs) - Louca, S., Parfrey, L.W., Doebeli, M. (2016) - Decoupling function and taxonomy in the global ocean microbiome. Science 353:1272-1277\n";
+	 $citations .= 	"FaProTax (functional abundances based on OTUs) - Louca, S., Parfrey, L.W., Doebeli, M. (2016) - Decoupling function and taxonomy in the global ocean microbiome. Science 353:1272-1277\n";
 	
 }
 

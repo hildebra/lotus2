@@ -32,6 +32,9 @@ bin/dnaclust_linux_release3/
 bin/vsearch-2.0.4
 bin/FastTr*
 bin/clustalo-1.2.0-Ubuntu-x86_64
+bin/bin
+bin/ITSx_1.1.4
+bin/vsearch-2.15.0-linux-x86_64
 maps
 *.zip
 LotuSlicense.txt

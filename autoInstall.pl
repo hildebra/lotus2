@@ -1048,12 +1048,12 @@ sub get_programs{
 	if ($ITSready){ #ITSx
 		#itsx
 		print "Downloading ITSX to detect valid ITS regions..\n";
-		my $tarUTN = "$bdir/ITSx_1.1.3.tar.gz";
-		getS2("http://lotus2.earlham.ac.uk/lotus/packs/ITSx_1.1.3.tar.gz",$tarUTN);
+		my $tarUTN = "$bdir/ITSx_1.1.4.tar.gz";
+		getS2("http://lotus2.earlham.ac.uk/lotus/packs/ITSx_1.1.4.tar.gz",$tarUTN);
 		system "tar -xzf $tarUTN -C $bdir;rm $tarUTN";
 		unlink($tarUTN);
-		@txt = addInfoLtS("itsx","$bdir/ITSx_1.1.3/./ITSx",\@txt,1);
-		@txt = addInfoLtS("hmmsearch","$bdir/ITSx_1.1.3/bin/hmmscan",\@txt,1);
+		@txt = addInfoLtS("itsx","$bdir/ITSx_1.1.4/./ITSx",\@txt,1);
+		@txt = addInfoLtS("hmmsearch","$bdir/ITSx_1.1.4/bin/hmmsearch",\@txt,1);
 
 	}
 
@@ -1168,6 +1168,7 @@ sub get_programs{
 
 
 	#V-Xtractor
+	
 	my $vxexe = "$bdir/vxtr/vxtractor.pl";
 	system "mkdir -p $bdir/vxtr/";
 	getS2("http://lotus2.earlham.ac.uk/lotus/packs/VXtractor/vxtractor.pl",$vxexe);
