@@ -241,7 +241,7 @@ my $id_OTU_noise =
   .99;   # Id threshold for error correction (noise removal) round #Default: .99
 my $uthreads                = 1;
 my $sdmThreads              = -1;
-my $dereplicate_minsize_def = 2; # Discard clusters < dereplicate_minsize in error correction round #Default: 2 for UPARSE, 4 for otupipe
+my $dereplicate_minsize_def = "8:1,4:2,3:3"; # Discard clusters < dereplicate_minsize in error correction round #Default: 2 for UPARSE, 4 for otupipe
 my $dereplicate_minsize = -1;
 my $ASVpostClust = 0;
 my $doXtalk             = -1;    #check for cross talk in OTU tables
@@ -414,7 +414,6 @@ open cmdLOG , ">$cmdLogFile" or die "Can't open cmd log $cmdLogFile\n";
 
 #just setup options to default pars, check consistency of options etc
 prepLtsOptions();
-
 
 
 #-----------------
@@ -2836,7 +2835,7 @@ sub prepLtsOptions{
 			$sdmOpt = $sdmPacBioITSOpt if (substr( $ampliconType, 0, 3 ) eq "ITS" );
 		}
 	}
-	if ( $dereplicate_minsize !~ m/\D/ && $dereplicate_minsize == -1 ){
+	if (  $dereplicate_minsize == "-1" ){
 		$dereplicate_minsize = $dereplicate_minsize_def ;
 	}
 	
