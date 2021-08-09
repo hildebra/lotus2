@@ -82,7 +82,7 @@ sub annotateFaProTax;
 sub systemW;
 
 #versioning
-my $selfID = "LotuS 2.12"; #release candidate
+my $selfID = "LotuS 2.13"; #release candidate
 
 #keep track of time
 my $start = time;
@@ -245,7 +245,7 @@ my $dereplicate_minsize_def = "8:1,4:2,3:3"; # Discard clusters < dereplicate_mi
 my $dereplicate_minsize = -1;
 my $ASVpostClust = 0;
 my $doXtalk             = -1;    #check for cross talk in OTU tables
-my $usearchVer          = 0; my $usearchsubV = 0;
+my $usearchVer          = 0; my $usearchsubV = 0; my $vsearchVer = 0;
 my $REFflag = 0;#reference based OTU clustering requested?
 
 #flash control
@@ -546,7 +546,6 @@ if ( $numInput == 2 ) {
     push( @preMergeSeedsFiles, "$lotus_tempDir/otu_seeds.2.fq" );
 	@mergeSeedsFilesSing = @preMergeSeedsFiles; 
 	$mergeSeedsFilesSing[0] =~ s/\.1\.fq/\.1\.singl\.fq/;$mergeSeedsFilesSing[1] =~ s/\.2\.fq/\.2\.singl\.fq/;
-
     $sdmOut2    = "-o_fastq " . $preMergeSeedsFiles[0] . "," . $preMergeSeedsFiles[1];
     $OTUrefSEED = "$lotus_tempDir/otu_seeds.1.fq.ref";
     #TODO : $sdmIn
@@ -554,22 +553,28 @@ if ( $numInput == 2 ) {
 my $upVer = "";
 $upVer = "-uparseVer $usearchVer " if ($ClusterPipe == 1 || ( $ClusterPipe == 7 && !$useBackmap4dada2 )); #use same format for .uc file in uparse and dada2 mode
 $upVer = "-uparseVer N11 "if ($ClusterPipe == 6);
+$upVer = "-uparseVer cdhit " if ($ClusterPipe == 3);
 #note that -mergedPairs $didMerge refers to old implementation with read merge done before sdm (not supported any longer, legacy option)
 my $mergeOptions = "-merge_pairs_seed 1 ";
 my $sdmcmd="";
+
+my $mainMapping = "-optimalRead2Cluster $ucFinalFile ";
+$mainMapping = "-optimalRead2Cluster $tmpOTU.clstr " if ($ClusterPipe == 3);
 
 #----------------  SEED extension -------------------
 #sdm based Seed extension of OTU clusters
 if ($sdmDerepDo) {
     $sdmIn = "-i_fastq $derepOutHQ";
     if ( $numInput == 2 ) { $sdmIn = "-i_fastq $derepOutHQ,$derepOutHQ2"; }
-    $sdmcmd ="$sdmBin $sdmIn $sdmOut2 $upVer -optimalRead2Cluster $ucFinalFile -paired $numInput -sample_sep $sep_smplID -derep_map $derepOutMap -options $sdmOpt $mergeOptions $qualOffset -mergedPairs $didMerge -log $logDir/SeedExtensionStats.txt  -OTU_fallback $tmpOTU -ucAdditionalCounts $ucFinalFile.ADD -ucAdditionalCounts1 $ucFinalFile.REST -otu_matrix $OTUmFile -count_chimeras $chimCnt $refClusSDM";
+    $sdmcmd ="$sdmBin $sdmIn $sdmOut2 $upVer $mainMapping -paired $numInput -sample_sep $sep_smplID -derep_map $derepOutMap -options $sdmOpt $mergeOptions $qualOffset -mergedPairs $didMerge -log $logDir/SeedExtensionStats.txt  -OTU_fallback $tmpOTU -ucAdditionalCounts $ucFinalFile.ADD -ucAdditionalCounts1 $ucFinalFile.REST -otu_matrix $OTUmFile -count_chimeras $chimCnt $refClusSDM";
 } else {
-    $sdmcmd = "$sdmBin $sdmIn $sdmOut2 $upVer -optimalRead2Cluster $ucFinalFile -paired $numInput -sample_sep $sep_smplID -map $cpMapFile -options $sdmOpt $qualOffset $mergeOptions -mergedPairs $didMerge -log $logDir/SeedExtensionStats.txt -OTU_fallback $tmpOTU -otu_matrix $OTUmFile -ucAdditionalCounts $ucFinalFile.ADD -ucAdditionalCounts1 $ucFinalFile.REST -count_chimeras $chimCnt $refClusSDM";
+    $sdmcmd = "$sdmBin $sdmIn $sdmOut2 $upVer $mainMapping -paired $numInput -sample_sep $sep_smplID -map $cpMapFile -options $sdmOpt $qualOffset $mergeOptions -mergedPairs $didMerge -log $logDir/SeedExtensionStats.txt -OTU_fallback $tmpOTU -otu_matrix $OTUmFile -ucAdditionalCounts $ucFinalFile.ADD -ucAdditionalCounts1 $ucFinalFile.REST -count_chimeras $chimCnt $refClusSDM";
 }
 my $status = 0;
 
-#die $sdmcmd."\n";
+#die $sdmcmd."\n"; 
+
+
 if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 	my $mrgSentence = ""; $mrgSentence = "and merging pairs of " if ($mergeOptions ne "");
     printL (frame("Extending ${mrgSentence}${OTU_prefix} Seeds"), 0);
@@ -1279,7 +1284,7 @@ sub ITSxOTUs {
 	#close O;
 	#die "rm -f $outBFile*;";
 	systemL "rm -f $outBFile*;";
-	$citations .= "ITSx removal of non ITS OTUs: ITSx v$ITSxVer: Johan Bengtsson-Palm et al. (2013) Improved software detection and extraction of ITS1 and ITS2 from ribosomal ITS sequences of fungi and other eukaryotes for use in environmental sequencing. Methods in Ecology and Evolution, 4: 914-919, 2013\n";
+	$citations .= "ITSx v$ITSxVer removal of non ITS OTUs: Johan Bengtsson-Palm et al. (2013) Improved software detection and extraction of ITS1 and ITS2 from ribosomal ITS sequences of fungi and other eukaryotes for use in environmental sequencing. Methods in Ecology and Evolution, 4: 914-919, 2013\n";
 	return \%ret;
 	#die $cmd."\n";
 }
@@ -1302,7 +1307,7 @@ sub contamination_rem($ $ $ ) {
 
 	foreach (my $i=0;$i<@refDBs;$i++){
 		my $refDB = $refDBs[$i];
-		my $nameRDB = $nameRDB1.$i;
+		my $nameRDB = "$nameRDB1.$i";
 
 		my $outContaminated = "$logDir/out.cont.$nameRDB.fna";
 		my $required        = 1;
@@ -1401,8 +1406,14 @@ sub contamination_rem($ $ $ ) {
 	}
 	#nothing found? don't bother writing file again..
 	if ($Lreport ne ""){
+		my $usvstr = `$mini2Bin --version`; $usvstr =~ m/(\d\.\d+)/;
+		my $miniVer = $1;
+
 		printL (frame( $Lreport), 0);
-		$citations .= "Offtarget removal: Bedarf, J.R., Beraza, N., (2021). Much ado about nothing? Off-target amplification can lead to false-positive bacterial brain microbiome detection in healthy and Parkinson's disease individuals. Microbiome 9, 75.\n";
+		unless ($citations =~ m/Offtarget removal/){
+			$citations .= "Offtarget removal (against $nameRDB1): Bedarf, J.R., Beraza, N., (2021). Much ado about nothing? Off-target amplification can lead to false-positive bacterial brain microbiome detection in healthy and Parkinson's disease individuals. Microbiome 9, 75.\n";
+			$citations .= "minimap2 v$miniVer used in offtarget aligments: Li H. 2018. Minimap2: pairwise alignment for nucleotide sequences. Bioinformatics 34:3094–3100.\n";
+		}
 	}
 	my @kh = keys %totHits;
 	#print @kh. "   @kh\n";
@@ -1496,11 +1507,9 @@ sub chimera_denovo($){
 	}
 	if ( $usearchVer >= 9 ) {
 		$citations .= "uchime2 v$usearchVer chimera detection deNovo: Edgar, R.C. (2016), UCHIME2: Improved chimera detection for amplicon sequences, http://dx.doi.org/10.1101/074252..\n";
-	}
-	elsif ($VSused) {
-		$citations .= "Vsearch chimera detection deNovo: 1. Rognes T, Flouri T, Nichols B, Quince C, Mahé F. 2016. VSEARCH: A versatile open source tool for metagenomics. PeerJ 2016:1–22.\n";
-	}
-	else {
+	} elsif ($VSused) {
+		$citations .= "Vsearch v$vsearchVer chimera detection deNovo: 1. Rognes T, Flouri T, Nichols B, Quince C, Mahé F. 2016. VSEARCH: A versatile open source tool for metagenomics. PeerJ 2016:1–22.\n";
+	} else {
 		$citations .= "uchime v$usearchVer chimera detection deNovo: Edgar RC, Haas BJ, Clemente JC, Quince C, Knight R. 2011. UCHIME improves sensitivity and speed of chimera detection. Bioinformatics 27: 2194–200.\n";
 	}
 	
@@ -1535,13 +1544,13 @@ sub chimera_ref_rem($) {
 	#die $cmd."\n";
 	if ( systemL($cmd) != 0 ) { printL( "Failed command:\n$cmd\n", 1 ); }
 	if ( $usearchVer >= 9 ) {
-		$citations .= "uchime2 v$usearchVer chimera detection deNovo: Edgar, R.C. (2016), UCHIME2: Improved chimera detection for amplicon sequences, http://dx.doi.org/10.1101/074252..\n";
+		$citations .= "uchime2 v$usearchVer reference based chimera detection: Edgar, R.C. (2016), UCHIME2: Improved chimera detection for amplicon sequences, http://dx.doi.org/10.1101/074252..\n";
 	}
 	elsif ( $VSused == 0 ) {
 		$citations .= "uchime v$usearchVer reference based chimera detection: Edgar RC, Haas BJ, Clemente JC, Quince C, Knight R. 2011. UCHIME improves sensitivity and speed of chimera detection. Bioinformatics 27: 2194–200.\n";
 	}
 	else {
-		$citations .= "Vsearch reference based chimera detection: Rognes T, Flouri T, Nichols B, Quince C, Mahé F. 2016. VSEARCH: A versatile open source tool for metagenomics. PeerJ 2016:1–22.\n";
+		$citations .= "Vsearch v$vsearchVer reference based chimera detection: Rognes T, Flouri T, Nichols B, Quince C, Mahé F. 2016. VSEARCH: A versatile open source tool for metagenomics. PeerJ 2016:1–22.\n";
 	}
 	systemL "rm -f $otusFA; mv $outfile $otusFA";
 	#print $outfile."\n";
@@ -1897,7 +1906,7 @@ sub mergeRds{
 			if (-f $VSBin){
 				$mergCmd = "$VSBin  -fastq_mergepairs $preMergeSeedsFiles[0]  -reverse  $preMergeSeedsFiles[1] --fastqout $mergeFile --fastqout_notmerged_fwd $single1 --fastqout_notmerged_rev $single2 --threads $BlastCores;";
 				if ($VSused == 1){
-					$citations .= "VSEARCH read pair merging: Rognes T, Flouri T, Nichols B, Quince C, Mahé F. (2016) VSEARCH: a versatile open source tool for metagenomics. PeerJ 4:e2584. doi: 10.7717/peerj.2584\n";
+					$citations .= "VSEARCH v$vsearchVer  read pair merging: Rognes T, Flouri T, Nichols B, Quince C, Mahé F. (2016) VSEARCH: a versatile open source tool for metagenomics. PeerJ 4:e2584. doi: 10.7717/peerj.2584\n";
 				}else{
 					$citations .= "USEARCH v$usearchVer  read pair merging: R.C. Edgar (2010), Search and clustering orders of magnitude faster than BLAST, Bioinformatics 26(19) 2460-2461\n";
 				}
@@ -2640,7 +2649,7 @@ sub readPaths {    #read tax databases and setup correct usage
         printL ("Could not find vsearch binaries at\n$VSBin\n, switching to usearch binaries instead\n","w") if ( !-f $VSBin );
     }
     else {
-        $citations .= "VSEARCH (chimera de novo / ref; ${OTU_prefix} alignments): Rognes T, Flouri T, Nichols B, Quince C, Mahé F. 2016. VSEARCH: A versatile open source tool for metagenomics. PeerJ 2016:1–22.\n";
+        $citations .= "VSEARCH v$vsearchVer (chimera de novo / ref; ${OTU_prefix} alignments): Rognes T, Flouri T, Nichols B, Quince C, Mahé F. 2016. VSEARCH: A versatile open source tool for metagenomics. PeerJ 2016:1–22.\n";
     }
     if ( !-f $mjar && !-f $rdpjar && $doRDPing > 0 ) {
         printL "Could not find rdp jar at\n\"$mjar\"\nor\n\"$rdpjar\"\n.Aborting..\n", 3;
@@ -2905,7 +2914,6 @@ sub prepLtsOptions{
 		$usearchVer = $1;$usearchsubV = $2;
 	}
 	
-
 	#if ($usearchVer == 9){printL "Usearch ver 9 currently not supported, please install ver 8.\n",39;}
 	if ( $usearchVer > 11 ) {
 		printL "Usearch ver $usearchVer is not supported.\n", 55;
@@ -2918,7 +2926,12 @@ sub prepLtsOptions{
 	if ($usearchVer == 0 && $VSused ){
 		$usearchVer = 11;
 	}
-
+	#vsearchversion:
+	if (defined $VSBin && -f $VSBin){
+		my $vstring = `$VSBin --version`;
+		$vstring =~ m/vsearch v([\d\.]+)/;
+		$vsearchVer = $1;
+	}
 	
 	if ($doLULU && $LULUscript eq "" || !-f $LULUscript){
 		printL "Requested LULU matrix corrections, can't find lulu R script at \"$LULUscript\"\n",24;
@@ -4919,7 +4932,7 @@ sub doDBblasting($ $ $) {
         }
        if ($doBlasting == 4){ 
 		$cmd = "$VSBinOri ";
-			$citations .= "VSEARCH taxonomic database search: Rognes T, Flouri T, Nichols B, Quince C, Mahé F. (2016) VSEARCH: a versatile open source tool for metagenomics. PeerJ 4:e2584. doi: 10.7717/peerj.2584\n" unless ( $citations =~ m/VSEARCH taxonomic database search/ );
+			$citations .= "VSEARCH v$vsearchVer taxonomic database search: Rognes T, Flouri T, Nichols B, Quince C, Mahé F. (2016) VSEARCH: a versatile open source tool for metagenomics. PeerJ 4:e2584. doi: 10.7717/peerj.2584\n" unless ( $citations =~ m/VSEARCH taxonomic database search/ );
 	   }
 		$simMethod = "VSEARCH";
 		if ($doBlasting == 5){
@@ -5992,11 +6005,12 @@ sub buildOTUs($) {
 	} elsif ( $ClusterPipe == 3 ) {
 		if ( !-e $cdhitBin ) {printL "No valid CD-Hit binary found at $cdhitBin\n", 88;}
 		$entrMessage = "CD-HIT ${OTU_prefix} clustering\n Cluster at ". 100 * $id_OTU ;
+		my $cdhitSpd = "-g 0"; #g 1 is usually too slow
 		#printL("\n =========================================================================\n CD-HIT ${OTU_prefix} clustering\n Cluster at ". 100 * $id_OTU . "%\n=========================================================================\n", 0 );
 		if ($REFflag) {  #$otuRefDB eq "ref_closed" || $otuRefDB eq "ref_open"){
 			printL "CD-HIT ref DB clustering not supported!\n", 55;
 			#die();
-			$cmd = "$cdhitBin-2d -T $uthreads -o $OTUfastaTmp.2 -c $id_OTU -M 0 -i2 $derepl -i $refDB4otus -n 9 -g 1;";#-aL 0.77 -aS 0.98
+			$cmd = "$cdhitBin-2d -T $uthreads -o $OTUfastaTmp.2 -c $id_OTU -M 0 -i2 $derepl -i $refDB4otus -n 9 $cdhitSpd;";#-aL 0.77 -aS 0.98
 			if ( $otuRefDB eq "ref_open" ) {
 				$cmd .= "$cdhitBin -T $uthreads -i $OTUfastaTmp.2 -c $id_OTU -M 0 -o $OTUfastaTmp.3 -n 9 -g 1 -aS 0.98;";#.3 are the denovo clusters
 				die $cmd . "\n";
@@ -6004,9 +6018,13 @@ sub buildOTUs($) {
 			}
 		}
 		else {           #de novo
-			$cmd = "$cdhitBin -T $uthreads -o $OTUfastaTmp -c $id_OTU -G 0 -M 0 -i $derepl -n 9 -g 0 -r 0 -aL 0.0 -aS 0.9;";          #-aL 0.77 -aS 0.98
+		#$cmd .= $cdhitBin."-est -i $inFNA -o $oFNA -n 9 -mask NX -G 1 -r 0 -aS $aS -aL $aL -d 0 -c $ID -g $gfac -T $numCor -M ".int(($totMem+30)*1024)."\n";
+			
+			$cmd = "$cdhitBin -T $uthreads -o $OTUfastaTmp -c $id_OTU -G 0 $cdhitSpd -M 0 -i $derepl -n 9 -d 0 -r 1 -aL 0.0 -aS 0.9 -p 1 -mask NX;";          #-aL 0.77 -aS 0.98
 		}
-		$citations .= "CD-HIT ${OTU_prefix} clustering - Fu L, Niu B, Zhu Z, Wu S, Li W. 2012. CD-HIT: Accelerated for clustering the next-generation sequencing data. Bioinformatics 28: 3150–3152.\n";
+		my $verchk = `$cdhitBin | grep version`;
+		$verchk =~ m/CD-HIT version ([\d\.]+ )/;
+		$citations .= "CD-HIT v$1 ${OTU_prefix} clustering: Fu L, Niu B, Zhu Z, Wu S, Li W. 2012. CD-HIT: Accelerated for clustering the next-generation sequencing data. Bioinformatics 28: 3150–3152.\n";
 	}elsif ( $ClusterPipe == 4 ) {    #dnaclust-ref
 		my $dnaClOpt = "";
 		if ($REFflag) {
@@ -6083,7 +6101,7 @@ sub buildOTUs($) {
         #my @lotsFiles = ($derepl); #these are dereplicated files
 		
         if (   ( $usearchVer < 8 && $ClusterPipe == 1 )
-            || $ClusterPipe == 2 || $ClusterPipe == 6  || $ClusterPipe == 3 #2=swarm, 3=cdhit, 6=unoise
+            || $ClusterPipe == 2 || $ClusterPipe == 6  #|| $ClusterPipe == 3 #2=swarm, 3=cdhit, 6=unoise
 			||( $ClusterPipe == 7 && $useBackmap4dada2) ) #dada2
 		{    #usearch8 has .up output instead
 		
@@ -6135,10 +6153,10 @@ sub buildOTUs($) {
 	$filterOutAdd =~ m/^([^\,]+),?/;
     my @lotsFiles = ($1,$1.".singl");
     my $dcnt      = 1;
-    while ( -f $filterOutAdd . "." . $dcnt && $dcnt < 100000 ) {
-        push( @lotsFiles, $filterOutAdd . "." . $dcnt );
-        $dcnt++;
-    }
+	while ( -f $filterOutAdd . "." . $dcnt && $dcnt < 100000 ) {
+		push( @lotsFiles, $filterOutAdd . "." . $dcnt );
+		$dcnt++;
+	}
 
 	#----------------------------------------------------
     #backmap mid qual reads
@@ -6149,33 +6167,33 @@ sub buildOTUs($) {
 	
     foreach my $subF (@lotsFiles) {
 		#print "$subF\n";
-        if ( -f $subF && !-z $subF ) {
-            #make sure there's at least 2 lines
-            open T, "<", $subF;
-            my $lcnt = 0;
-            while (<T>) { $lcnt++; last if ( $lcnt > 5 ); }
-            close T;
-            if ( $lcnt > 2 ) {    #file contains reads, so map
-                #printL frame("Searching with mid qual reads..\n"), 0;
-                my $tmpUC = "$lotus_tempDir/add.uc";
-                $cmd ="$VSBin -usearch_global $subF -db $OTUfastaTmp -uc ". $tmpUC. " $userachDffOpt $vsearchSpcfcOpt;"; #-threads  $BlastCores";
-                if ( -s $OTUfastaTmp ) {
-                    if ( systemL($cmd) != 0 ) { printL( "Failed: $cmd\n", 1 ); }
-                } else { systemL("touch $tmpUC"); }
+		if ( -f $subF && !-z $subF ) {
+			#make sure there's at least 2 lines
+			open T, "<", $subF;
+			my $lcnt = 0;
+			while (<T>) { $lcnt++; last if ( $lcnt > 5 ); }
+			close T;
+			if ( $lcnt > 2 ) {    #file contains reads, so map
+				#printL frame("Searching with mid qual reads..\n"), 0;
+				my $tmpUC = "$lotus_tempDir/add.uc";
+				$cmd ="$VSBin -usearch_global $subF -db $OTUfastaTmp -uc ". $tmpUC. " $userachDffOpt $vsearchSpcfcOpt;"; #-threads  $BlastCores";
+				if ( -s $OTUfastaTmp ) {
+					if ( systemL($cmd) != 0 ) { printL( "Failed: $cmd\n", 1 ); }
+				} else { systemL("touch $tmpUC"); }
 				
 				
 				$backMapRep .= "Backmapping  mid qual reads: ".parseLastVUsearch($progOutPut)."\n"; 
-                systemL( "cat $tmpUC >> " . $UCguide[0] . ".ADD" );
-                unlink $tmpUC;
+				systemL( "cat $tmpUC >> " . $UCguide[0] . ".ADD" );
+				unlink $tmpUC;
 
-                #any ref DB to map onto??
-                if ( ($REFflag) && -s "$OTUfastaTmp.ref" ) {
-                    $cmd = "$VSBin -usearch_global $subF -db $OTUfastaTmp.ref -uc ". $tmpUC . " $userachDffOpt $vsearchSpcfcOpt;";    #-threads  $BlastCores";
-                    if ( systemL($cmd) != 0 ) { printL( "Failed: $cmd\n", 1 ); }
-                    systemL( "cat $tmpUC >> " . $UCguide[0] . ".ADDREF" );
-                    unlink $tmpUC;
-                }
-            }
+				#any ref DB to map onto??
+				if ( ($REFflag) && -s "$OTUfastaTmp.ref" ) {
+					$cmd = "$VSBin -usearch_global $subF -db $OTUfastaTmp.ref -uc ". $tmpUC . " $userachDffOpt $vsearchSpcfcOpt;";    #-threads  $BlastCores";
+					if ( systemL($cmd) != 0 ) { printL( "Failed: $cmd\n", 1 ); }
+					systemL( "cat $tmpUC >> " . $UCguide[0] . ".ADDREF" );
+					unlink $tmpUC;
+				}
+			}
         }
     }
 	#die;
