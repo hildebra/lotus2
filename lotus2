@@ -6140,7 +6140,7 @@ sub buildOTUs($) {
 	}
 
 	my $backmapRest=0; my $backmapMids = 0;
-	$backmapMids = 1 if (-f "$derepl.rest");
+	$backmapMids = 1 if (-s "$derepl.rest");
 	$backmapRest = 1 if (-f $lotsFiles[0] || -f $lotsFiles[1] );
 	
 	
@@ -6261,7 +6261,7 @@ sub buildOTUs($) {
 	$cmd="";
 	#die;
     #add in unique low-abundant reads
-    if ( -f "$derepl.rest" ) {
+    if ( -s "$derepl.rest" ) {
 #push(@lotsFiles,$derepl.".rest"); #these are sdm "uniques" that were too small to map
 #my @lotsFiles2 = ($derepl,$derepl.".rest");
         my $restUC = "$lotus_tempDir/rests.uc";
