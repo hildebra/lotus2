@@ -71,7 +71,6 @@ sub mergeRds;
 sub clean_otu_mat;
 sub systemL;
 sub swarmClust;
-sub swarm4us_size;
 sub dnaClust2UC;
 sub chimera_ref_rem; sub chimera_denovo;
 sub checkLtsVer;
@@ -4212,6 +4211,28 @@ sub swarm4us_size($) {
     #	die $otuf."\n";
     systemL "rm -f $otuf;mv $otuf.ttmp $otuf;";
 }
+sub resortcdhit{
+	my ($inF) = @_;
+	#function that ensures that .clstr always starts with cluster (*) first
+	open ICLST,"<",$inF or printL("Can't open cdhit clstr file $inF\n",36);
+	open OCL,">","$inF.1" or printL("Can't open cdhit clstr out file $inF.1\n",36);
+	my $repr=""; my $hd=""; my $rest="";
+	while(my $line = <ICLST>){
+		#chomp $line;
+		if ($line =~ m/^>/){#rest & restart
+			print OCL "$hd$repr$rest" if ($hd ne "");
+			$hd=$line;$repr="";$rest="";
+			next;
+		}
+		if ($line =~ m/\*$/){
+			$repr = $line;
+		} else {
+			$rest .= $line;
+		}
+	}
+	close ICLST; close OCL;
+	systemL "rm $inF;mv $inF.1 $inF;";
+}
 
 sub replaceFastaHd($ $) {
 	my ( $href, $ifil ) = @_;
@@ -5986,7 +6007,7 @@ sub buildOTUs($) {
 		#"\n =========================================================================\n UPARSE core routine\n Cluster at ". 100 * $id_OTU. "%\n=========================================================================\n",0);
 		
 
-		$cmd = "$usBin -cluster_otus $derepl -otus $OTUfastaTmp $idLabel $id_OTUup -log $logDir/UPARSE.log $xtraOptions;";  
+		$cmd = "$usBin -cluster_otus $derepl -otus $OTUfastaTmp $idLabel $id_OTUup -minsize 1 -log $logDir/UPARSE.log $xtraOptions;";  
 		$citations .= "UPARSE v$usearchVer ${OTU_prefix} clustering - Edgar RC. 2013. UPARSE: highly accurate OTU sequences from microbial amplicon reads. Nat Methods.\n";
 		#die $cmd."\n";
 	}
@@ -6026,7 +6047,7 @@ sub buildOTUs($) {
 		$citations .= "swarm v2 ${OTU_prefix} clustering - Mahé F, Rognes T, Quince C, de Vargas C, Dunthorn M. 2015. Swarm v2: highly-scalable and high-resolution amplicon clustering. PeerJ. DOI: 10.7717/peerj.1420\n";
 	} elsif ($ClusterPipe == 8){ #vsearch
 		$entrMessage = "VSEARCH ${OTU_prefix} clustering\n Cluster at ". 100 * $id_OTU ;
-		$cmd = "$VSBin --cluster_size $derepl --id 0.97 --sizein --strand both --consout $OTUfastaTmp --sizeout --uc $finalClustMap;";
+		$cmd = "$VSBin --cluster_size $derepl --id 0.97 --sizein --minsize 1 --strand both --consout $OTUfastaTmp --sizeout --uc $finalClustMap;";
 		$citations .= "VSEARCH v$vsearchVer OTU clustering: Rognes T, Flouri T, Nichols B, Quince C, Mahé F. 2016. VSEARCH: A versatile open source tool for metagenomics. PeerJ 2016:1–22.\n";
 	} elsif ( $ClusterPipe == 3 ) {
 		if ( !-e $cdhitBin ) {printL "No valid CD-Hit binary found at $cdhitBin\n", 88;}
@@ -6051,6 +6072,7 @@ sub buildOTUs($) {
 		my $verchk = `$cdhitBin | grep version`;
 		$verchk =~ m/CD-HIT version ([\d\.]+ )/;
 		$citations .= "CD-HIT v$1 ${OTU_prefix} clustering: Fu L, Niu B, Zhu Z, Wu S, Li W. 2012. CD-HIT: Accelerated for clustering the next-generation sequencing data. Bioinformatics 28: 3150–3152.\n";
+		
 	}elsif ( $ClusterPipe == 4 ) {    #dnaclust-ref
 		my $dnaClOpt = "";
 		if ($REFflag) {
@@ -6095,6 +6117,8 @@ sub buildOTUs($) {
 	
 	#die $cmd;
     if ( $ClusterPipe == 2 ) {swarm4us_size($OTUfastaTmp); }
+	if ( $ClusterPipe == 3 ){resortcdhit("$OTUfastaTmp.clstr");}#resort cdhit
+
 
     #--------- ref based clustering ------------ 
     my ( $refsCL, $refCLSiz, $denovos, $denoSize );
