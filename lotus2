@@ -6140,8 +6140,8 @@ sub buildOTUs($) {
 	}
 
 	my $backmapRest=0; my $backmapMids = 0;
-	$backmapMids = 1 if (-s "$derepl.rest");
-	$backmapRest = 1 if (-f $lotsFiles[0] || -f $lotsFiles[1] );
+	$backmapRest = 1 if (-s "$derepl.rest");
+	$backmapMids = 1 if (-f $lotsFiles[0] || -f $lotsFiles[1] );
 	
 	
 	#which program to use for mapping?
