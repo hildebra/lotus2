@@ -207,7 +207,8 @@ my $chimCnt = 0;    #should chimeric OTU counts be split up among parents?
 #flow controls
 my $onlyTaxRedo = 0;    #assumes that outdir already contains finished lotus run
 my $TaxOnly     = "0"; #will override most functionality and skip directly ahead to tax assignment part
-						#can also be used to assign tax directly to fa given as argument, e.g. -taxOnly /xx/test.fa
+#can also be used to assign tax directly to fa given as argument, e.g. -taxOnly /xx/test.fa
+my $taxExcludeGrep = "";
 
 # --------------------
 #similarity taxo search options
@@ -282,6 +283,7 @@ GetOptions(
     "o=s"                   => \$outdir,
     "barcode|MID=s"         => \$barcodefile,
     "m|map=s"               => \$mapFile,
+	"taxExcludeGrep=s"      => \$taxExcludeGrep,
     "taxOnly|TaxOnly=s"     => \$TaxOnly,
     "redoTaxOnly=i"         => \$onlyTaxRedo,
     "check_map=s"           => \$check_map,
@@ -3162,6 +3164,7 @@ my %taxonomy_options = (
   '-useBestBlastHitOnly <0|1>', '(1) do not use LCA (lowest common ancestor) to determine most likely taxonomic level (not recommended), instead just use the best blast hit. (0) LCA algorithm. (Default: 0)',
   '-LCA_cover <0-1>', 'Min horizontal coverage of an OTU sequence against ref DB. (Default: 0.5)',
   '-LCA_frac <0-1>', 'Min fraction of reads with identical taxonomy. (Default: 0.9)',
+  '-taxExcludeGrep <string>', 'Exclude taxonomic group, these OTUs will be assigned as unknown instead. E.g. -taxExcludeGrep Chloroplast|Mitochondria (Default: )',
   '-greengenesSpecies <0|1>', '(1) Create greengenes output labels instead of OTU (to be used with greengenes specific programs such as BugBase). (Default: 0)',
   '-ITSx <0|1>', '(1) use ITSx to only retain OTUs fitting to ITS1/ITS2 hmm models; (0) deactivate. (Default: 1)',
   '-itsx_partial <0-100>', 'Parameters for ITSx to extract partial (%) ITS regions as well. (0) deactivate. (Default: 0)',
@@ -4291,63 +4294,74 @@ sub readRDPtax($) {
     my @taxLvls = ( "domain", "phylum", "class", "order", "family", "genus" );
     my @Hiera   = ();
     my %Fail;
+	#my @unclHier = ("?","?","?","?","?","?");
 
     #my %AvOTUs = %{$avOTUR};
-    my $rankN = -1;
-    while ( my $line = <T> ) {
-        chomp($line);
+    my $rankN = -1; my $remtax = 0;
+	while ( my $line = <T> ) {
+		chomp($line);
+		$line =~ s/"//g;
 
-        #print $line."\n";
-        $line =~ s/"//g;
-        my @spl = split( "\t", $line );
-        next unless ( $spl[0] =~ m/^${OTU_prefix}/ && @spl > 3 );
+		#print $line."\n";
+		my @spl = split( "\t", $line );
+		next unless ( $spl[0] =~ m/^${OTU_prefix}/ && @spl > 3 );
 
-        #print $spl[0]."\n";
-        if ( $rankN == -1 ) {
-            for ( my $i = 3 ; $i < 10 ; $i += 3 ) {
-                if ( $spl[$i] =~ m/domain/ ) {
-                    $rankN = $i - 1;
-                    last;
-                }
-            }
-        }
-        next if ( $rankN == -1 );
+		#print $spl[0]."\n";
+		if ( $rankN == -1 ) {
+			for ( my $i = 3 ; $i < 10 ; $i += 3 ) {
+				if ( $spl[$i] =~ m/domain/ ) {
+					$rankN = $i - 1;
+					last;
+				}
+			}
+		}
+		next if ( $rankN == -1 );
 
-        #phylum level class
-        if ( $spl[ $rankN + 5 ] < $RDPCONF ) {
-            $Fail{ $spl[0] } = 1;
+		#phylum level class
+		if ( $spl[ $rankN + 5 ] < $RDPCONF ) {
+			$Fail{ $spl[0] } = 1;
 
-            #next;
-        }
+			#next;
+		}
 
-        #$AvOTUs{$spl[0]} = 1;
-        #push(@AvOTUs,$spl[0]);
-        my $nhier = "$spl[0]\t";    #$spl[$rankN]."\t";
-        my $tcnt  = 0;     #1,+3
-        for ( my $i = $rankN + 0 ; $i <= $rankN + 16 ; $i += 3 ) {
-            if ( $taxLvls[$tcnt] eq $spl[ $i + 1 ] ) {
-                $tcnt++;
-            }
-            else { die( "expected " . $taxLvls[$tcnt] . " " . $line . "\n" ); }
-            if ( $spl[ $i + 2 ] < $RDPCONF ) {
-                $nhier .= "?\t";
-            }
-            else             { $nhier .= $spl[$i] . "\t"; }
-            if ( $i > @spl ) { last; }
-        }
-        $nhier .= "?" ;
-        push( @Hiera, $nhier );
-    }
-    close T;
+		#$AvOTUs{$spl[0]} = 1;
+		#push(@AvOTUs,$spl[0]);
+		my $nhier = "$spl[0]\t";    #$spl[$rankN]."\t";
+		my $tcnt  = 0;     #1,+3
+		for ( my $i = $rankN + 0 ; $i <= $rankN + 16 ; $i += 3 ) {
+			if ( $taxLvls[$tcnt] eq $spl[ $i + 1 ] ) {
+				$tcnt++;
+			} else { 
+				die( "expected " . $taxLvls[$tcnt] . " " . $line . "\n" ); 
+			}
+			if ( $spl[ $i + 2 ] < $RDPCONF ) {
+				$nhier .= "?\t";
+			}
+			else             { $nhier .= $spl[$i] . "\t"; }
+			if ( $i > @spl ) { last; }
+		}
+		$nhier .= "?" ; #push in species assignment
+		
+		#just remove entry if matches to unwanted..
+		if ($rankN != -1 && $taxExcludeGrep ne "" && $line =~ m/$taxExcludeGrep/){
+			$nhier = "$spl[0]\t?\t?\t?\t?\t?\t?\t?";
+			$remtax++;
+		}
 
-    #write hier
-    open H, ">", $RDP_hierFile;
-    print H "$OTU_prefix\t" . join( "\t", @taxLvls ) . "\tspecies\n";
-    foreach (@Hiera) { print H $_ . "\n"; }
-    close H;
+		push( @Hiera, $nhier );
+	}
+	close T;
+	printL "Removed $remtax tax annotations (\"$taxExcludeGrep\")\n";
 
-    #print(keys(%Fail)."\n");
-    return ( \@Hiera, \%Fail );    #\%AvOTUs,
+
+	#write hier
+	open H, ">", $RDP_hierFile;
+	print H "$OTU_prefix\t" . join( "\t", @taxLvls ) . "\tspecies\n";
+	foreach (@Hiera) { print H $_ . "\n"; }
+	close H;
+
+	#print(keys(%Fail)."\n");
+	return ( \@Hiera, \%Fail );    #\%AvOTUs,
 }
 
 sub blastFmt($ $) {
@@ -4428,35 +4442,38 @@ sub writeBlastHiera($ $ $) {
     open H, ">", $SIM_hierFile or die "Can't open $SIM_hierFile\n";
     print H "${OTU_prefix}\tDomain\tPhylum\tClass\tOrder\tFamily\tGenus\tSpecies\n";
     #
-    foreach ( keys(%fails) ) {
-        if (   exists( ${$taxr}{$_} )
-            && ${$taxr}{$_}
-            && maxTax( ${$taxr}{$_} ) > 0 )
-        {
-            delete $fails{$_};
-        }
-        else {
-            print H $_ . "\t?\t?\t?\t?\t?\t?\t?" . "\n";
-        }
-    }
-    foreach (@avOTUs) {    #(sort(keys(%{$taxr}))){
-         #if ( exists( ${$taxr}{$_}) && !exists( ${$taxDepr}{$_}) ) {print "entry missing: $_\n";}
-         #print maxTax(${$taxr}{$_}). "HH\n";
-        my $tdep = 0;
-        next if ( exists( $fails{$_} ) );
-        $tdep = maxTax( ${$taxr}{$_} )
-          if ( exists( ${$taxr}{$_} ) && ${$taxr}{$_} );
-        if ( $tdep > 0 ) {
-            print H $_ . "\t" . blastFmt( ${$taxr}{$_}, $tdep ) . "\n";
-        }
-        else {
-            print H $_ . "\t?\t?\t?\t?\t?\t?\t?\t" . "\n";
-            $fails{$_} = 1;
-        }
-        $cnt++;
-    }
-    close H;
-    return ( \%fails );
+	foreach ( keys(%fails) ) {
+		if (   exists( ${$taxr}{$_} )
+			&& ${$taxr}{$_}
+			&& maxTax( ${$taxr}{$_} ) > 0 )
+		{
+			delete $fails{$_};
+		}
+		else {
+			print H $_ . "\t?\t?\t?\t?\t?\t?\t?" . "\n";
+		}
+	}
+	foreach (@avOTUs) {    #(sort(keys(%{$taxr}))){
+		 #if ( exists( ${$taxr}{$_}) && !exists( ${$taxDepr}{$_}) ) {print "entry missing: $_\n";}
+		 #print maxTax(${$taxr}{$_}). "HH\n";
+		my $tdep = 0;
+		next if ( exists( $fails{$_} ) );
+		$tdep = maxTax( ${$taxr}{$_} ) if ( exists( ${$taxr}{$_} ) && ${$taxr}{$_} );
+		my $taxString = blastFmt( ${$taxr}{$_}, $tdep );
+		if ($taxExcludeGrep ne "" && $taxString =~ m/$taxExcludeGrep/){
+			$tdep = 0;
+		} 
+
+		if ( $tdep > 0 ) {
+			print H $_ . "\t" . $taxString . "\n";
+		} else {
+			print H $_ . "\t?\t?\t?\t?\t?\t?\t?\t" . "\n";
+			$fails{$_} = 1;
+		}
+		$cnt++;
+	}
+	close H;
+	return ( \%fails );
 }
 
 sub checkLtsVer($) {
@@ -5149,6 +5166,29 @@ sub runRDP{
 	#RDP finished 
 }
 
+sub reworkSIMhiera{
+	my ($inHf) = @_;
+	return if ($taxExcludeGrep eq "");
+	open IH,"<$inHf" or die $!;
+	open OH ,">$inHf.1" or die $!;
+	my $remtax=0; my $lcnt=0;
+	while (my $line = <IH>){
+		$lcnt ++;
+		
+		if ($lcnt>1 && $line =~ m/$taxExcludeGrep/){
+			$line =~ m/(^\S+)\s/;
+			print OH $1 . "\t?\t?\t?\t?\t?\t?\t?\t?\n";
+			$remtax +=1;
+		} else {
+			print OH $line;
+		}
+		
+	}
+	close IH; close OH;
+	printL "Removed $remtax tax annotations (\"$taxExcludeGrep\")\n";
+	systemL ("rm $inHf;mv $inHf.1 $inHf");
+}
+
 
 sub assignTaxOnly($ $) {
     my ( $taxf, $output ) = @_;    #,$avSmpsARef
@@ -5188,6 +5228,7 @@ sub assignTaxOnly($ $) {
 
         #die $cmd;
         if ( systemL $cmd) { printL "LCA command $cmd failed\n", 44; }
+		reworkSIMhiera($SIM_hierFile);#only for removing unwanted tax
         systemL "cp @blOuts $output\n";
     }
 	return $SIM_hierFile;
@@ -5246,9 +5287,9 @@ sub makeAbundTable2($ $) {
 
         #die $cmd;
         if ( systemL $cmd) { printL "LCA command $cmd failed\n", 44; }
+		reworkSIMhiera($SIM_hierFile);#only for removing unwanted tax
         #unlink @blOuts;
-    }
-    else {    #old Perl implementation
+    } else {    #old Perl implementation
         my $taxblastf = "$lotus_tempDir/tax.blast";
         my $BlastTaxR = {};                  # my $BlastTaxDepR = {};
                                              #read this only once
