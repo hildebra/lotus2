@@ -247,7 +247,7 @@ my $ASVpostClust = 0;
 my $doXtalk             = -1;    #check for cross talk in OTU tables
 my $usearchVer          = 0; my $usearchsubV = 0; my $vsearchVer = 0;
 my $REFflag = 0;#reference based OTU clustering requested?
-my $mini2RdPreset = " -x sr --sr -u both --secondary=no -N 100 -c "; #minimap2 general parameters
+my $mini2RdPreset = " -x sr --sr -u both --secondary=no -N 30 -c "; #minimap2 general parameters
 my $useMini4map = 1; #use minimap (1) or u/vsearch (2) for mapping
 
 #flash control
@@ -343,8 +343,9 @@ GetOptions(
 	"buildPhylo=i"          => \$buildPhylo,
 	"forwardPrimer=s"       => \$fwdPrimSeq,
 	"reversePrimer=s"       => \$revPrimSeq,
-	"backmapDADA2=i"    => \$useBackmap4dada2,
+	"backmapDADA2=i"        => \$useBackmap4dada2,
 	"link_usearch=s"        => \$installUsearch,
+	"useMini4map=i"         => \$useMini4map,
 
     # "flashAvgLength" => \$flashLength,
     #"flashAvgLengthSD" => \$flashSD,
@@ -2845,7 +2846,7 @@ sub prepLtsOptions{
 		}
 	} elsif ( $platform eq "pacbio" ) {
 		$dereplicate_minsize_def = 0;
-		$mini2RdPreset = "-x map-pb -u both --secondary=no -N 100 -c ";
+		$mini2RdPreset = "-x map-pb -u both --secondary=no -N 30 -c ";
 		$ClusterPipe_pre = "CDHIT" if ($ClusterPipe_pre eq "?");
 		if ($sdmOpt eq ""){
 			$sdmOpt = $sdmPacBioOpt ;
@@ -6235,10 +6236,13 @@ sub buildOTUs($) {
 				#$cmd .= "rm -f $derepl;cat $dereplPre.*.fas > $derepl;" ;
 				convertFastqs2fna(["$dereplPre.*.fas"],$derepl);
 			}
+			$finalClustMap =~ s/\.uc/\.paf/ if ($useMini4map == 1);
+			#die "$finalClustMap \t $useMini4map\n";
 			$cmd .= "rm -f $finalClustMap;";
 			if ($useMini4map == 0){
 				$cmd .= "$VSBin --usearch_global ". $derepl. " -db $outfile -uc $finalClustMap $userachDffOpt $vsearchSpcfcOpt;";    #-threads  $BlastCores";
 			} else {
+				
 				$cmd .= "$mini2Bin $mini2RdPreset  -t $uthreads -o $finalClustMap  $outfile $derepl;";
 			}
 			
