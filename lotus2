@@ -6089,7 +6089,7 @@ sub buildOTUs($) {
 		$citations .= "swarm v2 ${OTU_prefix} clustering - Mahé F, Rognes T, Quince C, de Vargas C, Dunthorn M. 2015. Swarm v2: highly-scalable and high-resolution amplicon clustering. PeerJ. DOI: 10.7717/peerj.1420\n";
 	} elsif ($ClusterPipe == 8){ #vsearch
 		$entrMessage = "VSEARCH ${OTU_prefix} clustering\n Cluster at ". 100 * $id_OTU ;
-		$cmd = "$VSBin --cluster_size $derepl --id 0.97 --sizein --minsize 1 --strand both --consout $OTUfastaTmp --sizeout --uc $finalClustMap;";
+		$cmd = "$VSBin --cluster_size $derepl --id 0.97 --sizein --strand both --consout $OTUfastaTmp --sizeout --uc $finalClustMap;";
 		$citations .= "VSEARCH v$vsearchVer OTU clustering: Rognes T, Flouri T, Nichols B, Quince C, Mahé F. 2016. VSEARCH: A versatile open source tool for metagenomics. PeerJ 2016:1–22.\n";
 	} elsif ( $ClusterPipe == 3 ) {
 		if ( !-e $cdhitBin ) {printL "No valid CD-Hit binary found at $cdhitBin\n", 88;}
