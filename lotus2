@@ -81,7 +81,7 @@ sub annotateFaProTax;
 sub systemW;
 
 #versioning
-my $selfID = "LotuS 2.14"; #release candidate
+my $selfID = "LotuS 2.15"; #release candidate
 
 #keep track of time
 my $start = time;
@@ -583,6 +583,12 @@ my $status = 0;
 
 #die $sdmcmd."\n"; 
 
+#some specific demulti treatment for DADA2 specifically (faster to leave files non-gz till here)
+if ($ClusterPipe == 7 && ( $saveDemulti == 1 || $saveDemulti == 2 ) ) {    #gzip stuff
+	printL "Zipping demultiplex output..\n";
+	systemL "gzip $sdmDemultiDir/*.fq;";
+}
+
 
 if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 	my $mrgSentence = ""; $mrgSentence = "and merging pairs of " if ($mergeOptions ne "");
@@ -831,19 +837,19 @@ sub sdmStep1{
 		$filterOut    = "$lotus_tempDir/demulti.1.fna,$lotus_tempDir/demulti.2.fna";
 		$filterOutAdd = "$lotus_tempDir/demulti.1.add.fna,$lotus_tempDir/demulti.2.add.fna";
 	}
-	my $filOutCmd = "-o_fna ";
-	my $filOutCmdAdd = "-o_fna2 ";
+	my $filOutCmd = " -o_fna ";
+	my $filOutCmdAdd = " -o_fna2 ";
 	if ($UPARSEfilter) {
 		$filterOut    = "$lotus_tempDir/demulti.fastq";
-		$filOutCmd    = "-o_fastq ";
+		$filOutCmd    = " -o_fastq ";
 		$filterOutAdd = "$lotus_tempDir/demulti.add.fastq";
-		$filOutCmdAdd = "-o_fastq2 ";
+		$filOutCmdAdd = " -o_fastq2 ";
 		if ( $numInput > 1 ) {
 			$filterOut    = "$lotus_tempDir/demulti.1.fastq,$lotus_tempDir/demulti.2.fastq";
 			$filterOutAdd = "$lotus_tempDir/demulti.1.add.fastq,$lotus_tempDir/demulti.2.add.fastq";
 		}
 	}
-	my $qualOffset = "-o_qual_offset 33";       #33 for UPARSE
+	my $qualOffset = " -o_qual_offset 33";       #33 for UPARSE
 	my $sdmOut     = $filOutCmd . $filterOut . " " . $filOutCmdAdd . $filterOutAdd . " ";
 	my $sdmIn      = "";
 	my $paired     = $numInput;
@@ -862,23 +868,26 @@ sub sdmStep1{
 	#sdm merge options: -merge_pairs_filter -merge_pairs_demulti -merge_pairs_derep
 	my $sdmMergeOpt = "";
 	if ($mergePreCluster){
-		$sdmMergeOpt = "-merge_pairs_derep 1 ";
+		$sdmMergeOpt = " -merge_pairs_derep 1";
 		if ($ClusterPipe == 7){#dada2 requires more output..
-		$sdmMergeOpt .= "-merge_pairs_demulti 1 ";
+		$sdmMergeOpt .= " -merge_pairs_demulti 1";
 		}
 	}
 
 	my $sdmDemultiDir = "";
-	my $sdmOptStr     = "-options $sdmOpt ";
+	my $sdmOptStr     = " -options $sdmOpt ";
 	if ( $saveDemulti == 2 || $saveDemulti == 1 || $ClusterPipe == 7 ) { #dada2 also requires filtered raw reads
 		$sdmDemultiDir = "$outdir/demultiplexed/";
-		if ( $saveDemulti == 1 ) {
+		if ( $saveDemulti == 1 ) { 
 			printL frame("Demultiplexed input files into single samples, no quality filtering done\nWill abort after demultiplexing (mode \"1\" is only for preparing publication ready, raw sequences)!\n"),0;
 			$sdmOptStr = "";
 		}
+		#for valid paired output, need to keep them together..
+		$sdmOptStr .= " -pairedDemulti 1" if ($numInput > 1);
+
+		$sdmOptStr .= " -o_demultiplex_gz 1" if ($ClusterPipe != 7 || $saveDemulti == 1);#for dada2 leave files.. (saveDemulti==1 exits before clustering)
 		if ($ClusterPipe == 7){ #dada2.. no rd pair info in head!
-			$sdmOptStr .= "-pairedRD_HD_out 0 -derep_format fq -derepPerSR 1 -DemultiBPperSR 1e8";
-			$sdmOptStr .= " -pairedDemulti 1" if ($numInput > 1);
+			$sdmOptStr .= " -pairedRD_HD_out 0 -derep_format fq -derepPerSR 1 -DemultiBPperSR 1e8";
 			$sdmDemultiDir = "$lotus_tempDir/demultiplexed/" if ($saveDemulti == 0);
 		}
 	}
@@ -886,12 +895,12 @@ sub sdmStep1{
 	#die "$sdmOptStr\n";
 
 	if ($sdmDerepDo) {
-		$derepCmd = "-o_dereplicate $lotus_tempDir/derep.fas ";
+		$derepCmd = " -o_dereplicate $lotus_tempDir/derep.fas";
 		if ( 0 && $ClusterPipe == 2 ) {
-			$derepCmd .= "-dere_size_fmt 1 ";
+			$derepCmd .= " -dere_size_fmt 1";
 		}
-		else { $derepCmd .= "-dere_size_fmt 0 "; }
-		$derepCmd .= " -min_derep_copies $dereplicate_minsize ";
+		else { $derepCmd .= " -dere_size_fmt 0"; }
+		$derepCmd .= " -min_derep_copies $dereplicate_minsize";
 		$derepOutHQ  = "$lotus_tempDir/derep.1.hq.fq";
 		$derepOutMap = "$lotus_tempDir/derep.map";
 		$derepOutHQ2 = "$lotus_tempDir/derep.2.hq.fq";
@@ -911,7 +920,7 @@ sub sdmStep1{
 		$demultiSaveCmd .= " -o_demultiplex $sdmDemultiDir";
 	}
 	my $dmgCmd = "";
-	if ($damagedFQ) { $dmgCmd = "-ignore_IO_errors 1"; }
+	if ($damagedFQ) { $dmgCmd = " -ignore_IO_errors 1"; }
 	my $mainSDMlog = "$logDir/demulti.log";
 	my $mainSDMdereplog = "$logDir/demulti.dereplication.log";
 	if ($TaxOnly ne "0"){
@@ -920,24 +929,24 @@ sub sdmStep1{
 	}
 	
 	if ( -d $input ) {
-		$sdmIn = "-i_path $input ";
+		$sdmIn = " -i_path $input";
 	} elsif ( -f $inputArray[0] && $inq ne "" && -f $inqArray[0] ) {
 		if ( $paired == 1 ) {
-			$sdmIn = "-i_fna $inputArray[0] -i_qual $inqArray[0] ";
+			$sdmIn = " -i_fna $inputArray[0] -i_qual $inqArray[0]";
 		} elsif ( $paired == 2 ) {
-			$sdmIn = "-i_fna $inputArray[0],$inputArray[1] -i_qual $inqArray[0],$inqArray[1] ";
+			$sdmIn = " -i_fna $inputArray[0],$inputArray[1] -i_qual $inqArray[0],$inqArray[1]";
 		}
 	} elsif (-f $inputArray[0]) {
 		if ( $paired == 1 ) {
-			$sdmIn = "-i_fastq $inputArray[0]";
+			$sdmIn = " -i_fastq $inputArray[0]";
 		} elsif ( $paired == 2 ) {
-			$sdmIn = "-i_fastq $inputArray[0],$inputArray[1]";
+			$sdmIn = " -i_fastq $inputArray[0],$inputArray[1]";
 			printL "Could not find second file in input, but required paired sequencing reads as input files",25 if (@inputArray < 2);
 		}
 	} else {
 		printL "Could not find input file on system, aborting. Please check the input is either a directory or file.",42;
 	}
-	my $mrgOpt = "";#"-merge_pairs 1";
+	my $mrgOpt = "";#" -merge_pairs 1";
 	my $multCore = ""; $multCore = " -threads $sdmThreads";
 
 	#primary sequence filtering + demultiplexing + dereplication
@@ -969,12 +978,11 @@ sub sdmStep1{
 		}
 		
 		#final report
-		$readSdmLog =~ m/(Reads processed:.*)/;
-		my $shrtRpt = $1;
-		$readSdmLog =~ m/(Accepted \(High qual\):.*)/;
-		$shrtRpt .= "\n".$1;
-		$readSdmLog =~ m/(Accepted \(Mid qual\):.*)/;
-		my $midSent = $1;
+		my $shrtRpt = "";
+		my $midSent = "";
+		if($readSdmLog =~ m/(Reads processed:.*)/){$shrtRpt = $1;}
+		if ($readSdmLog =~ m/(Accepted \(High qual\):.*)/){$shrtRpt .= "\n".$1;}
+		if ($readSdmLog =~ m/(Accepted \(Mid qual\):.*)/){$midSent = $1;}
 		$shrtRpt .= "\n".$midSent unless ($midSent =~ m/Accepted \(Mid qual\): 0.*/);;
 		$readSdmLog =~ m/(Rejected:.*)/;
 		$shrtRpt .= "\n".$1;
@@ -989,35 +997,37 @@ sub sdmStep1{
 		}
 		printL( frame("Finished primary read processing with sdm:\n".$shrtRpt."\nFor an extensive report see $mainSDMlog\n",1,3),0 );
 
-		#postprocessing of output files
-		if ( $saveDemulti == 1 || $saveDemulti == 2 ) {    #gzip stuff
-			printL "Zipping demultiplex output..\n";
-			systemL "gzip $sdmDemultiDir/*.fq;";
-		}
+		#postprocessing of demulti output files
+		
 		if ( $saveDemulti == 1 ) {
 			printL frame("Demultiplexed intput files with no quality filtering to:\n$sdmDemultiDir\nFinished task, if you want to have a complete LotuS run, change option \"-saveDemultiplex 0\".\n",1),0;
 			exit(0);
 		}
 		if ( $saveDemulti == 3 && $exec == 0 )
 		{    #&& $onlyTaxRedo==0){#gzip demultiplexed fastas
-			systemL "mkdir -p $outdir/demultiplexed; ";
-			my @allOuts = split /,/, $filterOut;
-			foreach (@allOuts) {
-				$_ =~ m/\/([^\/]+$)/;
-				my $fn  = $1;
-				my $fns = $fn;
-				$fns =~ s/\.(f[^\.]+)$/\.singl\.$1/;
-
-	#			systemL "gzip -c $_*.singl > $outdir/demultiplexed/$fn.singl.gz; rm -f $_*.singl";
-	#			systemL "gzip -c $_* > $outdir/demultiplexed/$fn.gz; rm -f $_*";
-				die "DEBUG new singl filenames\n";
-				systemL "gzip -c $fns > $outdir/demultiplexed/$fn.singl.gz; rm -f $_*.singl;";
-				systemL "gzip -c $_* > $outdir/demultiplexed/$fn.gz; rm -f $_*;";
-			}
+			systemL "mkdir -p $outdir/demultiplexed; "; 
+			my @allOuts;
 			@allOuts = split /,/, $filterOutAdd;
 			foreach (@allOuts) {
 				$_ =~ m/\/([^\/]+$)/;
-				systemL "gzip -c $_* > $outdir/demultiplexed/$1.gz; rm -f $_*;";
+				systemL "gzip -c $_.singl* > $outdir/demultiplexed/$1.gz; rm -f $_.singl*;" if (-e "$_.singl");
+				systemL "gzip -c $_* > $outdir/demultiplexed/$1.gz; rm -f $_*;" if (-e "$_");
+			}
+			@allOuts = split /,/, $filterOut;
+			foreach (@allOuts) {
+				
+					$_ =~ m/(^.*)\/([^\/]+$)/;
+					my $fn  = $2;
+					#my $fdir = $1;
+					#my $fns = $fn;
+					#$fns =~ s/\.(f[^\.]+)$/\.singl\.$1/; 
+#					systemL "gzip -c $fdir/$fns > $outdir/demultiplexed/$fn.singl.gz; rm -f $fdir/$fns;" if (-e "$fdir/$fns");
+	#			systemL "gzip -c $_*.singl > $outdir/demultiplexed/$fn.singl.gz; rm -f $_*.singl";
+	#			systemL "gzip -c $_* > $outdir/demultiplexed/$fn.gz; rm -f $_*";
+				#die "DEBUG new singl filenames\n";
+				#print "$fn\n$fdir\n$fns\n";
+				systemL "gzip -c $_.singl* > $outdir/demultiplexed/$fn.singl.gz; rm -f $_.singl*;" if (-e "$_");
+				systemL "gzip -c $_* > $outdir/demultiplexed/$fn.gz; rm -f $_*;" if (-e "$_");
 			}
 		}
 		if ($ClusterPipe == 7){#derep by single file, combine map at end
@@ -3142,7 +3152,7 @@ my %workflow_options = (
   '-forwardPrimer <string>','give the forward primer used to amplify DNA region (e.g. 16S primer fwd)',
   '-reversePrimer <string>','give the reverse primer used to amplify DNA region (e.g. 16S primer rev)',
   '-verbosity <0-3>', 'Level of verbosity from printing all program calls and program output (3) to not even printing errors (0). (Default: 1)',
-  '-saveDemultiplex <0|1|2|3>', '(1) Saves all demultiplexed reads (unfiltered) in the [outputdir]/demultiplexed folder, for easier data upload. (2) Only saves quality filtered demultiplexed reads and continues LotuS2 run subsequently. (3) Saves demultiplexed file into a single fq, saving sample ID in fastq/a header. (0) No demultiplexed reads are saved. (Default: 0)',
+  '-saveDemultiplex <0|1|2|3>', '(1) Saves all demultiplexed reads (unfiltered) in the [outputdir]/demultiplexed folder, for easier data upload. (2) Only saves quality filtered demultiplexed reads and continues LotuS2 run subsequently. (3) Saves demultiplexed, filtered reads into a single fq, with sample ID in fastq/a header. (0) No demultiplexed reads are saved. (Default: 0)',
   '-taxOnly <file>', 'Skip most of the lotus pipeline and only run a taxonomic classification on a fasta file. E.g. lotus2 -taxOnly <some16S.fna> -refDB SLV',
   '-redoTaxOnly <0|1>', '(1) Only redo the taxonomic assignments (useful for replacing a DB used on a finished lotus run). (0) Normal lotus run. (Default: 0)',
   '-offtargetDB <file>', 'Remove likely contaminant OTUs/ASVs based on alignment to provided fasta. This option is useful for low-bacterial biomass samples, to remove possible host genome contaminations (e.g. human/mouse genome)',
