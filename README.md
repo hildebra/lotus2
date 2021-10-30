@@ -40,7 +40,7 @@ cp sdm ../sdm
 ###  UPDATE LotuS2
 If you installed LotuS2 via "git clone", you can get the latest release via "git pull".
 LotuS2 has a built in mechanism to upgrade LotuS2, so that properitary programs & databases (once installed) don't have to be downloaded again. To use this feature a) install LotuS2 for the first time using the autoinstaller. 
-Once you know or want to check for new updates, simply excecute the autoinstaller again and you will be prompted if LotuS2 should be updated. In case no new updates are available, the autoinstaller will exit without making changes, so this function can be used frequently. New updates will always be announced on LotuS2 webpage (http://lotus2.earlham.ac.uk/).
+Once you know or want to check for new updates, simply excecute the autoinstaller again and you will be prompted if LotuS2 should be updated. In case no new updates are available, the autoinstaller will exit without making changes, so this function can be used frequently. New updates will be avaialble from the LotuS2 webpage (http://lotus2.earlham.ac.uk/) or from github (https://github.com/hildebra/lotus2).
 
 ### EXAMPLES
 To test your installation, run a minimal example:
@@ -48,11 +48,13 @@ To test your installation, run a minimal example:
 ./lotus2 -i Example/ -m Example/miSeqMap.sm.txt -o myTestRun
 ```
 
-To configure this more, try configuring the read filtering by providing sdm_miSeq2.txt, explicitly defining this to be 16S data from an illumina miSeq machine, to remove PCR primers used in this experiment, to use DADA2 instead of UPARSE clustering algorithm, to use alginments of ASVs against SILVA reference database instead of RDPclassifier taxonomic annotations:
+LotuS2 will try to choose default options. However, note that you should have seen a warning that no PCR primers were provided.
+In the next example, we will explicitly configure the read filtering by providing sdm_miSeq2.txt, explicitly defining this to be 16S data from an illumina miSeq machine, to remove PCR primers used in this experiment, to use DADA2 instead of UPARSE clustering algorithm, to use alginments of ASVs against SILVA reference database instead of RDPclassifier taxonomic annotations:
 ```{sh}
 ./lotus2 -i Example/ -m Example/miSeqMap.sm.txt -o myTestRun2 -s configs/sdm_miSeq2.txt -p miSeq -amplicon_type SSU -forwardPrimer GTGYCAGCMGCCGCGGTAA -reversePrimer GGACTACNVGGGTWTCTAAT -CL dada2 -refDB SLV -taxAligner lambda
 ```
-Note that building the lambda formatted SILVA reference database will take a long time the first time you run this.
+Building the lambda formatted SILVA reference database will take a long time the first time you run this. Please ensure that during installation you selected that the SILVA database will be installed (otherwise this example will not work).
+There are >60 flags with which you can further customize each LotuS2 run, but we try to optimize LotuS2 to work pretty well with just default options. Please run ./lotus2 to see these options.
 
 **Please cite LotuS2 with:**
 Bedarf JR, Beraza N, Khazneh H, Özkurt E, Baker D, Borger V, et al. Much ado about nothing? Off-target amplification can lead to false-positive bacterial brain microbiome detection in healthy and Parkinson’s disease individuals. Microbiome [Internet]. Microbiome; 2021;9:75.

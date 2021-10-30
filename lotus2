@@ -4782,7 +4782,7 @@ sub readMap() {
             }
             if ($hasFwd==0  && !$insertPrimers){
 				$warnTrig = 1;
-				printL("No forward PCR primer for amplicon found in mapping file (column header \"ForwardPrimer\". This might invalidate chimera checks\n","w");
+				printL("No forward PCR primer for amplicon found in mapping file (column header \"ForwardPrimer\". This might invalidate chimera checks).\n","w");
 			}
 			if ($fwdPrimSeq ne "" ){
 				printL "forwardPrimer in both map and cmd line arg",55 if ($hasFwd);
