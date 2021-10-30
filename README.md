@@ -43,20 +43,22 @@ LotuS2 has a built in mechanism to upgrade LotuS2, so that properitary programs 
 Once you know or want to check for new updates, simply excecute the autoinstaller again and you will be prompted if LotuS2 should be updated. In case no new updates are available, the autoinstaller will exit without making changes, so this function can be used frequently. New updates will always be announced on LotuS2 webpage (http://lotus2.earlham.ac.uk/).
 
 ### EXAMPLES
-To test your installation, run the example test set:
+To test your installation, run a minimal example:
 ```{sh}
-perl lotus2.pl -i Example/ -m Example/miSeqMap.sm.txt -s configs/sdm_miSeq.txt -p miSeq -o myTestRun
+./lotus2 -i Example/ -m Example/miSeqMap.sm.txt -o myTestRun
 ```
 
+To configure this more, try configuring the read filtering by providing sdm_miSeq2.txt, explicitly defining this to be 16S data from an illumina miSeq machine, to remove PCR primers used in this experiment, to use DADA2 instead of UPARSE clustering algorithm, to use alginments of ASVs against SILVA reference database instead of RDPclassifier taxonomic annotations:
+```{sh}
+./lotus2 -i Example/ -m Example/miSeqMap.sm.txt -o myTestRun2 -s configs/sdm_miSeq2.txt -p miSeq -amplicon_type SSU -forwardPrimer GTGYCAGCMGCCGCGGTAA -reversePrimer GGACTACNVGGGTWTCTAAT -CL dada2 -refDB SLV -taxAligner lambda
+```
+Note that building the lambda formatted SILVA reference database will take a long time the first time you run this.
 
 **Please cite LotuS2 with:**
+Bedarf JR, Beraza N, Khazneh H, Özkurt E, Baker D, Borger V, et al. Much ado about nothing? Off-target amplification can lead to false-positive bacterial brain microbiome detection in healthy and Parkinson’s disease individuals. Microbiome [Internet]. Microbiome; 2021;9:75.
 
-Hildebrand F, Tadeo RY, Voigt AY, Bork P, Raes J. 2014. LotuS: an efficient and user-friendly OTU processing pipeline. Microbiome 2: 30. 
-
-
-## Acknowledgements of the softwares
-
-I would like to acknowledge the following software, that is used in LotuS2, please also acknowledge these if you use them:
+## Acknowledgements of proprietary software
+I would like to acknowledge the following software, that is used in LotuS2, please also acknowledge these if LotuS2 is callign them (listed in LotuSLogs/citations.txt for each LotuS2 run):
 
 * **DADA2** - Callahan, B., McMurdie, P., Rosen, M. et al. 2016. DADA2: High resolution sample inference from Illumina amplicon data. Nat Methods, 13. 581–583 (2016).
 
@@ -68,11 +70,7 @@ I would like to acknowledge the following software, that is used in LotuS2, plea
 
 * **CD-HIT** - Fu L, Niu B, Zhu Z, Wu S, Li W. 2012. CD-HIT: Accelerated for clustering the next-generation sequencing data. Bioinformatics 28: 3150–3152.
 
-* **DNACLUST** - Ghodsi, M., Liu, B., & Pop, M. (2011). DNACLUST: accurate and efficient clustering of phylogenetic marker genes. BMC Bioinformatics, 12, 271.
-
 * **uchime** - Edgar RC, Haas BJ, Clemente JC, Quince C, Knight R. 2011. UCHIME improves sensitivity and speed of chimera detection. Bioinformatics 27: 2194–200.
-
-* **flash** - Magoc T, Salzberg SL. 2011. FLASH: fast length adjustment of short reads to improve genome assemblies. Bioinformatics 27: 2957–63.
 
 * **RDP classifier** - Wang Q, Garrity GM, Tiedje JM, Cole JR. 2007. Naive Bayesian classifier for rapid assignment of rRNA sequences into the new bacterial taxonomy. Appl Env Microbiol 73: 5261–5267; DOI: 10.1128/AEM.00062-07.
 
@@ -82,7 +80,11 @@ I would like to acknowledge the following software, that is used in LotuS2, plea
 
 * **Clustal Omega** - Sievers F, Wilm A, Dineen D, Gibson TJ, Karplus K, Li W, Lopez R, McWilliam H, Remmert M, Söding J, et al. 2011. Fast, scalable generation of high-quality protein multiple sequence alignments using Clustal Omega. Mol Syst Biol 7: 539.
 
+* **MAFFT** - Katoh K, Standley DM. MAFFT multiple sequence alignment software version 7: improvements in performance and usability. Mol Biol Evol. 2013;30:772–80.
+
 * **fasttree2** - Price MN, Dehal PS, Arkin AP. 2010. FastTree 2--approximately maximum-likelihood trees for large alignments. ed. A.F.Y. Poon. PLoS One 5: e9490.
+
+* **IQ-TREE 2** - Nguyen L-T, Schmidt HA, von Haeseler A, Minh BQ. IQ-TREE: A Fast and Effective Stochastic Algorithm for Estimating Maximum-Likelihood Phylogenies. Mol Biol Evol. 2015;32:268–74.
 
 ## Databases
 
