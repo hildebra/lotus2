@@ -1,6 +1,7 @@
 *.sh
 sqLOGs
 myTestRun
+myTestRun2
 DB
 test/
 rtk_src

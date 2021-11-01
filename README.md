@@ -61,7 +61,7 @@ There are >60 flags with which you can further customize each LotuS2 run, but we
 
 ## Acknowledgements 
 **Please cite LotuS2 with:**
-Bedarf JR, Beraza N, Khazneh H, Özkurt E, Baker D, Borger V, et al. Much ado about nothing? Off-target amplification can lead to false-positive bacterial brain microbiome detection in healthy and Parkinson’s disease individuals. Microbiome [Internet]. Microbiome; 2021;9:75.
+Bedarf JR, Beraza N, Khazneh H, Özkurt E, ..., Hildebrand F (2021) Much ado about nothing? Off-target amplification can lead to false-positive bacterial brain microbiome detection in healthy and Parkinson’s disease individuals. Microbiome ;9:75.
 
 We would like to acknowledge the following proprietary software, that is used in LotuS2. Please acknowledge these if your LotuS2 run was using them (listed in LotuSLogS/citations.txt for each LotuS2 run):
 
