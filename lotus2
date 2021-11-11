@@ -3177,7 +3177,7 @@ my %taxonomy_options = (
   '-taxAligner <0|blast|lambda|utax|vsearch|usearch>', 'Previously doBlast. (0) deactivated (just use RDP); (1) or (blast) use Blast; (2) or (lambda) use LAMBDA to search against a 16S reference database for taxonomic profiling of OTUs; (3) or (utax): use UTAX with custom databases; (4) or (vsearch) use VSEARCH to align OTUs to custom databases; (5) or (usearch) use USEARCH to align OTUs to custom databases. (Default: 0)',
   '-useBestBlastHitOnly <0|1>', '(1) do not use LCA (lowest common ancestor) to determine most likely taxonomic level (not recommended), instead just use the best blast hit. (0) LCA algorithm. (Default: 0)',
   '-LCA_cover <0-1>', 'Min horizontal coverage of an OTU sequence against ref DB. (Default: 0.5)',
-  '-LCA_frac <0-1>', 'Min fraction of reads with identical taxonomy. (Default: 0.9)',
+  '-LCA_frac <0-1>', 'Min fraction of database hits at taxlevel, with identical taxonomy. (Default: 0.9)',
   '-taxExcludeGrep <string>', 'Exclude taxonomic group, these OTUs will be assigned as unknown instead. E.g. -taxExcludeGrep Chloroplast|Mitochondria (Default: )',
   '-greengenesSpecies <0|1>', '(1) Create greengenes output labels instead of OTU (to be used with greengenes specific programs such as BugBase). (Default: 0)',
   '-ITSx <0|1>', '(1) use ITSx to only retain OTUs fitting to ITS1/ITS2 hmm models; (0) deactivate. (Default: 1)',
@@ -5011,7 +5011,7 @@ sub doDBblasting($ $ $) {
         my $lverTxt = `$lambdaBin --version`;
         if ( $lverTxt =~ m/lambda version: (\d\.\d)[\.0-9]* \(/ ) {$lamVer = $1;}
         ( my $TAX_REFDB_wo = $DB ) =~ s/\.[^.]+$//;
-        print $DB. ".fm.txt.concat\n";
+        #print $DB. ".fm.txt.concat\n";
         if (   $lamVer > 0.4
             && -f $DB . ".dna5.fm.sa.val"
             && !-f "$DB.dna5.fm.lf.drv.wtc.24" )
@@ -5034,7 +5034,7 @@ sub doDBblasting($ $ $) {
         }
 
         #OMP_NUM_THREADS = $BlastCores
-        print "Starting LAMBDA similarity search..\n";
+        #print "Starting LAMBDA similarity search..\n";
 
         #TMPDIR env var.. TODO
         my $tmptaxblastf = "$lotus_tempDir/tax.m8";
