@@ -10,6 +10,7 @@ lOTUs.cfg
 config.txt
 ITSx_out.summary.txt
 lotusInstal
+configs/sdm_miSeq_220.txt
 configs/sdm_miSeq_t.txt
 debug.sh
 myTestRun2

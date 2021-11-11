@@ -5,11 +5,16 @@ if(!require("phyloseq",quietly=TRUE,warn.conflicts =FALSE)){
 	require("phyloseq")
 }
 if(!require("ape",quietly=TRUE,warn.conflicts =FALSE)){
-	install.packages("ape",repos="https://cloud.r-project.org",quiet=TRUE);require(ape)
+	install.packages("ape",repos="https://cloud.r-project.org",quiet=TRUE);
 }
 
+if(!require("phyloseq",quietly=TRUE,warn.conflicts =FALSE)){#no use..
+	cat("Could not find phyloseq R package, possibly a problem installing this.\nWill not write phyloseq package.\n")
+	q("n")
+}
 
 library("phyloseq")
+library("ape")
 #packageVersion("phyloseq")
 #path_TABLE=$outdir/OTU.txt
 #Classification_method   #phyloseq option needs to have a flag specifying  the output of the classification to use (for ex BLAST)

@@ -81,7 +81,7 @@ sub annotateFaProTax;
 sub systemW;
 
 #versioning
-my $selfID = "LotuS 2.15"; #release candidate
+my $selfID = "LotuS 2.16"; #release candidate
 
 #keep track of time
 my $start = time;
@@ -1058,8 +1058,11 @@ sub runPhyloObj{
 	die "Incorrect R installation (can't find Rscript)" unless (-f $Rscript);
 	my $cmd = "$Rscript $defRscriptOpt $phyloLnk $OTUmFile $taxHiear $cpMapFile $keepUnclassified $treeF;";
 	#die "$cmd\n";
-	if ((systemL $cmd)){
+	if (systemL($cmd,"phyloseq object creation",0)){
 		printL "Could not create phyloseq object\n","w";
+		return 0;
+	}
+	if (!-e "$outdir/phyloseq.Rdata"){
 		return 0;
 	}
 
@@ -3128,7 +3131,7 @@ sub help {
 
 #HELPPARSEBEGIN
 my $usage_string = "lotus2 -i <input fasta|fastq|dir> -o <output_dir> -m/-map <mapping_file>";
-my $usage_example = "lotus2 -i testDir/ -o testOut/ -m testDir/mymap.txt -CL dada2";
+my $usage_example = "./lotus2 -i Example/ -m Example/miSeqMap.sm.txt -o myTestRun -CL vsearch";
 my $basic_heading = "Basic Options";
 my %basic_options = (
   '-i <file|dir>', 'In case that fastqFile or fnaFile and qualFile were specified in the mapping file, this has to be the directory with input files',
@@ -3267,7 +3270,7 @@ sub print_option_pair {
 
 print "Lotus2 usage:\n";
 print "$usage_string\n\n";
-print "Minimal example:\n$usage_example\n\n";
+print "Minimal example (from lotus2 dir):\n$usage_example\n\n";
 print "#### OPTIONS ####\n\n";
 
 print "$basic_heading:\n\n";
@@ -6169,7 +6172,7 @@ sub buildOTUs($) {
 	
 	#die $cmd;
     if ( $ClusterPipe == 2 ) {swarm4us_size($OTUfastaTmp); }
-	if ( $ClusterPipe == 3 ){resortcdhit("$OTUfastaTmp.clstr");}#resort cdhit
+	#if ( $ClusterPipe == 3 ){resortcdhit("$OTUfastaTmp.clstr");}#resort cdhit #with sdm 1.94 no longer required
 
 
     #--------- ref based clustering ------------ 
