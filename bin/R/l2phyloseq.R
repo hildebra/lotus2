@@ -123,7 +123,7 @@ if(keepUnclass==0 &&!is.null(physeq)){
 	physeq=subset_taxa(physeq, Domain != "?")
 }
 # Save the phyloseq object as an R object:
-save(physeq,file=paste0(strsplit(path_TABLE,"O")[[1]][1],"phyloseq.Rdata"))
+save(physeq,file=paste0(dirname(path_TABLE),"/phyloseq.Rdata"))
 
 
 cat("Phyloseq object is created: phyloseq.Rdata\n")
