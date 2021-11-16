@@ -106,6 +106,7 @@ my $swarmBin    = "";
 my $VSBin       = "";
 my $VSBinOri    = "";
 my $VSused      = 1;
+my $internalMapper = "V/USEARCH";
 my $cdhitBin    = "";
 my $dnaclustBin = "";
 my $mini2Bin    = "";
@@ -189,7 +190,7 @@ my $curSdmV          = 1.6;
 my $platform         = "miSeq";        #454, miSeq, hiSeq, PacBio
 my $keepUnclassified = 1;
 my $keepOfftargets   = 0;
-my $doITSx           = 1;            #run itsx in its mode?
+my $doITSx           = -1;            #run itsx in its mode?
 my $doVXTR           = "0";   #run v xtractor?
 my $doLULU           = 0;   #run LULU post matrix filter?
 my $ITSpartial       = 0;            #itsx --partial parameter
@@ -219,13 +220,13 @@ my $LCAcover = 0.5;
 my $minBit      = 120;
 my $minEval     = 1e-14;    #blast filtering; should be optimized to different platforms
 my @idThr = ( 97, 93, 93, 91, 88, 78, 0 );
-my $lengthTolerance =
-  0.85;     #length of hits to still consider valid, compared to longest match
+my $lengthTolerance =  0.85;     #length of hits to still consider valid, compared to longest match
 my $linesPerFile = 4000000;
 my $otuRefDB =  "denovo"; #OTU building strategy: "denovo" (default), "ref_closed", "ref_open"
 my $doBlasting = -1;       #$doBlasting 2:lambda, 1:blast, 0:RDP, -1: ini value, 3:utax 4: vsearch 5: usearch
 my $doRDPing          = -1;    #0: not, 1:do RDP
 my $doBlasting_pre    = -1;
+my $taxMapperName = "RDP";
 my $custContamCheckDB = "";
 my $lowMemLambI       = 0;
 
@@ -441,10 +442,8 @@ if ( scalar(@inqArray) > 0
 my ( $mapHref, $combHref, $hasCombiSmpls ) = ( {}, {}, 0 );
 my %mapH; my $cpMapFile = "$outdir/primary/in.map";
 if ( $TaxOnly eq "0" ) {
-    ( $mapHref, $combHref, $hasCombiSmpls ) = readMap();
-	my ($hr,$hr2 )= addSeqRun($mapHref);#SequencingRun
-	writeMap($hr2,$cpMapFile);
-	%mapH = %{$hr};
+	( $mapHref, $combHref, $hasCombiSmpls ) = readMap();
+	%mapH = %{$mapHref};
 	#systemL("cp $map $outdir/primary\n");
 }
 
@@ -2656,7 +2655,7 @@ sub readPaths {    #read tax databases and setup correct usage
 
     #die "@TAX_REFDB\n";
     #die $ampliconType.substr($ampliconType,0,3)."\n";
-    if ( substr( $ampliconType, 0, 3 ) eq "ITS" ) { $doRDPing = 0; }
+    if ( substr( $ampliconType, 0, 3 ) eq "ITS" ) { $doRDPing = 0; $doITSx = 1 if ($doITSx == -1); }
 
     if ( !-f $sdmBin ) {
         printL "Could not find sdm binary at\n\"$sdmBin\"\n.Aborting..\n", 3;
@@ -2681,7 +2680,6 @@ sub readPaths {    #read tax databases and setup correct usage
 
 sub announce_options{
 	if ( !$onlyTaxRedo && $TaxOnly eq "0" ) {
-		printL "$clustMode sequence clustering with $clusteringNameStr into ${OTU_prefix}'s\n",0;
 		if ( $ClusterPipe == 7 ) {
 			die "Incorrect dada2 script defined $dada2Scr" unless (-f $dada2Scr);
 			die "Incorrect R installation (can't find Rscript)" unless (-f $Rscript);
@@ -2706,82 +2704,93 @@ sub announce_options{
 	printL "------------ I/O configuration --------------\n", 0;
 	printL "Input       $input\n";
 	printL "Output      $outdir\n";    #InputFileNum=$numInput\n
+	printL "SDM options $sdmOpt\n";
 	if ( $barcodefile ne "" ) {
 		printL("Barcodes= $barcodefile\n",0);
 	}
-	printL "TempDir     $lotus_tempDir\n";
-	printL "SDM options $sdmOpt\n";
+	my $tmpXtra = "";
+	$tmpXtra = " (-keepTmpFiles 1)" if ($keepTmpFiles);
+	printL "TempDir     $lotus_tempDir$tmpXtra\n";
 	printL "------------ Configuration LotuS --------------\n", 0;
-	printL( "Sequencing platform=$platform\nAmpliconType=$ampliconType\n", 0 );
+	printL "$clustMode sequence clustering with $clusteringNameStr into ${OTU_prefix}'s\n",0;
+	printL "Sequencing platform     $platform\n", 0 ;
+	printL "Amplicon target         $organism, $ampliconType\n", 0;
+	printL "Dereplication filter    $dereplicate_minsize\n", 0;
+	printL "Clustering algorithm    $clusteringNameStr into ${OTU_prefix}'s\n",0;
+	
+	printL "Read mapping (non tax)  $internalMapper\n",0;
 	if ( $ClusterPipe == 2 ) {
-		printL "Swarm inter-cluster distance=$swarmClus_d\n", 0;
-	}
-	else {
-		printL "OTU id=$id_OTU\n", 0;
-	}
-	printL "min unique read abundance=" . ($dereplicate_minsize) . "\n", 0;
-	if ( $noChimChk == 1 || $noChimChk == 3 ) {
-		printL "No RefDB based Chimera checking\n", 0;
-	}
-	elsif ( $noChimChk == 0 || $noChimChk == 2 ) {
-		printL "UCHIME_REFDB, ABSKEW=$UCHIME_REFDB, $chimera_absskew\nOTU, Chimera prefix=${OTU_prefix}, $chimera_prefix\n",
-		  0;
-	}
-	if ( $noChimChk == 1 || $noChimChk == 2 ) {
-		printL "No deNovo Chimera checking\n", 0;
+		printL "Swarm inter-cluster d   $swarmClus_d\n", 0;
+	} elsif ( $ClusterPipe == 0 ) {
+		printL("PCTID_ERR               $id_OTU_noise\n",0);
+	} elsif ($ClusterPipe == 6 || $ClusterPipe == 7 ) {
+		my $d2xtra = "";
+		$d2xtra = " (-dada2seed $dada2Seed)";
+		printL "${OTU_prefix} clustering based on sequence error profiles$d2xtra\n", 0;
+	} elsif ($ClusterPipe == 3 ) {
+		printL "${OTU_prefix} nt id      $id_OTU\n", 0;
 	}
 	if ($mergePreCluster){
-		printL "Precluster read merging active :)\n", 0;
+		printL "Precluster read merging Yes\n", 0;
+	} else {
+		printL "Precluster read merging No\n", 0;
 	}
-	if ( $doBlasting == 1 ) {
-		printL "Similarity search with Blast\n", 0;
-		if ( !-e $blastBin ) {
-			printL "Can't find blast binary at $blastBin\n", 97;
-		}
-	} elsif ( $doBlasting == 2 ) {
-		printL "Similarity search with Lambda\n", 0;
-		if ( !-e $lambdaBin ) {
-			printL "Can't find LAMBDA binary at $lambdaBin\n", 96;
-		}
-		if ( !-e $lambdaIdxBin ) {
-			printL "Can't find valid labmda indexer executable at $lambdaIdxBin\n",  98;
-		}
-	}elsif ( $doBlasting == 4 ) {
-		printL "Similarity search with VSEARCH\n", 0;
-		if ( !-e $VSBinOri ) {
-			printL "Can't find VSEARCH binary at $VSBinOri\n", 96;
-		}
-	}elsif ( $doBlasting == 5 ) {
-		printL "Similarity search with USEARCH\n", 0;
-		if ( !-e $usBin ) {
-			printL "Can't find VSEARCH binary at $usBin\n", 96;
-		}
+	if ( $noChimChk == 1 || $noChimChk == 3 ) {
+		printL "Ref Chimera checking    No\n", 0;
+	} elsif ( $noChimChk == 0 || $noChimChk == 2 ) {
+		printL "Ref Chimera checking    Yes (DB=$UCHIME_REFDB, -chim_skew $chimera_absskew)\n", 0;
 	}
-	unless ( $doBlasting < 1 ) {
-		printL "ReferenceDatabase=@refDBname\nRefDB location=@TAX_REFDB\n", 0;
+	
+	if ( $noChimChk == 1 || $noChimChk == 2 ) {
+		printL "deNovo Chimera check    No\n", 0;
+	} else {
+		printL "deNovo Chimera check    Yes\n", 0;
+	}
+	#taxonomy options
+	my $extraTaxInfo = "";
+	$extraTaxInfo = " (-LCA_frac $LCAfraction, -LCA_cover $LCAcover, ids ". join(",",@idThr) .", -useBestBlastHitOnly $maxHitOnly)" if ($doBlasting>0 && $doBlasting!=3);
+	$extraTaxInfo = " (-utax_thr $utaxConf)" if ($doBlasting==3);#utax
+	$extraTaxInfo = " (-rdp_thr  $RDPCONF)" if ($doBlasting==0);#RDP
+	printL "Tax assignment          $taxMapperName$extraTaxInfo\n",0;
+
+	if ( $doBlasting >0 ) {
+		printL "ReferenceDatabase       ".join(",",@refDBname)."\n",0;
+		printL "RefDB location          ".join(",",@TAX_REFDB)."\n", 0;
 		if ( !-e $TAX_REFDB[0] ) {
 			printL "RefDB does not exist at loction. Aborting..\n", 103;
 		}
 	}
+	
+	my $phyloOpt = "No";
+	$phyloOpt = "Yes (mafft, fasttree2)" if ($buildPhylo == 1);
+	$phyloOpt = "Yes (mafft, IQ-TREE 2)" if ($buildPhylo == 2);
+	printL "${OTU_prefix} phylogeny           $phyloOpt\n",0 ;
 
-	printL "TaxonomicGroup=$organism\n", 0;
-	if ( $ClusterPipe == 0 ) {
-		printL("PCTID_ERR=$id_OTU_noise\n",0);
-	}
+
+	#postprocessing
 	if ($keepUnclassified){
-	printL "keeping taxonomic unclassified ${OTU_prefix}'s in matrix\n" ,0;
+		printL "Unclassified ${OTU_prefix}'s      Kept in matrix\n",0 ;
 	} else {
-		printL "removing taxonomic unclassified ${OTU_prefix}'s from matrix\n",0 ;
+		printL "Unclassified ${OTU_prefix}'s      Removed from matrix\n",0 ;
+	}
+	if ($taxExcludeGrep ne ""){
+		printL "Excluding taxa          $taxExcludeGrep\n";
 	}
 
 	if ( $custContamCheckDB ne "" ) {
-		printL "Custom DB for off-targets: $custContamCheckDB\n", 0;
+		printL "Off-target amplicons    Searching (DB $custContamCheckDB)\n", 0;
 		if ($keepOfftargets){
 			printL "keeping off-target ${OTU_prefix}'s in matrix\n",0;
 		} else {
 			printL "removing off-target ${OTU_prefix}'s from matrix\n" ,0;
 		}
 	}
+	
+	printL "Crosstalk check         Yes\n",0 if ($doXtalk==1);
+	printL "ITSx check              Yes\n",0 if ($doITSx==1);
+
+
+
 	printL "--------------------------------------------\n", 0;
 }
 
@@ -2789,23 +2798,28 @@ sub announce_options{
 sub getSimBasedTax{
 	$doBlasting_pre = lc $doBlasting_pre;
 	if ( $doBlasting_pre eq "1" || $doBlasting_pre eq "blast" ) {
-		$doBlasting = 1;
+		$doBlasting = 1; $taxMapperName = "Blast";
 	} elsif ( $doBlasting_pre eq "2" || $doBlasting_pre eq "lambda" ) {
-		$doBlasting = 2;
+		$doBlasting = 2;$taxMapperName = "Blast";
 	} elsif ( $doBlasting_pre eq "3" || $doBlasting_pre eq "utax" ) {
-		$doBlasting = 3;
+		$doBlasting = 3;$taxMapperName = "Blast";
 	} elsif ( $doBlasting_pre eq "4" || $doBlasting_pre eq "vsearch" ) {
-		$doBlasting = 4;
+		$doBlasting = 4;$taxMapperName = "Blast";
 	} elsif ( $doBlasting_pre eq "5" || $doBlasting_pre eq "usearch" ) {
-		$doBlasting = 5;
-	} elsif ( $doBlasting_pre eq "0" ) {
-		$doBlasting = 0;
+		$doBlasting = 5;$taxMapperName = "Blast";
+	} elsif ( $doBlasting_pre eq "0" || $doBlasting_pre eq "rdp" ) {
+		$doBlasting = 0;$taxMapperName = "RDP";
+	} else {
+		printL "Unknown tax option: $doBlasting_pre",63;
 	}
 }
 
-sub checkBlastAvaila() {
+sub checkMapperAvailable() {
     if ( !-f $lambdaBin && ( $doBlasting == 2 ) ) {
         printL"Requested LAMBDA based similarity tax annotation; no LAMBDA binary found at $lambdaBin\n",55;
+		if ( !-e $lambdaIdxBin ) {
+			printL "Can't find valid labmda indexer executable at $lambdaIdxBin\n",  98;
+		}
     } elsif ( !-f $blastBin && ( $doBlasting == 1 ) ) {
         printL "Requested blastn based similarity tax annotation; no blastn binary found at $blastBin\n",55;
     } elsif ( !-f $VSBinOri && ( $doBlasting == 4 ) ) {
@@ -2834,6 +2848,11 @@ sub prepLtsOptions{
 	$organism        = lc($organism);
 	$ClusterPipe_pre = uc($ClusterPipe_pre);
 	$otuRefDB        = lc $otuRefDB;
+	
+		#which program to use for mapping?
+	$internalMapper = "V/USEARCH";
+	$internalMapper = "minimap2" if ($useMini4map);
+
 
 	if ($greengAnno) {
 		$pseudoRefOTU   = 1;
@@ -3044,10 +3063,8 @@ sub prepLtsOptions{
 		#${OTU_prefix} = "Zotu";
 	}
 	if ( $platform eq "pacbio" && ($ClusterPipe != 3 || $ClusterPipe != 8 ) ) {
-		printL("CD-HIT or Vsearch clustering is strongly recommended with PacBio reads.","w");
+		printL("CD-HIT or Vsearch clustering is recommended for PacBio HiFi reads.","w");
 	}
-
-
 
 	$REFflag = $otuRefDB eq "ref_closed" || $otuRefDB eq "ref_open";
 	if ($REFflag) {
@@ -3060,7 +3077,7 @@ sub prepLtsOptions{
 
 	}
 
-	checkBlastAvaila();
+	checkMapperAvailable();
 
 	#"LotuS 1.281"
 	$selfID =~ m/LotuS (\d\.\d+)/;
@@ -3183,7 +3200,7 @@ my %taxonomy_options = (
   '-ITSx <0|1>', '(1) use ITSx to only retain OTUs fitting to ITS1/ITS2 hmm models; (0) deactivate. (Default: 1)',
   '-itsx_partial <0-100>', 'Parameters for ITSx to extract partial (%) ITS regions as well. (0) deactivate. (Default: 0)',
   '-lulu <0|1>', '(1) use LULU (https://github.com/tobiasgf/lulu) to merge OTUs based on their occurrence. (Default: 1)',
-  '-buildPhylo <0,1,2,>','(0) do not build OTU phylogeny; (1) use fasttree2; (2) use iqtree2. (Default: 1)',
+  '-buildPhylo <0,1,2,>','(0) do not build OTU phylogeny; (1) use fasttree2; (2) use IQ-TREE 2. (Default: 1)',
 );
 
 my $clustering_heading = "Clustering Options";
@@ -4613,8 +4630,9 @@ sub addSeqRun($){
 			$allSRs{$SRid} = 1;
 		}
 		my @SRcats = keys(%allSRs);
-		printL "Found \"SequencingRun\" column, with ". scalar(@SRcats) . " categories (@SRcats)\n";
-		return (\%newMap,\%retMap);
+		my $retStr = "";
+		$retStr= "Found \"SequencingRun\" column, with ". scalar(@SRcats) . " categories (@SRcats)\n";
+		return (\%newMap,\%retMap,$retStr);
 	}  
 	
 	
@@ -4875,11 +4893,14 @@ sub readMap() {
         print "*********\nWarnings for mapping file \n$mapFile \nAbort by pressing Ctrl+c (10 sec wait)\n*********\n";
         sleep(10);
     }
-    printL( frame($Ltxt), 0 );
 	
+	#get seq run from map..
+	my ($hr,$hr2,$retStr )= addSeqRun(\%mapH);#SequencingRun
+	writeMap($hr2,$cpMapFile);
+
 	
-	
-    return ( \%mapH, \%combH, $hasCombiSmpl );
+    printL( frame($Ltxt.$retStr), 0 );
+    return ( $hr, \%combH, $hasCombiSmpl ); #\%mapH
 }
 
 sub finWarn($) {
@@ -5249,37 +5270,37 @@ sub assignTaxOnly($ $) {
 }
 
 sub makeAbundTable2($ $) {
-    my ( $taxf, $retMatR ) = @_;    #,$avSmpsARef
-                                    #printL $outmat."\n";
+	my ( $taxf, $retMatR ) = @_;    #,$avSmpsARef
+									#printL $outmat."\n";
 
-    my $hieraR;
-    my $failsR = {};
+	my $hieraR;
+	my $failsR = {};
 
-    #RDP taxonomy
-    unless ( $doRDPing < 1 || $otuRefDB eq "ref_closed" ) {
-        ( $hieraR, $failsR ) = readRDPtax($taxf); #required to rewrite RDP tax..
-    }
+	#RDP taxonomy
+	unless ( $doRDPing < 1 || $otuRefDB eq "ref_closed" ) {
+		( $hieraR, $failsR ) = readRDPtax($taxf); #required to rewrite RDP tax..
+	}
 
-    my $blastFlag = $doBlasting != 3 && $doBlasting ;       #set that blast has to be done
-    my %fails    = %{$failsR};
-    my $curQuery = $OTUfa;
+	my $blastFlag = $doBlasting != 3 && $doBlasting ;       #set that blast has to be done
+	my %fails    = %{$failsR};
+	my $curQuery = $OTUfa;
 
-    my $fullBlastTaxR = {};
-    my $GGloaded      = 0;
-    my %GG;
-    if ($REFflag) { #no activated currently
-        #$OTUrefSEED
-        if ( !$GGloaded ) {
-            %GG       = getGGtaxo( $TAX_RANKS[0], $refDBname[0] );
-            $GGloaded = 1;
-        }
+	my $fullBlastTaxR = {};
+	my $GGloaded      = 0;
+	my %GG;
+	if ($REFflag) { #no activated currently
+		#$OTUrefSEED
+		if ( !$GGloaded ) {
+			%GG       = getGGtaxo( $TAX_RANKS[0], $refDBname[0] );
+			$GGloaded = 1;
+		}
 
-#an extra otu file exists with ref sequences only.. tax needs to be created separately for these & then merged for final output..
-#this overwrites all ref OTUs, but de novo OTUs still need to be assigned..
-        ($fullBlastTaxR) = extractTaxoForRefs( $OTUrefDBlnk, $fullBlastTaxR, \%GG );
-        die "TODO ref assign of denove OTUs\n";
-    }
-    
+	#an extra otu file exists with ref sequences only.. tax needs to be created separately for these & then merged for final output..
+	#this overwrites all ref OTUs, but de novo OTUs still need to be assigned..
+		($fullBlastTaxR) = extractTaxoForRefs( $OTUrefDBlnk, $fullBlastTaxR, \%GG );
+		die "TODO ref assign of denove OTUs\n";
+	}
+
 	if ( $doBlasting == 3 ) { #utax
         my $utaxRaw = "$lotus_tempDir/tax.blast";
         my $utout   = utaxTaxAssign( $OTUfa, $utaxRaw );
@@ -6223,16 +6244,13 @@ sub buildOTUs($) {
 	$backmapMids = 1 if (-f $lotsFiles[0] || -f $lotsFiles[1] );
 	
 	
-	#which program to use for mapping?
-	my $progname = "V/USEARCH";
-	$progname = "minimap2" if ($useMini4map);
 
 	
 	$entrMessage = "Starting backmapping of ";
 	$entrMessage .= "\n  - dereplicated reads" if ($backMapDerep);
 	$entrMessage .= "\n  - low-abundant dereplicated Reads" if ($backmapRest);
 	$entrMessage .= "\n  - mid-quality reads" if ($backmapMids);
-	$entrMessage .= "\nto ${OTU_prefix}'s using $progname";
+	$entrMessage .= "\nto ${OTU_prefix}'s using $internalMapper";
 	printL(frame($entrMessage,1,2),0) if ($backMapDerep || $backmapRest || $backmapMids);
 
 	$cmd = "";
@@ -6261,9 +6279,9 @@ sub buildOTUs($) {
 			
 				   #die $cmd."\n";
 			if ( systemL($cmd) != 0 ) {
-				printL( "$progname backmapping command aborted:\n$cmd\n", 1 );
+				printL( "$internalMapper backmapping command aborted:\n$cmd\n", 1 );
 			}
-			$backMapRep .= "Backmapping dereplicated reads via $progname: ".parseLastVUsearch($progOutPut)."\n"; 
+			$backMapRep .= "Backmapping dereplicated reads via $internalMapper: ".parseLastVUsearch($progOutPut)."\n"; 
 			
         }
 	} else {         #map all qual filtered files to OTUs
