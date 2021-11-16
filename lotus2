@@ -2800,15 +2800,15 @@ sub getSimBasedTax{
 	if ( $doBlasting_pre eq "1" || $doBlasting_pre eq "blast" ) {
 		$doBlasting = 1; $taxMapperName = "Blast";
 	} elsif ( $doBlasting_pre eq "2" || $doBlasting_pre eq "lambda" ) {
-		$doBlasting = 2;$taxMapperName = "Blast";
+		$doBlasting = 2;$taxMapperName = "Lambda";
 	} elsif ( $doBlasting_pre eq "3" || $doBlasting_pre eq "utax" ) {
-		$doBlasting = 3;$taxMapperName = "Blast";
+		$doBlasting = 3;$taxMapperName = "UTAX";
 	} elsif ( $doBlasting_pre eq "4" || $doBlasting_pre eq "vsearch" ) {
-		$doBlasting = 4;$taxMapperName = "Blast";
+		$doBlasting = 4;$taxMapperName = "VSEARCH";
 	} elsif ( $doBlasting_pre eq "5" || $doBlasting_pre eq "usearch" ) {
-		$doBlasting = 5;$taxMapperName = "Blast";
+		$doBlasting = 5;$taxMapperName = "USEARCH";
 	} elsif ( $doBlasting_pre eq "0" || $doBlasting_pre eq "rdp" ) {
-		$doBlasting = 0;$taxMapperName = "RDP";
+		$doBlasting = 0;$taxMapperName = "RDPclassifier";
 	} else {
 		printL "Unknown tax option: $doBlasting_pre",63;
 	}
