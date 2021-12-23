@@ -81,7 +81,8 @@ sub annotateFaProTax;
 sub systemW;
 
 #versioning
-my $selfID = "LotuS 2.16"; #release candidate
+my $selfID = "LotuS 2.17"; #release candidate
+
 
 #keep track of time
 my $start = time;
@@ -314,7 +315,7 @@ GetOptions(
 	"lulu=i"                => \$doLULU,
 	"asvPostClust=i"        => \$ASVpostClust,
     "itsx_partial=i"        => \$ITSpartial,
-    "utax_thr=f"            => \$utaxConf,
+    "sintax|utax_thr=f"     => \$utaxConf,
     "LCA_frac=f"            => \$LCAfraction,
 	"LCA_cover=f"           => \$LCAcover,
     "chim_skew=f"           => \$chimera_absskew,		#miSeq,hiSeq,pacbio
@@ -500,7 +501,7 @@ my $OTUfa  = "$outdir/OTU.fna";
 
 
 
-my @ucFinalFile ;
+my @ucFinalFile = ("");
 $duration = time - $start;
 if ( $ClusterPipe != 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 	#Here clustering of reads and backmapping is happening
@@ -572,7 +573,6 @@ $mainMapping = "-optimalRead2Cluster $tmpOTU.clstr " if ($ClusterPipe == 3);
 if ($sdmDerepDo) {
     $sdmIn = "-i_fastq $derepOutHQ";
 	#$finalClustMap $finalAddMap $finalAddMapRef $finalRestMap $finalRestMapRef
-
     if ( $numInput == 2 ) { $sdmIn = "-i_fastq $derepOutHQ,$derepOutHQ2"; }
     $sdmcmd ="$sdmBin $sdmIn $sdmOut2 $upVer $mainMapping -paired $numInput -sample_sep $sep_smplID -derep_map $derepOutMap -options $sdmOpt $mergeOptions $qualOffset -mergedPairs $didMerge -log $logDir/SeedExtensionStats.txt  -OTU_fallback $tmpOTU -ucAdditionalCounts $ucFinalFile[1] -ucAdditionalCounts1 $ucFinalFile[3] -otu_matrix $OTUmFile $mapRestr -count_chimeras $chimCnt $refClusSDM";
 } else {
@@ -592,9 +592,10 @@ if ($ClusterPipe == 7 && ( $saveDemulti == 1 || $saveDemulti == 2 ) ) {    #gzip
 if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 	my $mrgSentence = ""; $mrgSentence = "and merging pairs of " if ($mergeOptions ne "");
     printL (frame("Extending ${mrgSentence}${OTU_prefix} Seeds"), 0);
-    $status = systemL($sdmcmd);
-}
-elsif ($onlyTaxRedo) { printL "Skipping Seed extension step\n", 0; }
+    $status = systemL($sdmcmd); #actual sdm derep step
+} elsif ($onlyTaxRedo) { printL "Skipping Seed extension step\n", 0; }
+
+
 if ($status) {
     printL "Failed $sdmcmd\n",                    0;
     printL "Fallback to ${OTU_prefix} median sequences.\n", 0;
@@ -1967,6 +1968,8 @@ sub mergeRds{
 	#needs to be run in any case for paired input, just to make sure all reads are correctly listed in $OTUSEED
 	#die "$single1, $single2, $input,$mergeSeedsFilesSing[0], $OTUSEED\n";
 	#TODO: add option to sdm to give out unmerged r1
+	
+	#die "$single1, $single2, $mergeFile\n";
 	forceMerge_fq2fna( $single1, $single2, $mergeFile , $mergeSeedsFilesSing[0], $OTUSEED );
 }
 
@@ -2533,11 +2536,11 @@ sub readPaths {    #read tax databases and setup correct usage
         if ( $doBlasting == 3 ) {
             $refDBwanted = "UTAX";
             if ( $usearchVer < 8.1 ) {
-                printL "Your usearch version ($usearchVer) is not compatible with utax, please upgrade: http://www.drive5.com/usearch/\n",63;
+                printL "Your usearch version ($usearchVer) is not compatible with sintax, please upgrade: http://www.drive5.com/usearch/\n",63;
             }
-            if ( $usearchVer >= 9 ) {
-                printL "Please use usearch ver 8 for now, if you want to use utax\n", 22;
-            }
+           # if ( $usearchVer >= 9 ) {
+            #    printL "Please use usearch ver 8 for now, if you want to use utax\n", 22;
+            #}
         }
         elsif ($defDBset) {
             if ( !-f $TAX_REFDB_GG && $refDBwanted eq "GG" ) {
@@ -2560,7 +2563,7 @@ sub readPaths {    #read tax databases and setup correct usage
                 next;
             }
             $subrdbw = uc $subrdbw;
-            if ( $subrdbw =~ m/^UTAX$/ ) {    #utax algo
+            if ( $subrdbw =~ m/^UTAX$/ || $subrdbw =~ m/^SINTAX$/ ) {    #utax algo
                 push @refDBname, "UTAX";
                 if ( substr( $ampliconType, 0, 3 ) eq "ITS" ) {
                     push( @TAX_REFDB, $TAX_UTAX_ITS );
@@ -2749,7 +2752,7 @@ sub announce_options{
 	#taxonomy options
 	my $extraTaxInfo = "";
 	$extraTaxInfo = " (-LCA_frac $LCAfraction, -LCA_cover $LCAcover, ids ". join(",",@idThr) .", -useBestBlastHitOnly $maxHitOnly)" if ($doBlasting>0 && $doBlasting!=3);
-	$extraTaxInfo = " (-utax_thr $utaxConf)" if ($doBlasting==3);#utax
+	$extraTaxInfo = " (-sintax_thr $utaxConf)" if ($doBlasting==3);#utax
 	$extraTaxInfo = " (-rdp_thr  $RDPCONF)" if ($doBlasting==0);#RDP
 	printL "Tax assignment          $taxMapperName$extraTaxInfo\n",0;
 
@@ -2801,8 +2804,8 @@ sub getSimBasedTax{
 		$doBlasting = 1; $taxMapperName = "Blast";
 	} elsif ( $doBlasting_pre eq "2" || $doBlasting_pre eq "lambda" ) {
 		$doBlasting = 2;$taxMapperName = "Lambda";
-	} elsif ( $doBlasting_pre eq "3" || $doBlasting_pre eq "utax" ) {
-		$doBlasting = 3;$taxMapperName = "UTAX";
+	} elsif ( $doBlasting_pre eq "3" || $doBlasting_pre eq "utax"|| $doBlasting_pre eq "sintax" ) {
+		$doBlasting = 3;$taxMapperName = "SINTAX";
 	} elsif ( $doBlasting_pre eq "4" || $doBlasting_pre eq "vsearch" ) {
 		$doBlasting = 4;$taxMapperName = "VSEARCH";
 	} elsif ( $doBlasting_pre eq "5" || $doBlasting_pre eq "usearch" ) {
@@ -3190,7 +3193,7 @@ my %taxonomy_options = (
   '-amplicon_type <SSU|LSU|ITS|ITS1|ITS2>', '(SSU) small subunit (16S/18S), (LSU) large subunit (23S/28S) or internal transcribed spacer (ITS|ITS1|ITS2). (Default: SSU)',
   '-tax_group <bacteria|fungi>', '(bacteria) bacterial 16S rDNA annnotation, (fungi) fungal 18S/23S/ITS annotation. (Default: bacteria)',
   '-rdp_thr <0-1>', 'Confidence thresshold for RDP.(Default: 0.8)',
-  '-utax_thr <0-1>', 'Confidence thresshold for UTAX. (Default: 0.8)',
+  '-sintax_thr <0-1>', 'Confidence thresshold for SINTAX. (Default: 0.8)',
   '-taxAligner <0|blast|lambda|utax|vsearch|usearch>', 'Previously doBlast. (0) deactivated (just use RDP); (1) or (blast) use Blast; (2) or (lambda) use LAMBDA to search against a 16S reference database for taxonomic profiling of OTUs; (3) or (utax): use UTAX with custom databases; (4) or (vsearch) use VSEARCH to align OTUs to custom databases; (5) or (usearch) use USEARCH to align OTUs to custom databases. (Default: 0)',
   '-useBestBlastHitOnly <0|1>', '(1) do not use LCA (lowest common ancestor) to determine most likely taxonomic level (not recommended), instead just use the best blast hit. (0) LCA algorithm. (Default: 0)',
   '-LCA_cover <0-1>', 'Min horizontal coverage of an OTU sequence against ref DB. (Default: 0.5)',
@@ -4617,6 +4620,7 @@ sub addSeqRun($){
 	my $samplTagByFX=0; my $samplTagByDIR = 0; #how to estimate the original miSeq run??
 	my %heads = map { $_ => $c++ } @header;
 	my %allSRs;
+	my $retStr = "";
 	if (exists($heads{SequencingRun} )){
 		my $SRcol = $heads{SequencingRun};
 	#	return \%newMap; -> still needs to run through to sort etc
@@ -4630,7 +4634,6 @@ sub addSeqRun($){
 			$allSRs{$SRid} = 1;
 		}
 		my @SRcats = keys(%allSRs);
-		my $retStr = "";
 		$retStr= "Found \"SequencingRun\" column, with ". scalar(@SRcats) . " categories (@SRcats)\n";
 		return (\%newMap,\%retMap,$retStr);
 	}  
@@ -4690,7 +4693,7 @@ sub addSeqRun($){
 	}
 	#print "$maxSRcnt  X\n";
 	printL "Can't find \"SequencingRun\" column in map, attempting auto creation with " . ($maxSRcnt+1) ." detected sequencing runs. Please check in $cpMapFile if this is correct\n","w" if ($maxSRcnt > 0);
-	return (\%newMap,\%retMap);
+	return (\%newMap,\%retMap,$retStr);
 }
 
 sub writeMap($$){
@@ -4943,7 +4946,7 @@ sub utaxTaxAssign($ $) {
     my ( $query, $taxblastf ) = @_;
     if ( !-f $usBin ) { printL "usearch binary not found: $usBin\n", 81; }
     my $dbfa = $TAX_REFDB[0];
-    if ( !-d $dbfa ) { printL "wrong utax input dir: $dbfa\n", 82; }
+    if ( !-d $dbfa ) { printL "wrong utax database dir: $dbfa\n", 82; }
 
     #contains path to utax dir
     my $taxLconf = "120";    #250,500,full_length
@@ -4956,18 +4959,26 @@ sub utaxTaxAssign($ $) {
 
     $cmd = "";
     unless ( -e $utUdb ) {
-        $cmd .=
-          "$usBin -makeudb_utax $utFas -output $utUdb -taxconfsin $utConf;";
+		if ($usearchVer < 9){
+			$cmd .= "$usBin -makeudb_utax $utFas -output $utUdb -taxconfsin $utConf;";
+		} else {
+			$cmd .= "$usBin -makeudb_usearch $utFas -output $utUdb ;";
+		}
+		 
     }
-    $cmd .= "$usBin -utax $query -db $utUdb -utaxout $taxblastf -strand both;";
+	if ($usearchVer < 9){
+		$cmd .= "$usBin -utax $query -db $utUdb -utaxout $taxblastf -strand both;";
+	} else {
+		$cmd .= "$usBin -sintax $query -db $utUdb -tabbedout $taxblastf -threads $BlastCores -strand both;";
+	}
 
     #die $utaCmd."\n";
 
     if ( $exec == 0 ) {
-        printL frame("Assigning taxonomy using UTAX with confidence $taxLconf bp");
+        printL frame("Assigning taxonomy using SINTAX with confidence $taxLconf bp");
 
         #print $cmd."\n";
-        if ( systemL($cmd) ) { printL "UTAX failed:\n$cmd\n", 3; }
+        if ( systemL($cmd) ) { printL "SINTAX failed:\n$cmd\n", 3; }
     }
     return $taxblastf;
 }
