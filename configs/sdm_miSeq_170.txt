@@ -57,15 +57,15 @@ PEheaderPairFmt	1
 #sets if sequences without match to reverse primer (ReversePrimer) will be accepted (T=reject ; F=accept all); default=F
 RejectSeqWithoutRevPrim	F
 #*RejectSeqWithoutRevPrim	F
-#sets if sequences without a forward (LinkerPrimerSequence) primer will be accepted (T=reject ; F=accept all); default=T
-RejectSeqWithoutFwdPrim	T
-#*RejectSeqWithoutFwdPrim	T
+#sets if sequences without a forward (LinkerPrimerSequence) primer will be accepted (T=reject ; F=accept all); default=F
+RejectSeqWithoutFwdPrim	F
+#*RejectSeqWithoutFwdPrim	F
 
 #this option should be "T" if your amplicons are possibly shorter than a single read in a paired end sequencing run (e.g. if the 16S amplicon length is 200bp in a 250x2 miSeq run, set this to "T"). This option increases runtime by 10%, if in doubt just set to "T". *Requires* LinkerPrimerSequence and ReversePrimer to be defined in mapping file.
 AmpliconShortPE	T
 
 #options for difficulties during sequencing library construction
 #checks if pair1 and pair2 were switched (ignore if single read data)
-CheckForMixedPairs	T
+CheckForMixedPairs	F
 #checks if whole amplicon was reverse-transcribed sequenced (not switched, just reverse translated)
-CheckForReversedSeqs	T
+CheckForReversedSeqs	F
