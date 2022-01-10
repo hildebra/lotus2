@@ -1,7 +1,4 @@
-
-----------------------------------
 # LotuS2
-----------------------------------
 [![Linux](https://svgshare.com/i/Zhy.svg)](https://svgshare.com/i/Zhy.svg)
 [![macOS](https://svgshare.com/i/ZjP.svg)](https://svgshare.com/i/ZjP.svg)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/lotus2/badges/downloads.svg)](https://anaconda.org/bioconda/lotus2)
@@ -61,10 +58,12 @@ Building the lambda formatted SILVA reference database will take a long time the
 There are >60 flags with which you can further customize each LotuS2 run, but we try to optimize LotuS2 to work pretty well with just default options. Please run ./lotus2 to see these options.
 
 
-##Publications related to LotuS2
-LotuS: http://www.microbiomejournal.com/content/2/1/30
-offtarget removal: https://microbiomejournal.biomedcentral.com/articles/10.1186/s40168-021-01012-1
+## Publications related to LotuS2
 LotuS2: https://www.biorxiv.org/content/10.1101/2021.12.24.474111v1
+
+offtarget removal: https://microbiomejournal.biomedcentral.com/articles/10.1186/s40168-021-01012-1
+
+LotuS: http://www.microbiomejournal.com/content/2/1/30
 
 ## Acknowledgements 
 (c) Falk.Hildebrand {at} gmail.com
