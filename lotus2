@@ -81,7 +81,7 @@ sub annotateFaProTax;
 sub systemW;
 
 #versioning
-my $selfID = "LotuS 2.17"; #release candidate
+my $selfID = "LotuS 2.18"; #release candidate
 
 
 #keep track of time
@@ -6116,7 +6116,7 @@ sub buildOTUs($) {
 		$entrMessage = "UNOISE ${OTU_prefix} sequence clustering";#\n Cluster at ". 100 * $id_OTU . "%";
 		#printL("\n =========================================================================\n UNOISE core routine\n Cluster at ". 100 * $id_OTU . "%\n=========================================================================\n",0);
 
-		$cmd = "$usBin -unoise3 $derepl -zotus $OTUfastaTmp -tabbedout $logDir/unoise3_longreport.txt -log $logDir/unoise3.log;";   
+		$cmd = "$usBin -unoise3 $derepl -zotus $OTUfastaTmp -minsize 0 -tabbedout $logDir/unoise3_longreport.txt -log $logDir/unoise3.log;";   
 		$citations .= "UNOISE v$usearchVer ASV (zOTU) clustering - R.C. Edgar (2016), UNOISE2: improved error-correction for Illumina 16S and ITS amplicon sequencing, https://doi.org/10.1101/081257 \n";
 		#die $cmd."\n";
 	} elsif ( $ClusterPipe == 2 ) {
