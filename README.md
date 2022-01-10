@@ -2,15 +2,12 @@
 ----------------------------------
 # LotuS2
 ----------------------------------
-(c) Falk.Hildebrand {at} gmail.com
-
 [![Linux](https://svgshare.com/i/Zhy.svg)](https://svgshare.com/i/Zhy.svg)
 [![macOS](https://svgshare.com/i/ZjP.svg)](https://svgshare.com/i/ZjP.svg)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/lotus2/badges/downloads.svg)](https://anaconda.org/bioconda/lotus2)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/lotus2/badges/latest_release_relative_date.svg)](https://anaconda.org/bioconda/lotus2)
 
-http://lotus2.earlham.ac.uk/
-
+Full documentation on http://lotus2.earlham.ac.uk/
 
 ### REQUIREMENTS
 LotuS2 requires a perl installation and sdm requires a fairly recent C++ compiler (like gcc or clang) that supports C++11.
@@ -64,12 +61,14 @@ Building the lambda formatted SILVA reference database will take a long time the
 There are >60 flags with which you can further customize each LotuS2 run, but we try to optimize LotuS2 to work pretty well with just default options. Please run ./lotus2 to see these options.
 
 
-##Documentation
+##Publications related to LotuS2
 LotuS: http://www.microbiomejournal.com/content/2/1/30
+offtarget removal: https://microbiomejournal.biomedcentral.com/articles/10.1186/s40168-021-01012-1
 LotuS2: https://www.biorxiv.org/content/10.1101/2021.12.24.474111v1
 
-
 ## Acknowledgements 
+(c) Falk.Hildebrand {at} gmail.com
+
 **Please cite LotuS2 with:**
 Bedarf JR, Beraza N, Khazneh H, Özkurt E, ..., Hildebrand F (2021) Much ado about nothing? Off-target amplification can lead to false-positive bacterial brain microbiome detection in healthy and Parkinson’s disease individuals. Microbiome ;9:75.
 
