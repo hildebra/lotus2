@@ -4,24 +4,29 @@
 ----------------------------------
 (c) Falk.Hildebrand {at} gmail.com
 
-http://lotus2.earlham.ac.uk/
+[![Linux](https://svgshare.com/i/Zhy.svg)](https://svgshare.com/i/Zhy.svg)
+[![macOS](https://svgshare.com/i/ZjP.svg)](https://svgshare.com/i/ZjP.svg)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/lotus2/badges/downloads.svg)](https://anaconda.org/bioconda/lotus2)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/lotus2/badges/latest_release_relative_date.svg)](https://anaconda.org/bioconda/lotus2)
 
-http://www.microbiomejournal.com/content/2/1/30
+http://lotus2.earlham.ac.uk/
 
 
 ### REQUIREMENTS
 LotuS2 requires a perl installation and sdm requires a fairly recent C++ compiler (like gcc or clang) that supports C++11.
-Lambda currently only works under linux, the option to use lambda is not available on mac os :( Instead, Blast can be installed.
+Lambda currently only works under linux, the option to use lambda is not available on mac os. Instead, Blast, vsearch or usearch can be used.
 
 ### INSTALL LotuS2
-Either download and untar from http://lotus2.earlham.ac.uk/ or use the linux/mac command 
+LotuS2 can be installed via conda https://anaconda.org/bioconda/lotus2 
+```{sh}
+conda install -c bioconda lotus2
+```
+Alternatively, often the github contains pre-release versions and can be installed via:
 ```{sh}
 git clone https://github.com/hildebra/lotus2.git
-```
-To install properitary software execute
-```{sh}
 perl autoInstall.pl
 ```
+
 All required software will be downloaded and installed in this directory.
 A video tutorial is available here: 
 http://lotus2.earlham.ac.uk/documentation.html
@@ -57,6 +62,11 @@ In the next example, we will explicitly configure the read filtering by providin
 Building the lambda formatted SILVA reference database will take a long time the first time you run this. Please ensure that during installation you selected that the SILVA database will be installed (otherwise this example will not work).
 
 There are >60 flags with which you can further customize each LotuS2 run, but we try to optimize LotuS2 to work pretty well with just default options. Please run ./lotus2 to see these options.
+
+
+##Documentation
+LotuS: http://www.microbiomejournal.com/content/2/1/30
+LotuS2: https://www.biorxiv.org/content/10.1101/2021.12.24.474111v1
 
 
 ## Acknowledgements 
