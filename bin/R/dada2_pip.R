@@ -86,6 +86,7 @@ isBimeraDenovo2 = function (unqs, minFoldParentOverAbundance = 2, minParentAbund
     allowOneOff = FALSE, minOneOffParentDistance = 4, maxShift = 16, 
     multithread = FALSE, verbose = FALSE) 
 {
+	stop("outdate isBimeraDenovo2")
     unqs.int <- getUniques(unqs, silence = TRUE)
     abunds <- unname(unqs.int)
     seqs <- names(unqs.int)
@@ -362,7 +363,8 @@ if (length(args)>5){
 		num_prev = length(ldada[[kk]]$denoised)
 		sum_prev = sum(ldada[[kk]]$clustering$abundance)
 		#pooled  consensus  
-		isBimera = isBimeraDenovo2(ldada[[kk]],multithread=ncores,verbose=TRUE) 
+		#isBimeraDenovo2
+		isBimera = isBimeraDenovo(ldada[[kk]],multithread=ncores,verbose=TRUE) 
 		#ldada[[kk]]$denoised = ldada[[kk]]$denoised 
 		
 		sum_aft = sum(ldada[[kk]]$clustering$abundance[unname(isBimera)])

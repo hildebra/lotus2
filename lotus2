@@ -81,7 +81,7 @@ sub annotateFaProTax;
 sub systemW;
 
 #versioning
-my $selfID = "LotuS 2.18"; #release candidate
+my $selfID = "LotuS 2.19"; #release candidate
 
 
 #keep track of time
@@ -217,7 +217,8 @@ my $taxExcludeGrep = "";
 my $RDPCONF     = 0.8;    #RDP confidence threshhold
 my $utaxConf    = 0.8;    #UTAX confidence threshhold
 my $LCAfraction = 0.8;    #number of matching taxa to accept taxa level
-my $LCAcover = 0.5;
+my $LCAcover = 0.5;  #what fraction of query has to be covered by hit to ref DB?
+my $LCAminAliLen = 70; #how many bp of read hitting ref, to accept as valid?
 my $minBit      = 120;
 my $minEval     = 1e-14;    #blast filtering; should be optimized to different platforms
 my @idThr = ( 97, 93, 93, 91, 88, 78, 0 );
@@ -1368,7 +1369,7 @@ sub contamination_rem($ $ $ ) {
 			if ($hitsFile =~ m/\.paf/){
 				open I, "<", $hitsFile or die "Can't open search result file $hitsFile";
 				while (<I>) {my @spl = split(/\t/); 
-					#look for matches at 60% overlap
+					#look for matches at 50% overlap, 90% ANI
 					if ( $spl[9] > $spl[6] * 0.5 || (($spl[9] / $spl[10]) > 0.9) ) { $hits{$spl[0]}=1; $contRem++; }
 				}
 				close I;
@@ -4997,14 +4998,15 @@ sub doDBblasting($ $ $) {
           unless ( -f $mkBldbBin );
         $cmd = "$mkBldbBin -in $DB -dbtype 'nucl';";
         unless ( -f $DB . ".nhr" ) {
+			printL "Creating Blast formated reference, this may take awhile..\n";
             if ( systemL($cmd) ) {
                 printL "makeBlastDB command failed:\n$cmd\n", 3;
             }
         }
         my $strand = "both";
-
+		my $outcols = "'6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send qlen'";
 #if ($exec==0){$strand = get16Sstrand($query,$DB);} #deactivated as speed gain is too moderate for gain
-        $cmd = "$blastBin -query $query -db $DB -out $taxblastf -outfmt 6 -max_target_seqs 200 -perc_identity 75 -num_threads $BlastCores -strand $strand ;"
+        $cmd = "$blastBin -query $query -db $DB -out $taxblastf -outfmt $outcols -max_target_seqs 200 -perc_identity 75 -num_threads $BlastCores -strand $strand ;"
           ;    #-strand plus both minus
         if ( !-s $query ) { $cmd = "touch $taxblastf;"; }
         else {
@@ -5070,6 +5072,7 @@ sub doDBblasting($ $ $) {
 
         #TMPDIR env var.. TODO
         my $tmptaxblastf = "$lotus_tempDir/tax.m8";
+		
 		my $outcols = "'qseqid sseqid pident length mismatch gapopen qstart qend sstart send qlen'";
         $cmd = "$lambdaBin -t $BlastCores -id 75 -nm 200 -p blastn -e 1e-8 -so 7 -sl 16 -sd 1 -b 5 -pd on -q $query -d $DB -o $tmptaxblastf -oc $outcols;";
         $cmd .= "mv $tmptaxblastf $taxblastf;";
@@ -5270,7 +5273,7 @@ sub assignTaxOnly($ $) {
         my $LCxtr = "";
         if ($pseudoRefOTU) { $LCxtr = "-showHitRead -reportBestHit"; }
 		if (-f $TaxOnly) {$SIM_hierFile = $TaxOnly.".hier";}
-        my $cmd =  "$LCABin  -i " . join( ",", @blOuts ) . " -r ". join( ",", @TAX_RANKS ) . " -o $SIM_hierFile $LCxtr -LCAfrac $LCAfraction -cover $LCAcover -id ". join( ",", @idThr ) . ";";
+        my $cmd =  "$LCABin  -i " . join( ",", @blOuts ) . " -r ". join( ",", @TAX_RANKS ) . " -o $SIM_hierFile $LCxtr -LCAfrac $LCAfraction -cover $LCAcover -minAlignLen $LCAminAliLen -id ". join( ",", @idThr ) . ";";
 
         #die $cmd;
         if ( systemL $cmd) { printL "LCA command $cmd failed\n", 44; }
@@ -5329,7 +5332,7 @@ sub makeAbundTable2($ $) {
         }
         my $LCxtr = "";
         if ($pseudoRefOTU) { $LCxtr = "-showHitRead -reportBestHit"; }
-        my $cmd = "$LCABin  -i " . join( ",", @blOuts ) . " -r " . join( ",", @TAX_RANKS ) . " -o $SIM_hierFile $LCxtr -LCAfrac $LCAfraction  -cover $LCAcover -id " . join( ",", @idThr ) . ";";
+        my $cmd = "$LCABin  -i " . join( ",", @blOuts ) . " -r " . join( ",", @TAX_RANKS ) . " -o $SIM_hierFile $LCxtr -LCAfrac $LCAfraction  -cover $LCAcover -minAlignLen $LCAminAliLen -id " . join( ",", @idThr ) . ";";
 
         #die $cmd;
         if ( systemL $cmd) { printL "LCA command $cmd failed\n", 44; }
