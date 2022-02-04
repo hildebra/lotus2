@@ -227,7 +227,7 @@ my $linesPerFile = 4000000;
 my $otuRefDB =  "denovo"; #OTU building strategy: "denovo" (default), "ref_closed", "ref_open"
 my $doBlasting = -1;       #$doBlasting 2:lambda, 1:blast, 0:RDP, -1: ini value, 3:utax 4: vsearch 5: usearch
 my $doRDPing          = -1;    #0: not, 1:do RDP
-my $doBlasting_pre    = -1;
+my $doBlasting_pre    = "-1";
 my $taxMapperName = "RDP";
 my $custContamCheckDB = "";
 my $lowMemLambI       = 0;
@@ -2801,6 +2801,9 @@ sub announce_options{
 
 sub getSimBasedTax{
 	$doBlasting_pre = lc $doBlasting_pre;
+	#absolute last fallback
+	if ($doBlasting_pre eq "-1"){$doBlasting_pre = "rdp";}
+	
 	if ( $doBlasting_pre eq "1" || $doBlasting_pre eq "blast" ) {
 		$doBlasting = 1; $taxMapperName = "Blast";
 	} elsif ( $doBlasting_pre eq "2" || $doBlasting_pre eq "lambda" ) {
@@ -2895,10 +2898,10 @@ sub prepLtsOptions{
 	
 	if ( !-e $sdmOpt && $TaxOnly eq "0") {
 		if ( $sdmOpt eq "" ) {
-			$sdmOpt = $sdmMiseqOpt;
-			printL "No sdm Option specified, using standard miSeq sdm options ($sdmOpt)", 0;
+			$sdmOpt = $sdmMiseqOpt; 
+			printL "No sdm Option specified, using standard miSeq sdm options: $sdmOpt\n", 0;
 		} else {
-			printL "Using sdm option: $sdmOpt",0;
+			printL "Using sdm option: $sdmOpt\n",0;
 		}
 		if (!-e $sdmOpt){
 			printL "Could not find sdm options file (specified via \"-s $sdmOpt\"). Please make sure this is available.\n Aborting run..\n",33;
@@ -3640,13 +3643,18 @@ sub buildTree($ $) {
     my $tthreads = $uthreads;
 
     #my $cmd = $clustaloBin . " -i $OTUfa -o $multAli --outfmt=fasta --threads=$tthreads --force;";
-	my $cmd = "$mafftBin --thread $tthreads --quiet $OTUfa > $multAli";
+	my $cmd = "";
+	
 	#die "$cmd\n";
 
-    if ( $exec == 0 && $onlyTaxRedo == 0 && -f $mafftBin ) {
+    if ( $exec == 0 && $onlyTaxRedo == 0  ) {
         if ( !-f $OTUfa ) {
             printL "Could not find ${OTU_prefix} sequence file:\n$OTUfa\n", 5;
         }
+		if (!-f $mafftBin){
+			printL "Could not find MAFFT binary at $mafftBin\nAborting\n", 5;
+		}
+		$cmd = "$mafftBin --thread $tthreads --quiet $OTUfa > $multAli";
 		systemL $cmd;
         
         #$citations .= "Clustalo multiple sequence alignments: Sievers F, Wilm A, Dineen D, Gibson TJ, Karplus K, Li W, Lopez R, McWilliam H, Remmert M, Söding J, et al. 2011. Fast, scalable generation of high-quality protein multiple sequence alignments using Clustal Omega. Mol Syst Biol 7: 539.\n";
