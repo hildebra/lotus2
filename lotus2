@@ -778,7 +778,7 @@ my $phyloHlp="";
 $phyloHlp="- Phyloseq: load $outdir/phyloseq.Rdata directly with the phyloseq package in R\n" if ($phyloseqCreated);
 my $nwkOut = "";
 $nwkOut = "- Phylogeny: ${OTU_prefix} phylogentic tree available in $outdir/OTUphylo.nwk\n" if ($buildPhylo); 
-my $nxtSteps = "$finiMsg          Next steps:          \n$phyloHlp$nwkOut- .biom: $outdir/OTU.biom contains biom formatted output\n- Alpha diveristy/rarefaction curves: rtk (available as R package or in bin/rtk)\n- LotuSLogS/ contains run statistics (useful for describing data/amount of reads/quality and citations to programs used\n- Tutorial: Visit http://lotus2.earlham.ac.uk for a numerical ecology tutorial\n";
+my $nxtSteps = "$finiMsg          Next steps:          \n$phyloHlp$nwkOut- .biom: $outdir/OTU.biom contains biom formatted output\n- Alpha diversity/rarefaction curves: rtk (available as R package or in bin/rtk)\n- LotuSLogS/ contains run statistics (useful for describing data/amount of reads/quality and citations to programs used\n- Tutorial: Visit http://lotus2.earlham.ac.uk for a numerical ecology tutorial\n";
 printL(frame($nxtSteps));
 printWarnings();
 
@@ -3069,9 +3069,11 @@ sub prepLtsOptions{
 		}
 		#${OTU_prefix} = "Zotu";
 	}
-	if ( $platform eq "pacbio" && ($ClusterPipe != 3 || $ClusterPipe != 8 ) ) {
+	if ( $platform eq "pacbio" && !($ClusterPipe == 3 || $ClusterPipe == 8 ) ) {
 		printL("CD-HIT or Vsearch clustering is recommended for PacBio HiFi reads.","w");
 	}
+	
+	#die "$ClusterPipe\n";
 
 	$REFflag = $otuRefDB eq "ref_closed" || $otuRefDB eq "ref_open";
 	if ($REFflag) {
