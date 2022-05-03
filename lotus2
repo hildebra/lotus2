@@ -81,7 +81,7 @@ sub annotateFaProTax;
 sub systemW;
 
 #versioning
-my $selfID = "LotuS 2.19"; #release candidate
+my $selfID = "LotuS 2.20"; #release candidate
 
 
 #keep track of time
@@ -3189,7 +3189,8 @@ my %workflow_options = (
   '-keepTmpFiles <0|1>', '(1) save extra tmp files like chimeric OTUs or the raw blast output in extra dir. (0) do not save these. (Default: 0)',
   '-keepUnclassified <0|1>', '(1) Includes unclassified OTUs (i.e. no match in RDP/Blast database) in OTU and taxa abundance matrix calculations. (0) does not take these OTUs into account. (Default: 1)',
   '-tolerateCorruptFq <0|1>', '(1) Continue reading fastq files, even if single entries are incomplete (e.g. half of qual values missing). (0) Abort lotus run, if fastq file is corrupt. (Default: 0)',
-  '-useVsearch <0|1>', '(0) Use usearch for internal tasks such as remapping reads on OTUs, chimera checks. (1) will use vsearch for these tasks. This option is independent of the -CL UPARSE/UNOISE option, and -taxAligner assignment usearch/vsearch options. (Default: 0)'
+  '-useVsearch <0|1>', '(0) Use usearch for internal tasks such as remapping reads on OTUs, chimera checks. (1) will use vsearch for these tasks. This option is independent of the -CL UPARSE/UNOISE option, and -taxAligner assignment usearch/vsearch options. (Default: 0)',
+  '-mergePreClusterReads <0|1>', '(0) no merging or reads pre OTU/ASV/zOTU seq clustering, BUT read mergning after seq clustering (to get better representative sequence). (1) Merge reads prior to seq clustering. WARNING!! This will considerably reduce the number of valid read pairs, as additional quality filters will be applied, algorithm is still in development !! (Default: 0)'
 );
 
 my $taxonomy_heading = "Taxonomy Options";
