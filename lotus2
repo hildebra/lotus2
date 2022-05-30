@@ -4704,7 +4704,7 @@ sub addSeqRun($){
 		$maxSRcnt = $SRcnt if ($SRcnt > $maxSRcnt);
 	}
 	#print "$maxSRcnt  X\n";
-	printL "Can't find \"SequencingRun\" column in map, attempting auto creation with " . ($maxSRcnt+1) ." detected sequencing runs. Please check in $cpMapFile if this is correct\n","w" if ($maxSRcnt > 0);
+	printL "Can't find \"SequencingRun\" column in map (recommended for dada2 clustering), attempting auto creation with " . ($maxSRcnt+1) ." detected sequencing runs. Please check in $cpMapFile if this is correct\n","w" if ($maxSRcnt > 0);
 	return (\%newMap,\%retMap,$retStr);
 }
 
