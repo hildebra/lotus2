@@ -514,8 +514,7 @@ elsif ( $onlyTaxRedo == 1 ) {
     printL "Clustering step was skipped\n", 0;
 }
 elsif ( $TaxOnly ne "0" ) {
-    printL
-"No qual filter, demultiplexing or clustering required, as taxonomy only requested\n",
+    printL "No qual filter, demultiplexing or clustering required, as taxonomy only requested\n",
       0;
 }
 else {
@@ -3233,9 +3232,10 @@ my %clustering_options = (
 my $other_heading = "Other uses of pipeline (quits after execution)";
 my %other_options = (
   '-v', 'Print LotuS2 version',
+  '-link_usearch <file>', 'Provide the absolute path to your local usearch binary file, this will be installed to be useable with LotuS2 in the future.',
   '-check_map <file>', 'Mapping_file: only checks mapping file and exists.',
   '-create_map <file>', 'mapping_file: creates a new mapping file at location, based on already demultiplexed input (-i) dir. E.g. lotus2 -create_map mymap.txt -i /home/dir_with_demultiplex_fastq',
-  '-link_usearch <file>', 'Provide the absolute path to your local usearch binary file, this will be installed to be useable with LotuS2 in the future.',
+  '-taxOnly <file>', 'Skip most of the lotus pipeline and only run a taxonomic classification on a fasta file. E.g. lotus2 -taxOnly <some16S.fna> -refDB SLV',
 );
 #HELPPARSEEND
 
@@ -3638,6 +3638,11 @@ sub buildTree($ $) {
 	} else {
 		printL(frame("Skipping tree building and multiple alignment: \nafftBin or fasttreeBin/iqTreeBin are not defined"),0);
 	}
+	
+	if (substr( $ampliconType, 0, 3 ) eq "ITS" ){
+		printL "Phylogenies for $ampliconType amplicons may be inaccurate and should be used with caution.\n","w";
+	}
+	
 
 	
     my $multAli  = $extendedLogD . "/OTU.MSA.fna";
@@ -5272,7 +5277,7 @@ sub assignTaxOnly($ $) {
         my $utout   = utaxTaxAssign( $taxf, $utaxRaw );
         $failsR = writeUTAXhiera( $utout, $avOTUsR, $failsR );
     }
-    elsif ( -f $LCABin && $blastFlag && $maxHitOnly != 1 ) {
+    elsif ( -f $LCABin && $blastFlag) {# && $maxHitOnly != 1 ) {
         my @blOuts = ();
         for ( my $DBi = 0 ; $DBi < @TAX_REFDB ; $DBi++ ) {
             my $taxblastf = "$lotus_tempDir/tax.$DBi.blast";
@@ -5331,7 +5336,7 @@ sub makeAbundTable2($ $) {
         my $utout   = utaxTaxAssign( $OTUfa, $utaxRaw );
         $failsR = writeUTAXhiera( $utout, $avOTUsR, $failsR );
     
-	} elsif ( $blastFlag && $maxHitOnly != 1 ) {
+	} elsif ( $blastFlag ) {#&& $maxHitOnly != 1 ) {
 		#TODO: maxHitOnly
         my @blOuts = ();
         for ( my $DBi = 0 ; $DBi < @TAX_REFDB ; $DBi++ ) {
@@ -5554,7 +5559,7 @@ sub printL($ $) {
     }
     if ( defined $stat && $stat ne "0" ) { 
 		#print "Error: $msg\n";# if ($verbosity < 1) ; #print in any case, since exiting on this message
-		print "\n%@#%@#%@#%@%@#@%#@%#@#%@#%@#%@#@%#@%#@%#@#%@#%@#%@##\n      LotuS2 encounterend an error:\n$msg\n\nFirst check if the last error occured in a program called by LotuS2 \n\"tail $progOutPut\"\n, if there is an obvious solution (e.g. external program breaking, this we can't fix). To see (and excecute) the last commands by the pipeline, run \n\"tail $cmdLogFile\".\nIn case you decide to contact us on \"https://github.com/hildebra/lotus2/\", please try to include information from these approaches in your message, this will increase our response time. Thank you.\n%@#%@#%@#%@%@#@%#@%#@#%@#%@#%@#@%#@%#@%#@#%@#%@#%@##\n";
+		print "\n%@#%@#%@#%@%@#@%#@%#@#%@#%@#%@#@%#@%#@%#@#%@#%@#%@##\n      LotuS2 encounterend an error:\n$msg\n\nFirst check if the last error occurred  in a program called by LotuS2 \n\"tail $progOutPut\"\n, if there is an obvious solution (e.g. external program breaking, this we can't fix). To see (and execute) the last commands by the pipeline, run \n\"tail $cmdLogFile\".\nIn case you decide to contact us on \"https://github.com/hildebra/lotus2/\", please try to include information from these approaches in your message, this will increase our response time. Thank you.\n%@#%@#%@#%@%@#@%#@%#@#%@#%@#%@#@%#@%#@%#@#%@#%@#%@##\n";
 		exit($stat); 
 	}
 }
