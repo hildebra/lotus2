@@ -3209,12 +3209,12 @@ my %taxonomy_options = (
   '-ITSx <0|1>', '(1) use ITSx to only retain OTUs fitting to ITS1/ITS2 hmm models; (0) deactivate. (Default: 1)',
   '-itsx_partial <0-100>', 'Parameters for ITSx to extract partial (%) ITS regions as well. (0) deactivate. (Default: 0)',
   '-lulu <0|1>', '(1) use LULU (https://github.com/tobiasgf/lulu) to merge OTUs based on their occurrence. (Default: 1)',
-  '-buildPhylo <0,1,2,>','(0) do not build OTU phylogeny; (1) use fasttree2; (2) use IQ-TREE 2. (Default: 1). We recommend the cautious usage of the phylogenetic tree for ITS (recommended mostly for visualization purposes) because high variation of ITS sequences may lead to erroneous trees. Phylogenetic trees can be of use for 16S data depending on the aim of the analysis.',
+  '-buildPhylo <0,1,2,>','(0) do not build OTU phylogeny; (1) use fasttree2; (2) use IQ-TREE 2. (Default: 1). We recommend the cautious usage of the phylogenetic tree for ITS because high variation of ITS sequences may lead to erroneous trees. Phylogenetic trees can be of use for 16S data depending on the aim of the analysis.',
 );
 
 my $clustering_heading = "Clustering Options";
 my %clustering_options = (
-  '-CL|-clustering <uparse|swarm|cdhit|unoise|dada2>', 'Sequence clustering algorithm: (1) UPARSE, (2) swarm, (3) cd-hit, (6) unoise3, (7) dada2, (8) VSEARCH. Short keyword or number can be used to indicate clustering (Default: UPARSE)',
+  '-CL|-clustering <uparse|swarm|cdhit|unoise|dada2|vsearch>', 'Sequence clustering algorithm: (1) UPARSE, (2) swarm, (3) cd-hit, (6) unoise3, (7) dada2, (8) VSEARCH. Short keyword or number can be used to indicate clustering (Default: UPARSE)',
   '-id <0-1>', 'Clustering threshold for OTUs. (Default: 0.97)',
   '-swarm_distance <1,2,3,..> ', 'Clustering distance for OTUs when using swarm clustering. (Default: 1)',
   '-chim_skew <num>', 'Skew in chimeric fragment abundance (uchime option). (Default: 2)',
