@@ -1,4 +1,6 @@
 # LotuS2
+LotuS2 is a amplicon sequencing pipeline, that is programmed to be lightweight, easy to use, fast without comprimising the quality of reconstructing microbial communitites. It supports 16S, 18S and ITS amplicons, and support for other amplicon targets is available. Currently five different sequence clustering algorithms (DADA2, uparse, unoise3, cd-hit, vsearch) are supported as well as multiple options to assigning taxonomic annotations. LotuS2 output can be imported directly into R or as text file into other programs.
+
 [![Linux](https://svgshare.com/i/Zhy.svg)](https://svgshare.com/i/Zhy.svg)
 [![macOS](https://svgshare.com/i/ZjP.svg)](https://svgshare.com/i/ZjP.svg)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/lotus2/badges/downloads.svg)](https://anaconda.org/bioconda/lotus2)
