@@ -192,7 +192,8 @@ print "Several Software packages have to be downloaded and this can take some ti
 # Check if Rscript is installed
 my $install_dada = 1;
 if (check_exists('Rscript')) {
-  my $v = check_version 'Rscript';
+  my $v = check_version('Rscript');
+  
   if ($v < 4) {
     print("$0 requires Rscript version > 4.0.0\nThe found version is < 4.\nType\n  \'c\' to install LotuS2 without dada2 and phyloseq\n  \'t\' to continue and try to install phyloseq only\n  \'a\' to abort installation process\n");
     my $instr = <STDIN>;
@@ -207,7 +208,7 @@ if (check_exists('Rscript')) {
     }
   }
 } else {
-  print("$0 requires Rscript version > 4.0.0");
+  print("$0 requires Rscript (version > 4.0.0). No \"Rscript\" detected on current system.\n");
   exit(0);
 }
 
@@ -934,11 +935,12 @@ sub check_exists {
 
 sub check_version {
   my $check = `$_[0] --version 2>&1`;
+  if ($check =~ m/version (\d)\./){
+	return $1;
+  }
   
   my @vstr = split /\./, $check, 2;
-  
   my $v = substr $vstr[0], -1;
-  
   return $v;
 }
 

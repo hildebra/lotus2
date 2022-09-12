@@ -23,14 +23,12 @@ perl autoInstall.pl
 ```
 
 All required software will be downloaded and installed in this directory.
-A video tutorial is available here: 
-http://lotus2.earlham.ac.uk/documentation.html
 
 If you want to install software and databases to other locations, follow installation instructions on: 
-http://lotus2.earlham.ac.uk/documentation.html
+http://lotus2.earlham.ac.uk/main.php?site=documentation
 
 LotuS2 packs a static compiled linux sdm binary, this should be useable out of the box. However, to manually compile **sdm**  (the autoinstaller can also do this) go to the lotus subdirectory *sdm_src* and run 
-**make** to compile the sdm binary. Next copy the binary into the lotus directory using **cp**.
+**make** to compile the sdm binary. Next copy the binary into the lotus directory using **cp**. For using MACs and LotuS2, this would be a requirement as the static binary will only work Linux systems.
 ```{sh}
 cd sdm_src
 make
