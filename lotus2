@@ -378,7 +378,6 @@ if ($installUsearch ne ""){
 	exit(0);
 }
 
-$sdmThreads = $uthreads if ($sdmThreads == -1);
 
 
 #declare global vars
@@ -467,6 +466,14 @@ systemL("rm -f -r $lotus_tempDir;") if ( $exec == 0 );
 systemL("mkdir -p $lotus_tempDir;") unless ( -d $lotus_tempDir );
 if ( !-d $lotus_tempDir ) {
     die( "Failed to make tmp dir or doesn't exist: \"" . $lotus_tempDir . "\"\n" );
+}
+
+if ($sdmThreads == -1){
+	$sdmThreads = $uthreads ;
+	$sdmThreads = 6 if ($sdmThreads > 6);
+} else {
+	printL ("Limiting sdm to 6 threads as IO performance negatively impacts sdm above 6 core count.\n",0);
+	$sdmThreads = 6 if ($sdmThreads > 6);
 }
 
 #CONSTANT file paths
@@ -881,11 +888,12 @@ sub sdmStep1{
 		if ( $saveDemulti == 1 ) { 
 			printL frame("Demultiplexed input files into single samples, no quality filtering done\nWill abort after demultiplexing (mode \"1\" is only for preparing publication ready, raw sequences)!\n"),0;
 			$sdmOptStr = "";
+			$sdmDerepDo = 0;
 		}
 		#for valid paired output, need to keep them together..
 		$sdmOptStr .= " -pairedDemulti 1" if ($numInput > 1);
 
-		$sdmOptStr .= " -o_demultiplex_gz 1" if ($ClusterPipe != 7 || $saveDemulti == 1);#for dada2 leave files.. (saveDemulti==1 exits before clustering)
+		$sdmOptStr .= " -o_demultiplex_gz 0" if ($ClusterPipe != 7 || $saveDemulti == 1);#for dada2 leave files.. (saveDemulti==1 exits before clustering)
 		if ($ClusterPipe == 7){ #dada2.. no rd pair info in head!
 			$sdmOptStr .= " -pairedRD_HD_out 0 -derep_format fq -derepPerSR 1 -DemultiBPperSR 1e8";
 			$sdmDemultiDir = "$lotus_tempDir/demultiplexed/" if ($saveDemulti == 0);
@@ -906,8 +914,7 @@ sub sdmStep1{
 		$derepOutHQ2 = "$lotus_tempDir/derep.2.hq.fq";
 		if ( $saveDemulti == 3 ) {   #temp deactivated, since I have  $sdmDemultiDir
 			$derepCmd .= " -suppressOutput 0";
-		}
-		else {
+		} else {
 			$derepCmd .= " -suppressOutput 1";
 		}
 	}
@@ -1000,7 +1007,10 @@ sub sdmStep1{
 		#postprocessing of demulti output files
 		
 		if ( $saveDemulti == 1 ) {
+			systemL("gzip $outdir/demultiplexed/*.fq");
+			
 			printL frame("Demultiplexed intput files with no quality filtering to:\n$sdmDemultiDir\nFinished task, if you want to have a complete LotuS run, change option \"-saveDemultiplex 0\".\n",1),0;
+			
 			exit(0);
 		}
 		if ( $saveDemulti == 3 && $exec == 0 )

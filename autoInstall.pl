@@ -1306,7 +1306,7 @@ sub get_programs{
 	unlink($ctar);
 	$callret = system("make -C $cdhitdir");
 	if ($callret != 0){
-		print "\n\n=================\nProblem while compiling CD-HIT.\n"; $finalWarning.="CD-HIT did not compile. The -UP 3 option will not be available to LotuS unless you reinstall cd-hit-est manually (lotus.cfg). \n";
+		print "\n\n=================\nProblem while compiling CD-HIT.\n"; $finalWarning.="CD-HIT did not compile. The -UP 3 option will not be available to LotuS unless you reinstall cd-hit-est manually (and add to lotus.cfg). \n";
 	} else {
 		system("chmod +x $cexe");
 		@txt = addInfoLtS("cd-hit",$cexe,\@txt,1);
