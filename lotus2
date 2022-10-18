@@ -893,7 +893,7 @@ sub sdmStep1{
 		#for valid paired output, need to keep them together..
 		$sdmOptStr .= " -pairedDemulti 1" if ($numInput > 1);
 
-		$sdmOptStr .= " -o_demultiplex_gz 0" if ($ClusterPipe != 7 || $saveDemulti == 1);#for dada2 leave files.. (saveDemulti==1 exits before clustering)
+		$sdmOptStr .= " -o_demultiplex_gz 1" if ($ClusterPipe != 7 || $saveDemulti == 1);#for dada2 leave files.. (saveDemulti==1 exits before clustering)
 		if ($ClusterPipe == 7){ #dada2.. no rd pair info in head!
 			$sdmOptStr .= " -pairedRD_HD_out 0 -derep_format fq -derepPerSR 1 -DemultiBPperSR 1e8";
 			$sdmDemultiDir = "$lotus_tempDir/demultiplexed/" if ($saveDemulti == 0);
@@ -955,11 +955,11 @@ sub sdmStep1{
 	}
 	my $mrgOpt = "";#" -merge_pairs 1";
 	my $multCore = ""; $multCore = " -threads $sdmThreads";
-
+#--------------------------------------------------------------------------
 	#primary sequence filtering + demultiplexing + dereplication
 	$sdmcmd = "$sdmBin $sdmIn $sdmOut -sample_sep $sep_smplID  -log $mainSDMlog -map $cpMapFile $sdmMergeOpt $sdmOptStr $demultiSaveCmd $derepCmd $dmgCmd $qualOffset -paired $paired $paired_sdm -maxReadsPerOutput $linesPerFile -oneLineFastaFormat 1 $mrgOpt $multCore ";    #4000000
 	#die $sdmcmd."\n";
-
+#--------------------------------------------------------------------------
 
 	if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 		#$duration = time - $start;
@@ -6407,6 +6407,7 @@ sub buildOTUs($) {
         my $restUC = "$lotus_tempDir/rests.uc";
 		
 		$cmd .= "$sdmBin -i $derepl.rest -o_fna $derepl.rest1;rm -f $derepl.rest;mv $derepl.rest1 $derepl.rest;" if ($VSused);
+		#die $cmd;
 		if ($useMini4map == 0){
 			$cmd .=  "$VSBin -usearch_global $derepl.rest -db $OTUfastaTmp -uc $restUC $userachDffOpt $vsearchSpcfcOpt;";#-threads  $BlastCores";
 		} else {
