@@ -68,7 +68,10 @@ LotuS: http://www.microbiomejournal.com/content/2/1/30
 (c) Falk.Hildebrand {at} gmail.com
 
 **Please cite LotuS2 with:**
-Bedarf JR, Beraza N, Khazneh H, Özkurt E, ..., Hildebrand F (2021) Much ado about nothing? Off-target amplification can lead to false-positive bacterial brain microbiome detection in healthy and Parkinson’s disease individuals. Microbiome ;9:75.
+
+**Pipeline** - Özkurt E, Fritscher J, et al. (2022) LotuS2: An ultrafast and highly accurate tool for amplicon sequencing analysis. Microbiome 10:176  doi:10.1186/s40168-022-01365-1.
+
+**offtarget removal** - Bedarf JR, Beraza N, Khazneh H, Özkurt E, et al (2021) Much ado about nothing? Off-target amplification can lead to false-positive bacterial brain microbiome detection in healthy and Parkinson’s disease individuals. Microbiome ;9:75.
 
 We would like to acknowledge the following proprietary software, that is used in LotuS2. Please acknowledge these if your LotuS2 run was using them (listed in LotuSLogS/citations.txt for each LotuS2 run):
 

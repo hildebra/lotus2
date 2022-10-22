@@ -145,7 +145,8 @@ my $FaProTax        = undef; #faprotax -> functional annotations from taxonomy~~
 
 # --------------------
 #general lOTUs parameters
-my $citations = "$selfID: Hildebrand F, Tadeo RY, Voigt AY, Bork P, Raes J. 2014. LotuS: an efficient and user-friendly OTU processing pipeline. Microbiome 2: 30.\n";
+#my $citations = "$selfID: Hildebrand F, Tadeo RY, Voigt AY, Bork P, Raes J. 2014. LotuS: an efficient and user-friendly OTU processing pipeline. Microbiome 2: 30.\n";
+my $citations = "$selfID: Özkurt E, Fritscher J, et al. (2022) LotuS2: An ultrafast and highly accurate tool for amplicon sequencing analysis. Microbiome 10:176  doi:10.1186/s40168-022-01365-1.\n";
 my $noChimChk = 0; #deactivate all chimera checks 1=no nothing, 2=no denovo, 3=no ref; default = 0
 my $mainLogFile = "";
 my $osname      = $^O;
