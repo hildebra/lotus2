@@ -224,7 +224,7 @@ my $minBit      = 120;
 my $minEval     = 1e-14;    #blast filtering; should be optimized to different platforms
 my @idThr = ( 97, 93, 93, 91, 88, 78, 0 );
 my $lengthTolerance =  0.85;     #length of hits to still consider valid, compared to longest match
-my $linesPerFile = 4000000;
+my $linesPerFile = -1; #4000000 .. -1 to deactivate
 my $otuRefDB =  "denovo"; #OTU building strategy: "denovo" (default), "ref_closed", "ref_open"
 my $doBlasting = -1;       #$doBlasting 2:lambda, 1:blast, 0:RDP, -1: ini value, 3:utax 4: vsearch 5: usearch
 my $doRDPing          = -1;    #0: not, 1:do RDP
@@ -858,6 +858,8 @@ sub sdmStep1{
 		}
 	}
 	my $qualOffset = " -o_qual_offset 33";       #33 for UPARSE
+	
+	
 	my $sdmOut     = $filOutCmd . $filterOut . " " . $filOutCmdAdd . $filterOutAdd . " ";
 	my $sdmIn      = "";
 	my $paired     = $numInput;
@@ -927,6 +929,7 @@ sub sdmStep1{
 	}
 	my $dmgCmd = "";
 	if ($damagedFQ) { $dmgCmd = " -ignore_IO_errors 1"; }
+	if ($linesPerFile > 0) { $dmgCmd = " -maxReadsPerOutput $linesPerFile"; }
 	my $mainSDMlog = "$logDir/demulti.log";
 	my $mainSDMdereplog = "$logDir/demulti.dereplication.log";
 	if ($TaxOnly ne "0"){
@@ -956,7 +959,7 @@ sub sdmStep1{
 	my $multCore = ""; $multCore = " -threads $sdmThreads";
 #--------------------------------------------------------------------------
 	#primary sequence filtering + demultiplexing + dereplication
-	$sdmcmd = "$sdmBin $sdmIn $sdmOut -sample_sep $sep_smplID  -log $mainSDMlog -map $cpMapFile $sdmMergeOpt $sdmOptStr $demultiSaveCmd $derepCmd $dmgCmd $qualOffset -paired $paired $paired_sdm -maxReadsPerOutput $linesPerFile -oneLineFastaFormat 1 $mrgOpt $multCore ";    #4000000
+	$sdmcmd = "$sdmBin $sdmIn $sdmOut -sample_sep $sep_smplID  -log $mainSDMlog -map $cpMapFile $sdmMergeOpt $sdmOptStr $demultiSaveCmd $derepCmd $dmgCmd $qualOffset -paired $paired $paired_sdm -oneLineFastaFormat 1 $mrgOpt $multCore ";
 	#die $sdmcmd."\n";
 #--------------------------------------------------------------------------
 
@@ -983,7 +986,7 @@ sub sdmStep1{
 			$citations .= "Poisson binomial model based read filtering: Fernando Puente-Sánchez, Jacobo Aguirre, Víctor Parro (2015).A novel conceptual approach to read-filtering in high-throughput amplicon sequencing studies. Nucleic Acids Res.(2015).\n";
 		}
 		
-		#final report
+		#final report, parse from output
 		my $shrtRpt = "";
 		my $midSent = "";
 		if($readSdmLog =~ m/(Reads processed:.*)/){$shrtRpt = $1;}
@@ -993,12 +996,17 @@ sub sdmStep1{
 		$readSdmLog =~ m/(Rejected:.*)/;
 		$shrtRpt .= "\n".$1;
 		#die "$readSdmDereLog\n";
+		
+		#DEREP: TODO: get from different SR blocks derep output
 		if (defined $readSdmDereLog && $readSdmDereLog ne ""){
-			if ($readSdmDereLog =~ m/(Dereplication: .*)/){
+
+			while ($readSdmDereLog =~ m/(Dereplication: .*counts\))/g){
+				$shrtRpt .= "\n$1";
+				$readSdmDereLog =~ m/([\d,]+\/[\d,]+ not passing derep.*counts; \d+\))/g;
 				$shrtRpt .= "\n$1";
 			}
 			if ($readSdmDereLog =~ m/([\d,]+\/[\d,]+ not passing derep.*)/){
-				$shrtRpt .= "\n$1";
+				#$shrtRpt .= "\n$1";
 			}
 		}
 		printL( frame("Finished primary read processing with sdm:\n".$shrtRpt."\nFor an extensive report see $mainSDMlog\n",1,3),0 );
@@ -2884,7 +2892,7 @@ sub prepLtsOptions{
 		exit(5);
 	}
 	if ( $platform eq "hiseq" ) {
-		$linesPerFile = 8000000;
+		#$linesPerFile = 8000000;
 		$sdmOpt = $sdmHiseqOpt if ($ClusterPipe_pre eq "CD-HIT"|| $ClusterPipe_pre eq "CDHIT" || $ClusterPipe_pre eq "3");
 	} elsif ( $platform eq "454" ) {
 		if ($sdmOpt eq ""){
