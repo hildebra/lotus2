@@ -892,7 +892,7 @@ sub sdmStep1{
 			$sdmDerepDo = 0;
 		}
 		#for valid paired output, need to keep them together..
-		$sdmOptStr .= " -pairedDemulti 1" if ($numInput > 1);
+		$sdmOptStr .= " -pairedDemulti 1" if ($paired > 1);
 
 		$sdmOptStr .= " -o_demultiplex_gz 1" if ($ClusterPipe != 7 || $saveDemulti == 1);#for dada2 leave files.. (saveDemulti==1 exits before clustering)
 		if ($ClusterPipe == 7){ #dada2.. no rd pair info in head!
@@ -918,10 +918,8 @@ sub sdmStep1{
 		} else {
 			$derepCmd .= " -suppressOutput 1";
 		}
-	}
-	else {
-		if ( $paired != 1 ) { $paired_sdm .= " -onlyPair 1"; }
-	}
+	}#	elsif ( $paired != 2 ) { $paired_sdm .= " -onlyPair 1"; }
+	
 	my $demultiSaveCmd = "";
 	if ( $sdmDemultiDir ne "" ) {
 		systemL "mkdir -p $sdmDemultiDir;" unless ( -d $sdmDemultiDir );
