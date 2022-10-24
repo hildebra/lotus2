@@ -999,15 +999,21 @@ sub sdmStep1{
 		
 		#DEREP: TODO: get from different SR blocks derep output
 		if (defined $readSdmDereLog && $readSdmDereLog ne ""){
-
+			my @dere1; my @dere2;
 			while ($readSdmDereLog =~ m/(Dereplication: .*counts\))/g){
-				$shrtRpt .= "\n$1";
-				$readSdmDereLog =~ m/([\d,]+\/[\d,]+ not passing derep.*counts; \d+\))/g;
-				$shrtRpt .= "\n$1";
+				push(@dere1,$1);
 			}
-			if ($readSdmDereLog =~ m/([\d,]+\/[\d,]+ not passing derep.*)/){
+			while ($readSdmDereLog =~ m/([\d,]+\/[\d,]+ not passing derep.*counts; \d+\))/g){
+				push(@dere2,$1);
+			}
+			for (my $i=0;$i<@dere1;$i++){
+				my $tmp = $dere1[$i]; $tmp =~ s/Dereplication:/Dereplication block $i:/;
+				$shrtRpt .= "\n$tmp"; 
+				$shrtRpt .= "\n\t$dere2[$i]" if (@dere2 > $i);
+			}
+			#if ($readSdmDereLog =~ m/([\d,]+\/[\d,]+ not passing derep.*)/){
 				#$shrtRpt .= "\n$1";
-			}
+			#}
 		}
 		printL( frame("Finished primary read processing with sdm:\n".$shrtRpt."\nFor an extensive report see $mainSDMlog\n",1,3),0 );
 
