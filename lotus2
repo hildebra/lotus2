@@ -471,10 +471,10 @@ if ( !-d $lotus_tempDir ) {
 
 if ($sdmThreads == -1){
 	$sdmThreads = $uthreads ;
-	$sdmThreads = 6 if ($sdmThreads > 6);
+	#$sdmThreads = 6 if ($sdmThreads > 6);
 } else {
-	printL ("Limiting sdm to 6 threads as IO performance negatively impacts sdm above 6 core count.\n",0);
-	$sdmThreads = 6 if ($sdmThreads > 6);
+	#printL ("Limiting sdm to 6 threads as IO performance negatively impacts sdm above 6 core count.\n",0);
+	#$sdmThreads = 6 if ($sdmThreads > 6);
 }
 
 #CONSTANT file paths
@@ -3133,9 +3133,9 @@ sub prepLtsOptions{
 
 	#die $LCABin."\n";
 	if ( substr( $ampliconType, 0, 3 ) eq "ITS" ) {
-		if ( $organism ne "fungi" && $organism ne "eukaryote" ) {
-			$organism = "eukaryote";
-			printL	"Setting \"-tax_group\" to \"eukaryote\" as only eukaryote and fungi are supported options for $ampliconType.\n","w";
+		if ( $organism ne "fungi" && $organism ne "eukarya" ) {
+			$organism = "eukarya";
+			printL	"Setting \"-tax_group\" to \"eukarya\" as only eukarya and fungi are supported options for $ampliconType.\n","w";
 		}
 
 		if (   $doBlasting == 0
@@ -3217,13 +3217,13 @@ my %workflow_options = (
 
 my $taxonomy_heading = "Taxonomy Options";
 my %taxonomy_options = (
-  '-refDB <SLV|GG|HITdb|PR2|UNITE|beetax>', '(SLV) Silva LSU (23/28S) or SSU (16/18S), (GG greengenes (only SSU available), (HITdb) (SSU, human gut specific), (PR2) LSU spezialized on Ocean environmentas, (UNITE) ITS fungi specific, (beetax) bee gut specific database and tax names. \nDecide which reference DB will be used for a similarity based taxonomy annotation. Databases can be combined, with the first having the highest priority. E.g. "PR2,SLV" would first use PR2 to assign OTUs and all unassigned OTUs would be searched for with SILVA, given that \"-amplicon_type LSU\" was set. Can also be a custom fasta formatted database: in this case provide the path to the fasta file as well as the path to the taxonomy for the sequences using -tax4refDB. For custom databases QIIME2 file formats are compatible if the delimiter in the QIIME2 taxonomy file is changed from semicolon to tab. See also online help on how to create a custom DB. (Default: SLV)',
+  '-refDB <SLV|GG|HITdb|PR2|UNITE|beetax>', '(SLV) Silva LSU (23/28S) or SSU (16/18S), (GG greengenes (only SSU available), (HITdb) (SSU, human gut specific), (PR2) LSU spezialized on Ocean environmentas, (UNITE) ITS fungi specific, (beetax) bee gut specific database and tax names. \nDecide which reference DB will be used for a similarity based taxonomy annotation. Databases can be combined, with the first having the highest priority. E.g. "HITdb,SLV" would first use PR2 to assign OTUs and all unassigned OTUs would be searched for with SILVA, given that \"-amplicon_type LSU\" was set. Can also be a custom fasta formatted database: in this case provide the path to the fasta file as well as the path to the taxonomy for the sequences using -tax4refDB. For custom databases QIIME2 file formats are compatible if the delimiter in the QIIME2 taxonomy file is changed from semicolon to tab. See also online help on how to create a custom DB. WARNING: combining databases with incompatible tax levels (e.g. PR2,SLV) will result in non sensical tax levels. (Default: SLV)',
   '-tax4refDB <file>', 'In conjunction with a custom fasta file provided to argument -refDB, this file contains for each fasta entry in the reference DB a taxonomic annotation string, with the same number of taxonomic levels for each, tab separated.',
-  '-amplicon_type <SSU|LSU|ITS|ITS1|ITS2>', '(SSU) small subunit (16S/18S), (LSU) large subunit (23S/28S) or internal transcribed spacer (ITS|ITS1|ITS2). (Default: SSU)',
-  '-tax_group <bacteria|fungi>', '(bacteria) bacterial 16S rDNA annnotation, (fungi) fungal 18S/23S/ITS annotation. (Default: bacteria)',
+  '-amplicon_type <SSU|LSU|ITS|ITS1|ITS2|custom>', '(SSU) small subunit (16S/18S), (LSU) large subunit (23S/28S) or internal transcribed spacer (ITS|ITS1|ITS2), (custom) for custom marker genes. These options will change default read qual filter parameters and activate ITS specific postfiltering steps. (Default: SSU)',
+  '-tax_group <bacteria|fungi|eukarya>', '(bacteria) bacterial 16S rDNA annnotation, (fungi) fungal 18S/23S/ITS annotation, (eukarya) eukaryotic (18S/23S) annotation. (Default: bacteria)',
   '-rdp_thr <0-1>', 'Confidence thresshold for RDP. (Default: 0.8)',
   '-sintax_thr <0-1>', 'Confidence thresshold for SINTAX. (Default: 0.8)',
-  '-taxAligner <0|blast|lambda|utax|vsearch|usearch>', 'Previously doBlast. (0) deactivated (just use RDP); (1) or (blast) use Blast; (2) or (lambda) use LAMBDA to search against a 16S reference database for taxonomic profiling of OTUs; (3) or (utax): use UTAX with custom databases; (4) or (vsearch) use VSEARCH to align OTUs to custom databases; (5) or (usearch) use USEARCH to align OTUs to custom databases. (Default: 0)',
+  '-taxAligner <0|blast|lambda|utax|sintax|vsearch|usearch>', '(0) deactivated (use RDPclassifier); (1) or (blast) use Blast; (2) or (lambda) use LAMBDA to search against a 16S reference database for taxonomic profiling of OTUs; (3) or (utax) or (sintax): use UTAX/SINTAX with custom databases; will use SINTAX if uparse ver >= 9 is found (4) or (vsearch) use VSEARCH to align OTUs to custom databases; (5) or (usearch) use USEARCH to align OTUs to custom databases. (Default: 0)',
   '-useBestBlastHitOnly <0|1>', '(1) do not use LCA (lowest common ancestor) to determine most likely taxonomic level (not recommended), instead just use the best blast hit. (0) LCA algorithm. (Default: 0)',
   '-LCA_cover <0-1>', 'Min horizontal coverage of an OTU sequence against ref DB. (Default: 0.5)',
   '-LCA_frac <0-1>', 'Min fraction of database hits at taxlevel, with identical taxonomy. (Default: 0.9)',
@@ -5006,8 +5006,10 @@ sub utaxTaxAssign($ $) {
 		}
 		 
     }
+	my $taxnm = "SINTAX";
 	if ($usearchVer < 9){
 		$cmd .= "$usBin -utax $query -db $utUdb -utaxout $taxblastf -strand both;";
+		$taxnm = "UTAX";
 	} else {
 		$cmd .= "$usBin -sintax $query -db $utUdb -tabbedout $taxblastf -threads $BlastCores -strand both;";
 	}
@@ -5015,10 +5017,10 @@ sub utaxTaxAssign($ $) {
     #die $utaCmd."\n";
 
     if ( $exec == 0 ) {
-        printL frame("Assigning taxonomy using SINTAX with confidence $taxLconf bp");
+        printL frame("Assigning taxonomy using $taxnm with confidence $taxLconf bp");
 
         #print $cmd."\n";
-        if ( systemL($cmd) ) { printL "SINTAX failed:\n$cmd\n", 3; }
+        if ( systemL($cmd) ) { printL "$taxnm failed:\n$cmd\n", 3; }
     }
     return $taxblastf;
 }
@@ -5201,7 +5203,7 @@ sub runRDP{
 	my $cmd="";
 
 	my $rdpGene = "16srrna";
-	$rdpGene = "fungallsu" if ( $organism eq "fungi" || $organism eq "eukaryote" );
+	$rdpGene = "fungallsu" if ( $organism eq "fungi" || $organism eq "eukarya" );
 	my $msg = "";
 	if ( $doRDPing > 0 && $mjar ne "" && -f $mjar ) {
 		$msg = "Assigning taxonomy with multiRDP";
