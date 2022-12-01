@@ -115,7 +115,7 @@ if (info$size == 0){
 
 matchs = read.table(matchL,header=FALSE,as.is=TRUE)
 otuM = read.table(otuF,header=TRUE,as.is=TRUE,row.names=1)
-if (dim(otuM)[1] <= 1){
+if (dim(otuM)[1] <= 1 || dim(otuM)[2] <= 1){
 	q("no");
 }
 

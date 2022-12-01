@@ -16,6 +16,12 @@ LotuS2 can be installed via conda https://anaconda.org/bioconda/lotus2
 ```{sh}
 conda install -c bioconda lotus2
 ```
+If there should be problems with the conda solver, try:
+```{sh}
+conda create -c conda-forge -c bioconda --strict-channel-priority -n lotus2 lotus2
+conda activate lotus2
+```
+
 Alternatively, often the github contains pre-release versions and can be installed via:
 ```{sh}
 git clone https://github.com/hildebra/lotus2.git

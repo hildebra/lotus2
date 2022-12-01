@@ -81,7 +81,7 @@ sub annotateFaProTax;
 sub systemW;
 
 #versioning
-my $selfID = "LotuS 2.22"; #release candidate
+my $selfID = "LotuS 2.23"; #release candidate
 
 
 #keep track of time
@@ -223,6 +223,7 @@ my $LCAminAliLen = 70; #how many bp of read hitting ref, to accept as valid?
 my $minBit      = 120;
 my $minEval     = 1e-14;    #blast filtering; should be optimized to different platforms
 my @idThr = ( 97, 93, 93, 91, 88, 78, 0 );
+my $idThreshs = "-1"; #override @idThr from cmd line
 my $lengthTolerance =  0.85;     #length of hits to still consider valid, compared to longest match
 my $linesPerFile = -1; #4000000 .. -1 to deactivate
 my $otuRefDB =  "denovo"; #OTU building strategy: "denovo" (default), "ref_closed", "ref_open"
@@ -308,7 +309,7 @@ GetOptions(
     "useBestBlastHitOnly=i" => \$maxHitOnly,
     "pseudoRefOTUcalling=i" => \$pseudoRefOTU,
     "greengenesSpecies=i"   => \$greengAnno,
-    "id=f"                  => \$id_OTU,
+    "id=f"                  => \$id_OTU, #clustering id for OTUs
     "xtalk=i"               => \$doXtalk,
     "saveDemultiplex=i"     => \$saveDemulti,        #1=yes, 0=not, 2=yes,unfiltered
     "rdp_thr=f"             => \$RDPCONF,
@@ -320,6 +321,7 @@ GetOptions(
     "sintax|utax_thr=f"     => \$utaxConf,
     "LCA_frac=f"            => \$LCAfraction,
 	"LCA_cover=f"           => \$LCAcover,
+	"LCA_idthresh=s"        => \$idThreshs,
     "chim_skew=f"           => \$chimera_absskew,		#miSeq,hiSeq,pacbio
     "p|platform=s"          => \$platform,
     "tolerateCorruptFq=i"   => \$damagedFQ,
@@ -1669,7 +1671,7 @@ sub lulu{
 	
 	printL(frame( "$LULUcnt ${OTU_prefix}'s removed with LULU\n"),0);
 
-	$citations .= "LULU: Frøslev, T. G., Kjøller, R., Bruun, H. H., Ejrnæs, R., Brunbjerg, A. K., Pietroni, C., & Hansen, A. J. (2017). Algorithm for post-clustering curation of DNA amplicon data yields reliable biodiversity estimates. Nature Communications, 8(1), 1188.\n";
+	$citations .= "LULU multicopy rRNA removal: Frøslev, T. G., Kjøller, R., Bruun, H. H., Ejrnæs, R., Brunbjerg, A. K., Pietroni, C., & Hansen, A. J. (2017). Algorithm for post-clustering curation of DNA amplicon data yields reliable biodiversity estimates. Nature Communications, 8(1), 1188.\n";
 	systemL "rm -f $lotus_tempDir/lulu_match_list.txt*";
 	return \%ret;
 }
@@ -2500,7 +2502,7 @@ sub readPaths {    #read tax databases and setup correct usage
         elsif ( $line =~ m/^REFDB_PHIX\s+(\S+)/ ) {
             $CONT_REFDB_PHIX = $1;
         }
-        elsif ( $line =~ m/^IdentityThresholds\s+(\S+)/ ) {
+        elsif ( $line =~ m/^IdentityThresholds\s+(\S+)/ && $idThreshs eq "-1") {
             my @spl = split( /,/, $1 );
             if ( scalar(@spl) == 6 ) {
                 push( @spl, 0 );
@@ -2508,8 +2510,7 @@ sub readPaths {    #read tax databases and setup correct usage
             if ( scalar(@spl) == 7 ) {
                 for ( my $i = 0 ; $i < @spl ; $i++ ) {
                     if ( $spl[$i] > 100 || $spl[$i] < 0 ) {
-                        print "Error reading \"IdentityThresholds\" from configuration file: every entry has to be <100 and >0. Found " . $spl[$i] . ".\n";
-                        exit(22);
+                        printL "Error reading \"IdentityThresholds\" from configuration file: every entry has to be <100 and >0. Found " . $spl[$i] . ".\n", 22;
                     }
                     $idThr[$i] = $spl[$i];
                 }
@@ -2625,7 +2626,7 @@ sub readPaths {    #read tax databases and setup correct usage
                 if ( !-f $TAX_REFDB[-1] || !-f $TAX_RANKS[-1] ) {
                     printL "Could not find PR2 files at \n$TAX_REFDB[-1]\n$TAX_RANKS[-1]\nPlease check that these files exist.\n",55;
                 }
-                $citations .= "PR2 LSU specific tax database - The Protist Ribosomal Reference database (PR2): a catalog of unicellular eukaryote Small Sub-Unit rRNA sequences with curated taxonomy. Laure Guillou, Dipankar Bachar, Stephane Audic, David Bass, Cedric Berney, Lucie Bittner, Christophe Boutte, Gaetan Burgaud, Colomban de Vargas, Johan Decelle, Javier del Campo, et al. Nucleic Acids Res (2013) Volume 41 Issue D1: Pp. D597-D604. \n";
+                $citations .= "PR2 LSU specific tax database: The Protist Ribosomal Reference database (PR2): a catalog of unicellular eukaryote Small Sub-Unit rRNA sequences with curated taxonomy. Laure Guillou, Dipankar Bachar, et al. Nucleic Acids Res (2013) Volume 41 Issue D1: Pp. D597-D604. \n";
                 push @refDBname, "PR2";
             }
             if ( $subrdbw =~ m/^GG$/ ) {
@@ -2637,7 +2638,7 @@ sub readPaths {    #read tax databases and setup correct usage
                 push @refDBname, "greengenes";
                 push @TAX_REFDB, $TAX_REFDB_GG;
                 push @TAX_RANKS, $GGinfile;
-                $citations .= "greengenes 16S database - McDonald D, Price MN, Goodrich J, Nawrocki EP, DeSantis TZ, Probst A, Andersen GL, Knight R, Hugenholtz P. 2012. An improved Greengenes taxonomy with explicit ranks for ecological and evolutionary analyses of bacteria and archaea. ISME J 6: 610–8.\n";
+                $citations .= "greengenes 16S database: McDonald D, Price MN, Goodrich J, Nawrocki EP, DeSantis TZ, Probst A, Andersen GL, Knight R, Hugenholtz P. 2012. An improved Greengenes taxonomy with explicit ranks for ecological and evolutionary analyses of bacteria and archaea. ISME J 6: 610–8.\n";
             }
 
             if ( $subrdbw =~ m/^BEETAX$/ ) {
@@ -2669,7 +2670,7 @@ sub readPaths {    #read tax databases and setup correct usage
                 if ( !-f $TAX_REFDB[-1] || !-f $TAX_RANKS[-1] ) {
                     printL "Could not find Silva DB files at \n$TAX_REFDB[-1]\n$TAX_RANKS[-1]\nPlease check that these files exist.\n",55;
                 }
-                $citations .= "SILVA 16S/18S database - Yilmaz P, Parfrey LW, Yarza P, Gerken J, Pruesse E, Quast C, Schweer T, Peplies J, Ludwig W, Glockner FO (2014) The SILVA and \"All-species Living Tree Project (LTP)\" taxonomic frameworks. Nucleic Acid Res. 42:D643-D648 \n";
+                $citations .= "SILVA 16S/18S database: Yilmaz P, Parfrey LW, Yarza P, Gerken J, Pruesse E, Quast C, Schweer T, Peplies J, Ludwig W, Glockner FO (2014) The SILVA and \"All-species Living Tree Project (LTP)\" taxonomic frameworks. Nucleic Acid Res. 42:D643-D648 \n";
 
             }
             if ( @refDBname == 0 ) {
@@ -2773,10 +2774,16 @@ sub announce_options{
 		printL "deNovo Chimera check    Yes\n", 0;
 	}
 	#taxonomy options
-	my $extraTaxInfo = "";
-	$extraTaxInfo = " (-LCA_frac $LCAfraction, -LCA_cover $LCAcover, ids ". join(",",@idThr) .", -useBestBlastHitOnly $maxHitOnly)" if ($doBlasting>0 && $doBlasting!=3);
-	$extraTaxInfo = " (-sintax_thr $utaxConf)" if ($doBlasting==3);#utax
-	$extraTaxInfo = " (-rdp_thr  $RDPCONF)" if ($doBlasting==0);#RDP
+	my $extraTaxInfo = " (";
+	if ($doBlasting>0 && $doBlasting!=3){
+		$extraTaxInfo .= "-LCA_frac $LCAfraction, -LCA_cover $LCAcover, -LCA_idthresh ". join(",",@idThr) ."";
+		$extraTaxInfo .=", -useBestBlastHitOnly $maxHitOnly)" if ($maxHitOnly) ;
+	} elsif  ($doBlasting==3){
+		$extraTaxInfo .= "-sintax_thr $utaxConf" ;#utax
+	} elsif ($doBlasting==0){
+		$extraTaxInfo .= "-rdp_thr  $RDPCONF" ;#RDP
+	}
+	$extraTaxInfo .= ")" unless ($extraTaxInfo eq " (");
 	printL "Tax assignment          $taxMapperName$extraTaxInfo\n",0;
 
 	if ( $doBlasting >0 ) {
@@ -2927,6 +2934,19 @@ sub prepLtsOptions{
 		}
 		if (!-e $sdmOpt){
 			printL "Could not find sdm options file (specified via \"-s $sdmOpt\"). Please make sure this is available.\n Aborting run..\n",33;
+		}
+	}
+	
+	if ($idThreshs ne "-1"){
+		#die ;
+		#printL "Using custom LCA %id thresholds: $idThreshs\n";
+		my @spl = split /,/,$idThreshs;
+		printL "-LCA_idthresh should be 6 comma separated integers, aborting\n",834 unless (@spl == 6 || @spl == 7);
+		for (my $i=0;$i<@spl;$i++){
+			if ( $spl[$i] > 100 || $spl[$i] < 0 ) {
+				printL "Error in arg -LCA_idthresh: every entry has to be <100 and >0. Found " . $spl[$i] . ".\n", 22;
+			}
+			$idThr[$i] = int($spl[$i]);
 		}
 	}
 
@@ -3227,6 +3247,7 @@ my %taxonomy_options = (
   '-useBestBlastHitOnly <0|1>', '(1) do not use LCA (lowest common ancestor) to determine most likely taxonomic level (not recommended), instead just use the best blast hit. (0) LCA algorithm. (Default: 0)',
   '-LCA_cover <0-1>', 'Min horizontal coverage of an OTU sequence against ref DB. (Default: 0.5)',
   '-LCA_frac <0-1>', 'Min fraction of database hits at taxlevel, with identical taxonomy. (Default: 0.9)',
+  '-LCA_idthresh <97,95,93,91,88,78>','6 numbers, comma separated, that are min %id of OTU/ASV fasta to ref database, to assign taxonomy to OTU/ASV at this taxonomic level',
   '-taxExcludeGrep <string>', 'Exclude taxonomic group, these OTUs will be assigned as unknown instead. E.g. -taxExcludeGrep Chloroplast|Mitochondria (Default: )',
   '-greengenesSpecies <0|1>', '(1) Create greengenes output labels instead of OTU (to be used with greengenes specific programs such as BugBase). (Default: 0)',
   '-ITSx <0|1>', '(1) use ITSx to only retain OTUs fitting to ITS1/ITS2 hmm models; (0) deactivate. (Default: 1)',
@@ -3689,7 +3710,7 @@ sub buildTree($ $) {
 		systemL $cmd;
         
         #$citations .= "Clustalo multiple sequence alignments: Sievers F, Wilm A, Dineen D, Gibson TJ, Karplus K, Li W, Lopez R, McWilliam H, Remmert M, Söding J, et al. 2011. Fast, scalable generation of high-quality protein multiple sequence alignments using Clustal Omega. Mol Syst Biol 7: 539.\n";
-		$citations .= "======== Phylogenetic tree building ========\nKatoh K, Misawa K, Kuma K, Miyata T. MAFFT: a novel method for rapid multiple sequence alignment based on fast Fourier transform. Nucleic Acids Res. 2002;30(14):3059-3066. doi:10.1093/nar/gkf436";
+		$citations .= "======== Phylogenetic tree building ========\nKatoh K, Misawa K, Kuma K, Miyata T. MAFFT: a novel method for rapid multiple sequence alignment based on fast Fourier transform. Nucleic Acids Res. 2002;30(14):3059-3066. doi:10.1093/nar/gkf436\n";
     } elsif ($onlyTaxRedo) { printL "Skipping Multiple Alignment step\n", 0; }
     if ( $exec == 0 && $onlyTaxRedo == 0 ) {
 		if ( !-f $multAli ) {
@@ -3711,7 +3732,7 @@ sub buildTree($ $) {
                 printL "FAILED tree building command: " . $cmd . "\n", 5;
             }
             #$citations .="FastTree2 phylogenetic tree construction for OTUs: Price MN, Dehal PS, Arkin AP. 2010. FastTree 2--approximately maximum-likelihood trees for large alignments. ed. A.F.Y. Poon. PLoS One 5: e9490.\n";
-			$citations .= "Nguyen, L.-T., Schmidt, H. A., von Haeseler, A. & Minh, B. Q. IQ-TREE: A Fast and Effective Stochastic Algorithm for Estimating Maximum-Likelihood Phylogenies. Mol. Biol. Evol. 32, 268–274 (2015)."
+			$citations .= "Phylogenetic tree reconstruction: Nguyen, L.-T., Schmidt, H. A., von Haeseler, A. & Minh, B. Q. IQ-TREE: A Fast and Effective Stochastic Algorithm for Estimating Maximum-Likelihood Phylogenies. Mol. Biol. Evol. 32, 268–274 (2015).\n"
         }
     } elsif ($onlyTaxRedo) { 
 		printL frame("Skipping Tree building step\n"), 0; 
@@ -6139,7 +6160,7 @@ sub buildOTUs($) {
 		
 
 		$cmd = "$usBin -cluster_otus $derepl -otus $OTUfastaTmp $idLabel $id_OTUup -minsize 1 -log $logDir/UPARSE.log $xtraOptions;";  
-		$citations .= "UPARSE v$usearchVer ${OTU_prefix} clustering - Edgar RC. 2013. UPARSE: highly accurate OTU sequences from microbial amplicon reads. Nat Methods.\n";
+		$citations .= "UPARSE v$usearchVer ${OTU_prefix} clustering: Edgar RC. 2013. UPARSE: highly accurate OTU sequences from microbial amplicon reads. Nat Methods.\n";
 		#die $cmd."\n";
 	}
 	elsif ( $ClusterPipe == 7 ) { #dada2
@@ -6153,7 +6174,7 @@ sub buildOTUs($) {
 		#$cmd .= "cp $sdmDemultiDir/uniqueSeqs.fna $outdir/primary/;gzip $outdir/primary//uniqueSeqs.fna;";
 		$cmd .= "rm -rf $sdmDemultiDir;" if ($saveDemulti==0);
 		#die "$cmd\n";
-		$citations .= "DADA2 ASV clustering - Callahan BJ, McMurdie PJ, Rosen MJ, et al. DADA2: High-resolution sample inference from Illumina amplicon data. Nat Methods 2016;13:581–3. doi:10.1038/nmeth.3869\n";
+		$citations .= "DADA2 ASV clustering: Callahan BJ, McMurdie PJ, Rosen MJ, et al. DADA2: High-resolution sample inference from Illumina amplicon data. Nat Methods 2016;13:581–3. doi:10.1038/nmeth.3869\n";
 		$entrMessage = "DADA2 ${OTU_prefix} clustering\ncheck progress at $progOutPut";
 	}
 	elsif ( $ClusterPipe == 6 ) { #unoise3
@@ -6161,7 +6182,7 @@ sub buildOTUs($) {
 		#printL("\n =========================================================================\n UNOISE core routine\n Cluster at ". 100 * $id_OTU . "%\n=========================================================================\n",0);
 
 		$cmd = "$usBin -unoise3 $derepl -zotus $OTUfastaTmp -minsize 0 -tabbedout $logDir/unoise3_longreport.txt -log $logDir/unoise3.log;";   
-		$citations .= "UNOISE v$usearchVer ASV (zOTU) clustering - R.C. Edgar (2016), UNOISE2: improved error-correction for Illumina 16S and ITS amplicon sequencing, https://doi.org/10.1101/081257 \n";
+		$citations .= "UNOISE v$usearchVer ASV (zOTU) clustering: R.C. Edgar (2016), UNOISE2: improved error-correction for Illumina 16S and ITS amplicon sequencing, https://doi.org/10.1101/081257 \n";
 		#die $cmd."\n";
 	} elsif ( $ClusterPipe == 2 ) {
 
@@ -6175,7 +6196,7 @@ sub buildOTUs($) {
 		my $dofasti    = "-f ";
 		if ( $swarmClus_d > 1 ) { $dofasti = ""; }
 		$cmd = "$swarmBin -z $dofasti -u $uclustFile -t $uthreads -w $OTUfastaTmp --ceiling 4024 -s $logDir/SWARMstats.log -l $logDir/SWARM.log -o $lotus_tempDir/otus.swarm -d $swarmClus_d < $derepl;";
-		$citations .= "swarm v2 ${OTU_prefix} clustering - Mahé F, Rognes T, Quince C, de Vargas C, Dunthorn M. 2015. Swarm v2: highly-scalable and high-resolution amplicon clustering. PeerJ. DOI: 10.7717/peerj.1420\n";
+		$citations .= "swarm v2 ${OTU_prefix} clustering: Mahé F, Rognes T, Quince C, de Vargas C, Dunthorn M. 2015. Swarm v2: highly-scalable and high-resolution amplicon clustering. PeerJ. DOI: 10.7717/peerj.1420\n";
 	} elsif ($ClusterPipe == 8){ #vsearch
 		$entrMessage = "VSEARCH ${OTU_prefix} clustering\n Cluster at ". 100 * $id_OTU ;
 		$cmd = "$VSBin --cluster_size $derepl --id 0.97 --sizein --strand both --consout $OTUfastaTmp --sizeout --uc $finalClustMap;";
@@ -6218,7 +6239,7 @@ sub buildOTUs($) {
 		$cmd ="$dnaclustBin -i $derepl -s $id_OTU -t $uthreads --assign-ambiguous $dnaClOpt > $dnaclustOut ;";
 
 		#die $cmd."\n";
-		$citations .="DNACLUST - Ghodsi, M., Liu, B., & Pop, M. (2011). DNACLUST: accurate and efficient clustering of phylogenetic marker genes. BMC Bioinformatics, 12, 271. \n";
+		$citations .="DNACLUST: Ghodsi, M., Liu, B., & Pop, M. (2011). DNACLUST: accurate and efficient clustering of phylogenetic marker genes. BMC Bioinformatics, 12, 271. \n";
 	}elsif ( $ClusterPipe == 5 ) {    #micca
 		die "-CL 5 not supported\n";
 		 #"$otuclustBin $derepl -s $id_OTU  --out-clust $otuclust_clust --out-rep $OTUfastaTmp -f fasta -c"; #-d: fast
@@ -6516,7 +6537,7 @@ sub annotateFaProTax{
 	my ($hir,$FaPr) = @_;
 	return unless (defined($FaPr));
 	
-	 $citations .= 	"FaProTax (functional abundances based on OTUs) - Louca, S., Parfrey, L.W., Doebeli, M. (2016) - Decoupling function and taxonomy in the global ocean microbiome. Science 353:1272-1277\n";
+	 $citations .= 	"FaProTax (functional abundances based on OTUs): Louca, S., Parfrey, L.W., Doebeli, M. (2016) - Decoupling function and taxonomy in the global ocean microbiome. Science 353:1272-1277\n";
 	
 }
 
