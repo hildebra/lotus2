@@ -231,7 +231,8 @@ my $doBlasting = -1;       #$doBlasting 2:lambda, 1:blast, 0:RDP, -1: ini value,
 my $doRDPing          = -1;    #0: not, 1:do RDP
 my $doBlasting_pre    = "-1";
 my $taxMapperName = "RDP";
-my $custContamCheckDB = "";
+my $custContamCheckDB = ""; #remove OTUs matching to this DB
+my $custKeepOTUDB = ""; #keep OTUs with matches to this DB
 my $lowMemLambI       = 0;
 
 # --------------------
@@ -341,6 +342,7 @@ GetOptions(
     "OTUbuild=s"            => \$otuRefDB,
     "count_chimeras"        => \$chimCnt,            #T or F
     "offtargetDB=s"         => \$custContamCheckDB,
+	"intargetDB=s"          => \$custKeepOTUDB,
     "flash_param=s"         => \$flashCustom,
     "deactivateChimeraCheck=i"=> \$noChimChk,
 	#"VsearchChimera=i"		=> \$useVsearch,
@@ -637,7 +639,7 @@ if ($TaxOnly ne "0" && -f $TaxOnly){
 #my $lnkHref = numberOTUs($tmpOTU,$OTUfa,${OTU_prefix});
 #new algo 0.97: don't need to rename reads any longer (and keep track of this), done by sdm - but no backlinging to uparse any longer
 #/////////////////////////////////////////  check for contaminants /////////////////////
-my $OTUrefDBlnk;
+my $OTUrefDBlnk;my %keepO=();
 if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 	#first remove denovo OTUs.. pretty much a no-brainer
 	chimera_denovo($OTUSEED);
@@ -648,9 +650,12 @@ if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 	#V-Xtractor
 	my $nonVXTRs = vfxtractor($OTUSEED);
     #phiX
-	my $phiXhref = contamination_rem( $OTUSEED, $CONT_REFDB_PHIX, "phiX" );
+	my $phiXhref = contamination_rem( $OTUSEED, $CONT_REFDB_PHIX, "phiX" ,0 );
     #custom DB for contamination - off-target
-	my $xtraConthref = contamination_rem( $OTUSEED, $custContamCheckDB, "offTarget" );
+	my $xtraConthref = contamination_rem( $OTUSEED, $custContamCheckDB, "offTarget", 0 );
+	
+	
+	
 	#merge contamination results..
 	${$xtraConthref}{"phiX"} = ${$phiXhref}{"phiX"} ;
 	${$xtraConthref}{"ITSx"} = $nonITShref;
@@ -668,6 +673,18 @@ if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 	
 	my $luluref= lulu($OTUfa,$OTUmFile);
 	${$xtraConthref}{"LULU"} = $luluref;
+	
+	#keep these OTUs no matter what (also through taxa filter)
+	if ($custKeepOTUDB ne ""){
+		my $keepersHR = contamination_rem( $OTUSEED, $custKeepOTUDB, "inTarget", 1 );
+		my %keepers = %{$keepersHR}; 
+		foreach my $kk (keys %keepers){
+			foreach my $otus (keys %{$keepers{$kk}}){
+				$keepO{$otus} .= "$kk.";
+			}
+		}
+	}
+
 	
 	#integrate all these filters now
     $OTUrefDBlnk = clean_otu_mat($OTUfa,$OTUrefSEED, $OTUmFile,
@@ -1336,16 +1353,16 @@ sub ITSxOTUs {
 	#die $cmd."\n";
 }
 
-sub contamination_rem($ $ $ ) {
-    my ( $otusFA, $refDB1, $nameRDB1 ) = @_;
+sub contamination_rem($ $ $ $) {
+    my ( $otusFA, $refDB1, $nameRDB1 , $inTarget) = @_;
 	my @refDBs = split /,/,$refDB1;
 	my $contRemStr=0;
-	my $hr = readFasta($otusFA);
-	my %OTUs = %{$hr};
 	my %totHits;
 	my %ret;
+	my $processName = "contaminated"; my $processShrt = "cont";
+	if ($inTarget){$processName = "in-target"; $processShrt = "inTar";}
 	
-	if (!$doPhiX && $nameRDB1 =~ m/^phiX/){
+	if (!$doPhiX && $nameRDB1 =~ m/^phiX/ && !$inTarget){
 		return \%ret;
 	}
 	
@@ -1355,8 +1372,9 @@ sub contamination_rem($ $ $ ) {
 	foreach (my $i=0;$i<@refDBs;$i++){
 		my $refDB = $refDBs[$i];
 		my $nameRDB = "$nameRDB1.$i";
-
-		my $outContaminated = "$logDir/out.cont.$nameRDB.fna";
+		
+		
+		my $outContaminated = "$logDir/out.$processShrt.$nameRDB.fna";
 		my $required        = 1;
 		if ( $refDB eq "" ) { $required = 0; }
 		systemL "rm -f $outContaminated;" if ( -e $outContaminated );
@@ -1367,10 +1385,10 @@ sub contamination_rem($ $ $ ) {
 			#die "hex seq to 50kb pieces\n";
 			my $hexDB = $refDB;
 			$hexDB .= ".lts.fna";
-			my $hitsFile = $otusFA . ".$nameRDB.cont_hit.uc";
+			my $hitsFile = $otusFA . ".$nameRDB.${processShrt}_hit.uc";
 			
 			if ($nameRDB ne "PhiX"){ #minimap2, now default
-				$hitsFile= "$otusFA.$nameRDB.cont_hit.paf";
+				$hitsFile= "$otusFA.$nameRDB.${processShrt}_hit.paf";
 				$cmd = "$mini2Bin  $mini2RdPreset -t $uthreads -o $hitsFile $refDB $otusFA;";
 				$matchAlgo = "minimap2";
 				#die "$cmd\n";
@@ -1406,15 +1424,15 @@ sub contamination_rem($ $ $ ) {
 			}
 			my @hitA = keys %hits;
 			my $storeContamIDsF = "$logDir/$nameRDB1.$nameRDB.otus";
-			my $Xtxt ="\n";
+			my $Xtxt ="";
 			#$Xtxt .= "\nIDs stored in $storeContamIDsF" if ($contRem);
-			if ($i==(@refDBs-1) && $anycontRem){
-				$Xtxt = "";
+			if ($i==(@refDBs-1) && $anycontRem && !$inTarget){
+				$Xtxt = "\n";
 				if ($keepOfftargets){$Xtxt .= ", will be retained in ${OTU_prefix} matrix.";} else {$Xtxt .= ", will be removed from ${OTU_prefix} matrix.";}
 				$Xtxt .= "\nEnsure to use option -keepUnclassified to retain all these in output matrix." if (!$keepUnclassified && $contRem );
 				$Xtxt .= "\n";
 			}
-			$Lreport .= "Found ". scalar(@hitA). " ${OTU_prefix}'s using $matchAlgo ($nameRDB: $refDB)$Xtxt";
+			$Lreport .= "Found $processName ". scalar(@hitA). " ${OTU_prefix}'s using $matchAlgo ($nameRDB: $refDB)$Xtxt";
 
 			#die ("@hits\n");
 			$anycontRem += $contRem;
@@ -1437,7 +1455,7 @@ sub contamination_rem($ $ $ ) {
 			#}
 			#print "\n\n\n\n\n\nWARN DEBUG TODO .95 .45 $outContaminated\n";
 		} elsif ($required) {
-			my $warnStr = "Could not check for contaminated OTUs, because ";
+			my $warnStr = "Could not check for $processName OTUs, because ";
 			unless ( $refDB ne "" && -f $refDB ) {
 				$warnStr .= "\"$nameRDB\" reference database \"$refDB\"did not exist.\n";
 			} else {  $warnStr .= "${OTU_prefix} fasta file was empty\n";
@@ -1466,6 +1484,8 @@ sub contamination_rem($ $ $ ) {
 	return \%totHits; #if ($contRemStr == 0);
 	
 	die; #should no longer go here..
+	my $hr = readFasta($otusFA);
+	my %OTUs = %{$hr};
 	$contRemStr = scalar(keys(%totHits));
 	#print "\n\n\"". scalar(keys %totHits) ."\n";
 	#print remaining OTUs
@@ -1691,10 +1711,18 @@ sub clean_otu_mat($ $ $ $) {
 			$xtraContCnt += scalar(keys(%{$Contam{$conta}}));
 		}
 		foreach my $otus (keys %{$Contam{$conta}}){
+			if (exists($keepO{$otus})){ #was part of keepers (in-target), don't remove..
+				if ($conta eq "phiX"){
+					$phiXCnt --;
+				} else {
+					$xtraContCnt --;
+				}
+				next ;
+			}
 			$contT{$otus} .= "$conta.";
 		}
-
 	}
+	
 	#search for local matchs of chimeras in clean reads
 	#get headers of OTUs
 	my $hr  = readFasta($OTUfa);
@@ -1789,6 +1817,12 @@ sub clean_otu_mat($ $ $ $) {
 		print O $newOname . "\t" . $OTUmat{$ot} . "\n";
 		if ( exists( $hds{$ot} ) ) {
 			print OF ">" . $newOname . "\n$hds{$ot}\n";
+			
+			#also keep track of this OTU, if in in-target list!
+			if (exists($keepO{$ot})){
+				$keepO{$newOname} = $keepO{$ot};
+			}
+			
 		}
 		elsif ( exists( $refHds{$ot} ) ) {
 			print OFR ">" . $newOname . "\n$refHds{$ot}\n" if ( $REFflag );
@@ -1807,7 +1841,7 @@ sub clean_otu_mat($ $ $ $) {
 	close O3x if ($extendedLogs) ;
 	#if ( $REFflag ) { unlink "$OTUfa.ref"; }
 
-
+	#report on what was done..
 	#writeFasta(\%newOTUs,$OTUfa);
 	$Lreport .= "Postfilter:\n"; 
 	my $chimTag = "chimeric";#$chimTag .= "/ITSx" if ($doITSx);
@@ -2819,6 +2853,12 @@ sub announce_options{
 		}
 	}
 	
+	if ($custKeepOTUDB ne ""){
+		printL "In-target DB    Searching (DB $custKeepOTUDB)\n",0;
+		printL "keeping in-target ${OTU_prefix}'s in matrix\n",0;
+
+	}
+	
 	printL "Crosstalk check         Yes\n",0 if ($doXtalk==1);
 	printL "ITSx check              Yes\n",0 if ($doITSx==1);
 
@@ -3230,6 +3270,7 @@ my %workflow_options = (
   '-keepOfftargets <0|1>', '(0)?!?: keep offtarget hits against offtargetDB in output fasta and otu matrix. (Default 0)',
   '-keepTmpFiles <0|1>', '(1) save extra tmp files like chimeric OTUs or the raw blast output in extra dir. (0) do not save these. (Default: 0)',
   '-keepUnclassified <0|1>', '(1) Includes unclassified OTUs (i.e. no match in RDP/Blast database) in OTU and taxa abundance matrix calculations. (0) does not take these OTUs into account. (Default: 1)',
+  '-intargetDB <file>', 'Keep all OTUs with good matches to this DB (.fa format). This option is useful if you have a set of known true positive 16S sequences, that might not be represented in your tax DB and would otherwise be removed through \"-keepUnclassified 1\".',
   '-tolerateCorruptFq <0|1>', '(1) Continue reading fastq files, even if single entries are incomplete (e.g. half of qual values missing). (0) Abort lotus run, if fastq file is corrupt. (Default: 0)',
   '-useVsearch <0|1>', '(0) Use usearch for internal tasks such as remapping reads on OTUs, chimera checks. (1) will use vsearch for these tasks. This option is independent of the -CL UPARSE/UNOISE option, and -taxAligner assignment usearch/vsearch options. (Default: 0)',
   '-mergePreClusterReads <0|1>', '(0) no merging or reads pre OTU/ASV/zOTU seq clustering, BUT read merging after seq clustering (to get better representative sequence). (1) Merge reads prior to seq clustering. WARNING!! This will considerably reduce the number of valid read pairs, as additional quality filters will be applied, algorithm is still in development !! (Default: 0)'
@@ -3237,7 +3278,7 @@ my %workflow_options = (
 
 my $taxonomy_heading = "Taxonomy Options";
 my %taxonomy_options = (
-  '-refDB <SLV|GG|HITdb|PR2|UNITE|beetax>', '(SLV) Silva LSU (23/28S) or SSU (16/18S), (GG greengenes (only SSU available), (HITdb) (SSU, human gut specific), (PR2) LSU spezialized on Ocean environmentas, (UNITE) ITS fungi specific, (beetax) bee gut specific database and tax names. \nDecide which reference DB will be used for a similarity based taxonomy annotation. Databases can be combined, with the first having the highest priority. E.g. "HITdb,SLV" would first use PR2 to assign OTUs and all unassigned OTUs would be searched for with SILVA, given that \"-amplicon_type LSU\" was set. Can also be a custom fasta formatted database: in this case provide the path to the fasta file as well as the path to the taxonomy for the sequences using -tax4refDB. For custom databases QIIME2 file formats are compatible if the delimiter in the QIIME2 taxonomy file is changed from semicolon to tab. See also online help on how to create a custom DB. WARNING: combining databases with incompatible tax levels (e.g. PR2,SLV) will result in non sensical tax levels. (Default: SLV)',
+  '-refDB <SLV|GG|HITdb|PR2|UNITE|beetax>', '(SLV) Silva LSU (23/28S) or SSU (16/18S), (GG greengenes (only SSU available), (HITdb) (SSU, human gut specific), (PR2) LSU spezialized on Ocean environmentas, (UNITE) ITS fungi specific, (beetax) bee gut specific database and tax names. Given that \"-amplicon_type \" was set to SSU or LSU, the appropriate DB in SLV would be used. \nDecide which reference DB will be used for a similarity based taxonomy annotation. Databases can be combined, with the first having the highest priority. E.g. "HITdb,SLV" would priority assign OTUs to PR2 taxonomy, but hits with a higher %id to SLV would be assigned to SLV. Can also be a custom fasta formatted database: in this case provide the path to the fasta file as well as the path to the taxonomy for the sequences using -tax4refDB. For custom databases QIIME2 file formats are compatible if the delimiter in the QIIME2 taxonomy file is changed from semicolon to tab. See also online help on how to create a custom DB. WARNING: combining databases with incompatible tax levels (e.g. PR2,SLV) will result in non sensical tax levels. (Default: SLV)',
   '-tax4refDB <file>', 'In conjunction with a custom fasta file provided to argument -refDB, this file contains for each fasta entry in the reference DB a taxonomic annotation string, with the same number of taxonomic levels for each, tab separated.',
   '-amplicon_type <SSU|LSU|ITS|ITS1|ITS2|custom>', '(SSU) small subunit (16S/18S), (LSU) large subunit (23S/28S) or internal transcribed spacer (ITS|ITS1|ITS2), (custom) for custom marker genes. These options will change default read qual filter parameters and activate ITS specific postfiltering steps. (Default: SSU)',
   '-tax_group <bacteria|fungi|eukarya>', '(bacteria) bacterial 16S rDNA annnotation, (fungi) fungal 18S/23S/ITS annotation, (eukarya) eukaryotic (18S/23S) annotation. (Default: bacteria)',
@@ -4389,6 +4430,7 @@ sub readRDPtax($) {
     my @taxLvls = ( "domain", "phylum", "class", "order", "family", "genus" );
     my @Hiera   = ();
     my %Fail;
+	my $keepNonetheless = 0;
 	#my @unclHier = ("?","?","?","?","?","?");
 
     #my %AvOTUs = %{$avOTUR};
@@ -4400,6 +4442,8 @@ sub readRDPtax($) {
 		#print $line."\n";
 		my @spl = split( "\t", $line );
 		next unless ( $spl[0] =~ m/^${OTU_prefix}/ && @spl > 3 );
+		
+
 
 		#print $spl[0]."\n";
 		if ( $rankN == -1 ) {
@@ -4414,8 +4458,11 @@ sub readRDPtax($) {
 
 		#phylum level class
 		if ( $spl[ $rankN + 5 ] < $RDPCONF ) {
-			$Fail{ $spl[0] } = 1;
-
+			if (exists($keepO{$spl[0]})){#OTU in in-target
+				#$keepNonetheless++;
+			} else {
+				$Fail{ $spl[0] } = 1;
+			}
 			#next;
 		}
 
@@ -4431,22 +4478,28 @@ sub readRDPtax($) {
 			}
 			if ( $spl[ $i + 2 ] < $RDPCONF ) {
 				$nhier .= "?\t";
-			}
-			else             { $nhier .= $spl[$i] . "\t"; }
+			} else { $nhier .= $spl[$i] . "\t"; }
 			if ( $i > @spl ) { last; }
 		}
 		$nhier .= "?" ; #push in species assignment
 		
 		#just remove entry if matches to unwanted..
 		if ($rankN != -1 && $taxExcludeGrep ne "" && $line =~ m/$taxExcludeGrep/){
-			$nhier = "$spl[0]\t?\t?\t?\t?\t?\t?\t?";
-			$remtax++;
+			if (exists($keepO{$spl[0]})){#OTU in in-target
+				$keepNonetheless++;
+			} else {
+				$nhier = "$spl[0]\t?\t?\t?\t?\t?\t?\t?";
+				$remtax++;
+			}
 		}
 
 		push( @Hiera, $nhier );
 	}
 	close T;
-	printL "Removed $remtax tax annotations (\"$taxExcludeGrep\")\n";
+	my $msg = "RDP tax assignments\n";
+	$msg .= "Removed $remtax ${OTU_prefix}'s based on taxonomic annotations to (\"$taxExcludeGrep\")\n" if ($taxExcludeGrep ne "");
+	$msg .= "Kept $keepNonetheless ${OTU_prefix}'s due to matches to in-targets,  despite matchin taxExclude term.\n" if ($keepNonetheless);
+	printL(frame($msg),0);
 
 
 	#write hier
@@ -5172,6 +5225,7 @@ sub findUnassigned($ $ $ ) {
     #my @t =keys %Fas; print "$t[0]\n";
     my $cnt    = 0;
     my $dcn    = 0;
+	my $keepNonetheless  = 0; #kept due to being in-target
     my @kk     = keys %Fas;
     my $totFas = @kk;
 
@@ -5182,18 +5236,20 @@ sub findUnassigned($ $ $ ) {
             $cnt++;
         }
         if ( @kk == 0 ) {
-            printL "Total of "
-              . ( $cnt - $dcn )
-              . " / $cnt reads have LCA assignments\n", 0;
+            printL "Total of " . ( $cnt - $dcn ) . " / $cnt reads have LCA assignments\n", 0;
         }
         else {
-            printL "$dcn / $cnt reads failed LCA assignments, checked $totFas reads.\n",
-              0;
+            printL "$dcn / $cnt reads failed LCA assignments, checked $totFas reads.\n", 0;
         }
         return;
     }
     foreach my $k ( keys %BT ) {
         my @curT = @{ $BT{$k} };
+		
+		if (exists($keepO{$k})){#OTU in in-target
+			$keepNonetheless++;
+			next;
+		}
 
         #print $k."\t${$BT{$k}}[0]   ${$BT{$k}}[2]\n"
         if ( @curT == 0 || $curT[0] eq "?" ) {    #|| $curT[1] eq "?"){
@@ -5211,7 +5267,11 @@ sub findUnassigned($ $ $ ) {
         #die if ($cnt ==100);
     }
     @kk = keys %Fas;
-    printL "$dcn / $cnt reads failed LCA assignments\nWriting " . @kk ." of previous $totFas reads for next iteration.\n", 0;
+	my $msg = "";
+    $msg .= "$dcn / $cnt reads failed LCA assignments.";
+	$msg .= " Kept $keepNonetheless of these due to being in in-target." if ($keepNonetheless>0);
+	$msg .= "\nWriting " . @kk ." of previous $totFas reads for next iteration.\n";
+	printL (frame($msg),0);
     open O, ">$outF" or die "can;t open unassigned fasta file $outF\n";
     foreach my $k (@kk) {
         print O ">" . $k . "\n" . $Fas{$k} . "\n";
@@ -5282,21 +5342,32 @@ sub reworkSIMhiera{
 	return if ($taxExcludeGrep eq "");
 	open IH,"<$inHf" or die $!;
 	open OH ,">$inHf.1" or die $!;
-	my $remtax=0; my $lcnt=0;
+	my $remtax=0; my $lcnt=0;	my $keptNonetheless=0;
+	#keep these OTUs from in-target
+	#foreach my $k(keys %keepO){print "$k ";}
 	while (my $line = <IH>){
 		$lcnt ++;
-		
-		if ($lcnt>1 && $line =~ m/$taxExcludeGrep/){
-			$line =~ m/(^\S+)\s/;
-			print OH $1 . "\t?\t?\t?\t?\t?\t?\t?\t?\n";
-			$remtax +=1;
-		} else {
-			print OH $line;
-		}
-		
+		$line =~ m/(^\S+)\s/; my $otu = $1;
+		if ($lcnt>1 && $line =~ m/$taxExcludeGrep/ ){
+			if (exists($keepO{$otu})){
+				$keptNonetheless++;
+				#print OH $line;
+			} else {
+				print OH $otu . "\t?\t?\t?\t?\t?\t?\t?\t?\n";
+				$remtax +=1;
+				next;
+			}
+		} 
+		print OH $line;		
+		#print $line;
 	}
 	close IH; close OH;
-	printL "Removed $remtax tax annotations (\"$taxExcludeGrep\")\n";
+	my $msg = "";
+	$msg .= "Removed $remtax tax annotations (\"$taxExcludeGrep\")\n";
+	if ($keptNonetheless>0){
+		$msg .= "$keptNonetheless/". $keptNonetheless+$remtax . " ${OTU_prefix}'s kept due to in-target hits, despite matchin taxExclude term.\n";
+	}
+	printL(frame($msg),0);
 	systemL ("rm $inHf;mv $inHf.1 $inHf");
 }
 
