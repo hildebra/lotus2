@@ -62,6 +62,28 @@ Building the lambda formatted SILVA reference database will take a long time the
 
 There are >60 flags with which you can further customize each LotuS2 run, but we try to optimize LotuS2 to work pretty well with just default options. Please run ./lotus2 to see these options.
 
+### Coustom Reference Database
+To use your own reference database for LotuS2, you can employ the flags -refDB and -tax4refDB to supply a fasta formated reference database and tab-delimited taxonomy file, respectively. The format of these is the same as in the database already installed with the LotuS2 autoinstall, e.g. have a look at DB/SLV_138_SSU.fasta and DB/SLV_138_LSU.tax for examples. In the *.tax file, the levels are fixed to 7 levels (kingdom, phylum, class, order, family, genus, species). These are demarked by tags k__; p__ ; etc and separated by a ";" character. In case tax information is missing, use "?" to inset this information, for example:
+
+FJ588878	k__Eukaryota; p__Phragmoplastophyta; c__?; o__?; f__?; g__?; s__Osyris wightiana
+
+Let's simulate using SILVA138 (SLV) as custom database now, with vsearch as search algorithm and uparse OTU clusering, using the following example (this might take some time and is dependent on having Silva and vsearch installed via autoInstall.pl):
+```{sh}
+./lotus2 -i Example/ -m Example/miSeqMap.sm.txt -o myTestRun3 -forwardPrimer GTGYCAGCMGCCGCGGTAA -reversePrimer GGACTACNVGGGTWTCTAAT -CL uparse -refDB SLV -taxAligner vsearch -tax4refDB DB/SLV_138_SSU.tax -refDB DB/SLV_138_SSU.fasta
+```
+
+We can make this even more complicated, by having both GG and SLV as complimentary databases searched, using either
+```{sh}
+./lotus2 -i Example/ -m Example/miSeqMap.sm.txt -o myTestRun3 -forwardPrimer GTGYCAGCMGCCGCGGTAA -reversePrimer GGACTACNVGGGTWTCTAAT -CL uparse -refDB SLV -taxAligner vsearch -tax4refDB DB/SLV_138_SSU.tax,DB/HITdb/HITdb_taxonomy.txt -refDB DB/SLV_138_SSU.fasta,DB/HITdb/HITdb_sequences.fna
+```
+or (this is a shortcut, possible because GG and SLV are in-built):
+
+```{sh}
+./lotus2 -i Example/ -m Example/miSeqMap.sm.txt -o myTestRun3 -forwardPrimer GTGYCAGCMGCCGCGGTAA -reversePrimer GGACTACNVGGGTWTCTAAT -CL uparse -refDB SLV -taxAligner vsearch -refDB SLV,HITdb
+```
+
+Note that "-refDB GG,SLV" and "-refDB SLV,GG" would likely give a different result, as GG is the primary annotation source in the first, SLV is primary in the second case.
+
 
 ## Publications related to LotuS2
 LotuS2: https://www.biorxiv.org/content/10.1101/2021.12.24.474111v1
@@ -71,6 +93,7 @@ offtarget removal: https://microbiomejournal.biomedcentral.com/articles/10.1186/
 LotuS: http://www.microbiomejournal.com/content/2/1/30
 
 ## Acknowledgements 
+LotuS2 was developed at Quadram Institute Bioscience (QIB) & Earlham Institaute (EI), Norwich, UK. Various memmbers of the Hildebrand group contributed to the pipelines (see publication Özkurt et al., 2022).
 (c) Falk.Hildebrand {at} gmail.com
 
 **Please cite LotuS2 with:**
