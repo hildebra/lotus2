@@ -46,8 +46,10 @@ If you installed LotuS2 via "git clone", you can get the latest release via "git
 LotuS2 has a built in mechanism to upgrade LotuS2, so that properitary programs & databases (once installed) don't have to be downloaded again. To use this feature a) install LotuS2 for the first time using the autoinstaller. 
 Once you know or want to check for new updates, simply excecute the autoinstaller again and you will be prompted if LotuS2 should be updated. In case no new updates are available, the autoinstaller will exit without making changes, so this function can be used frequently. New updates will be avaialble from the LotuS2 webpage (http://lotus2.earlham.ac.uk/) or from github (https://github.com/hildebra/lotus2).
 
-### EXAMPLES
-To test your installation, run a minimal example:
+## EXAMPLES
+To test your installation, run a minimal example using test files distributed with LotuS2
+*Note: files can be found relative to the lotus2 executable. If you used a conda installation, use "which lotus2", the databases and examples will be present in the shared conda folder*
+:
 ```{sh}
 ./lotus2 -i Example/ -m Example/miSeqMap.sm.txt -o myTestRun
 ```
@@ -63,16 +65,17 @@ Building the lambda formatted SILVA reference database will take a long time the
 There are >60 flags with which you can further customize each LotuS2 run, but we try to optimize LotuS2 to work pretty well with just default options. Please run ./lotus2 to see these options.
 
 ### Coustom Reference Database
-To use your own reference database for LotuS2, you can employ the flags -refDB and -tax4refDB to supply a fasta formated reference database and tab-delimited taxonomy file, respectively. The format of these is the same as in the database already installed with the LotuS2 autoinstall, e.g. have a look at DB/SLV_138_SSU.fasta and DB/SLV_138_LSU.tax for examples. In the *.tax file, the levels are fixed to 7 levels (kingdom, phylum, class, order, family, genus, species). These are demarked by tags k__; p__ ; etc and separated by a ";" character. In case tax information is missing, use "?" to inset this information, for example:
+To use your own reference database for LotuS2, you can employ the flags -refDB and -tax4refDB to supply a fasta formated reference database and tab-delimited taxonomy file, respectively. The format of these is the same as in the database already installed with the LotuS2 autoinstall, e.g. have a look at DB/SLV_138_SSU.fasta and DB/SLV_138_LSU.tax for examples. In the \*.tax file, the levels are fixed to 7 levels (kingdom, phylum, class, order, family, genus, species). These are demarked by tags k__; p__ ; etc and separated by a ";" character. In case tax information is missing, use "?" to inset this information, for example:
 
 FJ588878	k__Eukaryota; p__Phragmoplastophyta; c__?; o__?; f__?; g__?; s__Osyris wightiana
 
-Let's simulate using SILVA138 (SLV) as custom database now, with vsearch as search algorithm and uparse OTU clusering, using the following example (this might take some time and is dependent on having Silva and vsearch installed via autoInstall.pl):
+Let's simulate using SILVA138 (SLV) as custom database now, with vsearch as search algorithm and uparse OTU clusering, using the following example (this might take some time )
+*Note: databases are installed relative to the lotus2 excecutable (see above)*:
 ```{sh}
 ./lotus2 -tax4refDB DB/SLV_138_SSU.tax -refDB DB/SLV_138_SSU.fasta -i Example/ -m Example/miSeqMap.sm.txt -o myTestRun3 -forwardPrimer GTGYCAGCMGCCGCGGTAA -reversePrimer GGACTACNVGGGTWTCTAAT -CL uparse -refDB SLV -taxAligner vsearch 
 ```
 
-We can make this even more complicated, by having both GG and SLV as complimentary databases searched, using either
+We can make this even more complicated, by having both HitDB and SLV as complimentary databases searched, using either
 ```{sh}
 ./lotus2 -tax4refDB DB/SLV_138_SSU.tax,DB/HITdb/HITdb_taxonomy.txt -refDB DB/SLV_138_SSU.fasta,DB/HITdb/HITdb_sequences.fna -i Example/ -m Example/miSeqMap.sm.txt -o myTestRun3 -forwardPrimer GTGYCAGCMGCCGCGGTAA -reversePrimer GGACTACNVGGGTWTCTAAT -CL uparse -refDB SLV -taxAligner vsearch 
 ```
