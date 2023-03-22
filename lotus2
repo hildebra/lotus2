@@ -82,7 +82,7 @@ sub annotateFaProTax;
 sub systemW;
 
 #versioning
-my $selfID = "LotuS 2.24"; #release candidate
+my $selfID = "LotuS 2.25"; #release candidate
 
 
 #keep track of time
@@ -243,7 +243,8 @@ my $useVsearch = -1; # 1(vsearch) or 0(usearch) for chim check are being used, s
 #my $preferVsearch   = 0;      #0=use usearch always; 1=use vesarch always
 my $installUsearch = "";
 my $chimera_absskew = 2;      # Abundance skew for de novo chimera filtering # 2
-my $id_OTU          = .97;    # Id threshold for OTU clustering  #Default: .97
+my $id_OTU          = 0.97;    # Id threshold for OTU clustering  #Default: .97
+my $backMapID       = -1.; #0.97; #min cutoff for backmapping mid qual etc reads onto OTUs/ASVs..
 my $swarmClus_d     = 1;
 my $id_OTU_noise =
   .99;   # Id threshold for error correction (noise removal) round #Default: .99
@@ -313,6 +314,7 @@ GetOptions(
     "pseudoRefOTUcalling=i" => \$pseudoRefOTU,
     "greengenesSpecies=i"   => \$greengAnno,
     "id=f"                  => \$id_OTU, #clustering id for OTUs
+	"backmap_id=f"          => \$backMapID,
     "xtalk=i"               => \$doXtalk,
     "saveDemultiplex=i"     => \$saveDemulti,        #1=yes, 0=not, 2=yes,unfiltered
     "rdp_thr=f"             => \$RDPCONF,
@@ -471,6 +473,15 @@ if ( $id_OTU > 1 || $id_OTU < 0 ) {
     printL( "\"-id\" set to value <0 or >1: $id_OTU\nHas to be between 0 and 1\n", 2 );
 }
 
+if ($backMapID == -1.){
+	$backMapID = $id_OTU;
+	$backMapID = 0.99 if ($ClusterPipe ==6 || $ClusterPipe ==7);
+}
+
+if ($backMapID < $id_OTU){
+	finalWarnings("Backmapping %id cutoff ($backMapID) lower than OTU clustering threshhold ($id_OTU)!");
+}
+
 systemL("rm -f -r $lotus_tempDir;") if ( $exec == 0 );
 systemL("mkdir -p $lotus_tempDir;") unless ( -d $lotus_tempDir );
 if ( !-d $lotus_tempDir ) {
@@ -559,8 +570,8 @@ if ($REFflag){ #these need to be treated extra, as no new optimal ref seq needs 
     #systemL "cat $UCadditions"."REF"." >> $UCadditions"
 }
 
-my $mapRestr = "-id 97 -minQueryCov 0.8 ";
-$mapRestr = "-id 97 -minQueryCov 0.4 " if ($platform eq "pacbio");
+my $mapRestr = "-id " . ($backMapID*100) ." -minQueryCov 0.8 ";
+$mapRestr = "-id " . ($backMapID*100) ." -minQueryCov 0.4 " if ($platform eq "pacbio");
 
 my $sdmOut2 = "-o_fna $OTUSEED";
 if ( $numInput == 2 ) {
@@ -583,11 +594,12 @@ my $sdmcmd="";
 
 my $mainMapping = "-optimalRead2Cluster $ucFinalFile[0] ";
 $mainMapping = "-optimalRead2Cluster $tmpOTU.clstr " if ($ClusterPipe == 3);
-
+#$mainMapping .= "-minMapIDpct $backMapID "; #sdm:: cmdArgs["-minMapIDpct"] 
 #----------------  SEED extension -------------------
 #sdm based Seed extension of OTU clusters
 if ($sdmDerepDo) {
     $sdmIn = "-i_fastq $derepOutHQ";
+	
 	#$finalClustMap $finalAddMap $finalAddMapRef $finalRestMap $finalRestMapRef
     if ( $numInput == 2 ) { $sdmIn = "-i_fastq $derepOutHQ,$derepOutHQ2"; }
     $sdmcmd ="$sdmBin $sdmIn $sdmOut2 $upVer $mainMapping -paired $numInput -sample_sep $sep_smplID -derep_map $derepOutMap -options $sdmOpt $mergeOptions $qualOffset -mergedPairs $didMerge -log $logDir/SeedExtensionStats.txt  -OTU_fallback $tmpOTU -ucAdditionalCounts $ucFinalFile[1] -ucAdditionalCounts1 $ucFinalFile[3] -otu_matrix $OTUmFile $mapRestr -count_chimeras $chimCnt $refClusSDM";
@@ -1363,6 +1375,7 @@ sub contamination_rem($ $ $ $) {
 	my $contRemStr=0;
 	my %totHits;
 	my %ret;
+	my $minHitID = 0.9;
 	my $processName = "contaminated"; my $processShrt = "cont";
 	if ($inTarget){$processName = "in-target"; $processShrt = "inTar";}
 	
@@ -1399,12 +1412,12 @@ sub contamination_rem($ $ $ $) {
 			} elsif ( $VSused == 0 ) { #deprecated
 				$cmd = "$usBin -usearch_local $otusFA -db $refDB -uc $hitsFile  -query_cov .8 -log $logDir/$nameRDB"
 				  . "_contami_align.log ";
-				$cmd .= "-id .9 -threads $uthreads -strand both ;";
+				$cmd .= "-id $minHitID -threads $uthreads -strand both ;";
 				$matchAlgo = "usearch";
 			}
 			else {
 				$cmd = "$VSBin -usearch_local $otusFA -db $refDB --maxseqlength 99999999999 -uc $hitsFile --query_cov .8 -log $logDir/$nameRDB" . "_contami_align.log ";
-				$cmd .= "-maxhits 1 -top_hits_only -strand both -id .9 -threads $uthreads --dbmask none --qmask none; ";    #.95
+				$cmd .= "-maxhits 1 -top_hits_only -strand both -id $minHitID -threads $uthreads --dbmask none --qmask none; ";    #.95
 				$matchAlgo = "vsearch";
 			}
 
@@ -1416,7 +1429,7 @@ sub contamination_rem($ $ $ $) {
 				open I, "<", $hitsFile or die "Can't open search result file $hitsFile";
 				while (<I>) {my @spl = split(/\t/); 
 					#look for matches at 50% overlap, 90% ANI
-					if ( $spl[9] > $spl[6] * 0.5 || (($spl[9] / $spl[10]) > 0.9) ) { $hits{$spl[0]}=1; $contRem++; }
+					if ( $spl[9] > $spl[6] * 0.5 || (($spl[9] / $spl[10]) > $minHitID) ) { $hits{$spl[0]}=1; $contRem++; }
 				}
 				close I;
 			} else {
@@ -2800,7 +2813,7 @@ sub announce_options{
 	printL "Dereplication filter    $dereplicate_minsize\n", 0;
 	printL "Clustering algorithm    $clusteringNameStr into ${OTU_prefix}'s\n",0;
 	
-	printL "Read mapping (non tax)  $internalMapper\n",0;
+	printL "Read mapping to ${OTU_prefix}     $internalMapper, at $backMapID %id cutoff\n",0;
 	if ( $ClusterPipe == 2 ) {
 		printL "Swarm inter-cluster d   $swarmClus_d\n", 0;
 	} elsif ( $ClusterPipe == 0 ) {
@@ -3284,6 +3297,7 @@ my %workflow_options = (
   '-forwardPrimer <string>','give the forward primer used to amplify DNA region (e.g. 16S primer fwd)',
   '-reversePrimer <string>','give the reverse primer used to amplify DNA region (e.g. 16S primer rev)',
   '-verbosity <0-3>', 'Level of verbosity from printing all program calls and program output (3) to not even printing errors (0). (Default: 1)',
+  '-backmap_id <0-1>', '%id cutoff for backmapping mid-qual reads onto OTUs/zOTUs/ASVs (Default: 0.97 or 0.99 for ASVs/zOTUs)',
   '-saveDemultiplex <0|1|2|3>', '(1) Saves all demultiplexed reads (unfiltered) in the [outputdir]/demultiplexed folder, for easier data upload. (2) Only saves quality filtered demultiplexed reads and continues LotuS2 run subsequently. (3) Saves demultiplexed, filtered reads into a single fq, with sample ID in fastq/a header. (0) No demultiplexed reads are saved. (Default: 0)',
   '-taxOnly <file>', 'Skip most of the lotus pipeline and only run a taxonomic classification on a fasta file. E.g. lotus2 -taxOnly <some16S.fna> -refDB SLV',
   '-redoTaxOnly <0|1>', '(1) Only redo the taxonomic assignments (useful for replacing a DB used on a finished lotus run). (0) Normal lotus run. (Default: 0)',
@@ -6385,7 +6399,7 @@ sub buildOTUs($) {
     #backmap reads to OTUs/ASVs/zOTUs
     my $cnt = 0;
     my @allUCs;
-    my $userachDffOpt = "--maxhits 1 --query_cov 0.8 --maxrejects 200 -top_hits_only -strand both -id $id_OTU -threads $uthreads";
+    my $userachDffOpt = "--maxhits 1 --query_cov 0.8 --maxrejects 200 -top_hits_only -strand both -id $backMapID -threads $uthreads";
     my $vsearchSpcfcOpt = "";#" --minqt 0.8 ";
     #$vsearchSpcfcOpt = " --minqt 0.3 " if ( $platform eq "454" );
     $vsearchSpcfcOpt = "" if ( !$VSused );
@@ -6420,7 +6434,7 @@ sub buildOTUs($) {
 	$entrMessage .= "\n  - dereplicated reads" if ($backMapDerep);
 	$entrMessage .= "\n  - low-abundant dereplicated Reads" if ($backmapRest);
 	$entrMessage .= "\n  - mid-quality reads" if ($backmapMids);
-	$entrMessage .= "\nto ${OTU_prefix}'s using $internalMapper";
+	$entrMessage .= "\nto ${OTU_prefix}'s using $internalMapper at >= $backMapID identity.";
 	printL(frame($entrMessage,1,2),0) if ($backMapDerep || $backmapRest || $backmapMids);
 
 	$cmd = "";
@@ -6455,6 +6469,7 @@ sub buildOTUs($) {
 			
         }
 	} else {         #map all qual filtered files to OTUs
+	# !!!       deprecated             !!!!!!
 		die "Backmapping all reads no longer supported\n";
 		if ( $usearchVer >= 8 ) {
 			printL "\n\nWarning:: usearch v8 can potentially cause decreased lotus performance in seed extension step, when used with option -highMem 0\n\n", 0;
@@ -6469,7 +6484,8 @@ sub buildOTUs($) {
 		foreach my $fil (@lotsFiles) {
 			my $tmpUC = "$lotus_tempDir/tmpUCs.$cnt.uct";
 			push( @allUCs, $tmpUC );
-			$cmd = "$VSBin --usearch_global $fil -db $outfile -uc $tmpUC -strand both -id $id_OTU -threads $uthreads $vsearchSpcfcOpt;";    #-threads  $BlastCores";
+			
+			$cmd = "$VSBin --usearch_global $fil -db $outfile -uc $tmpUC -strand both -id $backMapID -threads $uthreads $vsearchSpcfcOpt;";    #-threads  $BlastCores";
 			if ( systemL($cmd) != 0 ) { exit(1); }
 			if ( $cnt > 0 ) {
 				combine( $fil, $filtered );
@@ -6514,7 +6530,7 @@ sub buildOTUs($) {
 				systemL( "cat $tmpUC >> " . $finalAddMap);
 				unlink $tmpUC;
 
-				#any ref DB to map onto??
+				#any ref DB to map onto??backMapID
 				if ( ($REFflag) && -s "$OTUfastaTmp.ref" ) {
 					if ($useMini4map == 0){
 						$cmd = "$VSBin -usearch_global $subF -db $OTUfastaTmp.ref -uc ". $tmpUC . " $userachDffOpt $vsearchSpcfcOpt;";    #-threads  $BlastCores";
