@@ -1410,13 +1410,14 @@ sub contamination_rem($ $ $ $) {
 				$matchAlgo = "minimap2";
 				#die "$cmd\n";
 			} elsif ( $VSused == 0 ) { #deprecated
-				$cmd = "$usBin -usearch_local $otusFA -db $refDB -uc $hitsFile  -query_cov .8 -log $logDir/$nameRDB"
+				$cmd = "$usBin --usearch_local $otusFA -db $refDB -uc $hitsFile  -query_cov .8 -log $logDir/$nameRDB"
 				  . "_contami_align.log ";
 				$cmd .= "-id $minHitID -threads $uthreads -strand both ;";
 				$matchAlgo = "usearch";
 			}
 			else {
-				$cmd = "$VSBin -usearch_local $otusFA -db $refDB --maxseqlength 99999999999 -uc $hitsFile --query_cov .8 -log $logDir/$nameRDB" . "_contami_align.log ";
+				#vsearch doesn't implement usearch_local
+				$cmd = "$VSBin --usearch_global $otusFA -db $refDB --maxseqlength 99999999999 -uc $hitsFile --query_cov .8 -log $logDir/$nameRDB" . "_contami_align.log ";
 				$cmd .= "-maxhits 1 -top_hits_only -strand both -id $minHitID -threads $uthreads --dbmask none --qmask none; ";    #.95
 				$matchAlgo = "vsearch";
 			}
@@ -5178,16 +5179,16 @@ sub doDBblasting($ $ $) {
 			}
         }
        if ($doBlasting == 4){ 
-		$cmd = "$VSBinOri ";
+		$cmd = "$VSBinOri --usearch_global $query ";
 			$citations .= "VSEARCH v$vsearchVer taxonomic database search: Rognes T, Flouri T, Nichols B, Quince C, Mahé F. (2016) VSEARCH: a versatile open source tool for metagenomics. PeerJ 4:e2584. doi: 10.7717/peerj.2584\n" unless ( $citations =~ m/VSEARCH taxonomic database search/ );
 	   }
 		$simMethod = "VSEARCH";
 		if ($doBlasting == 5){
-			$cmd = "$usBin "; 
+			$cmd = "$usBin --usearch_local $query "; 
 			$simMethod = "USEARCH";
 			$citations .= "USEARCH v$usearchVer taxonomic database search: Edgar RC. 2010. Search and clustering orders of magnitude faster than BLAST. Bioinforma 26:2460–2461.\n" unless ( $citations =~ m/USEARCH taxonomic database search/ );
 		}
-		$cmd .= "--usearch_local $query --db $udbDB  --id 0.75 --query_cov 0.5 -userfields $outCols -userout $taxblastf --maxaccepts 100 --maxrejects 200 -strand both --threads $BlastCores;";
+		$cmd .= "--db $udbDB  --id 0.75 --query_cov 0.5 -userfields $outCols -userout $taxblastf --maxaccepts 100 --maxrejects 200 -strand both --threads $BlastCores;";
 		#--blast6out $taxblastf
 		#die "$cmd\n";
     } elsif ( $doBlasting == 2 ) {    #lambda
