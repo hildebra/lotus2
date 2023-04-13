@@ -107,7 +107,9 @@ infernal bin//infernal-1.1.2-linux-intel-gcc/binaries/
 #unique identifier, can be used for debugging support
 UID ??
 #Threshold used in blast LCA algorithm to delimit taxonomic assignments, if OTU sequence is below %id to reference sequence. This can be delimited to 5 taxanomic levels (separated by ","): species, genus, family, class, order, phylum. E.g.: 97,95,92,90,88,85
-IdentityThresholds 97,95,93,91,88,78
+#IdentityThresholds 97,95,93,91,88,78
+#updated based on Yarza, P. et al. Uniting the classification of cultured and uncultured bacteria and archaea using 16S rRNA gene sequences. Nature Reviews. Microbiology 12, 635–645 (2014).: Table 1, Min seq id, uprounded
+IdentityThresholds 97,95,88,83,81,78
 
 #This will check for more & less important updates each time lotus is run. Note that we will never track your LotuS usuage in any way, this is purely a convenience option if desired.
 CheckForUpdates 0

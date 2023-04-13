@@ -5187,7 +5187,7 @@ sub doDBblasting($ $ $) {
 			$simMethod = "USEARCH";
 			$citations .= "USEARCH v$usearchVer taxonomic database search: Edgar RC. 2010. Search and clustering orders of magnitude faster than BLAST. Bioinforma 26:2460–2461.\n" unless ( $citations =~ m/USEARCH taxonomic database search/ );
 		}
-		$cmd .= "--usearch_global $query --db $udbDB  --id 0.75 --query_cov 0.5 -userfields $outCols -userout $taxblastf --maxaccepts 100 --maxrejects 100 -strand both --threads $BlastCores;";
+		$cmd .= "--usearch_local $query --db $udbDB  --id 0.75 --query_cov 0.5 -userfields $outCols -userout $taxblastf --maxaccepts 100 --maxrejects 200 -strand both --threads $BlastCores;";
 		#--blast6out $taxblastf
 		#die "$cmd\n";
     } elsif ( $doBlasting == 2 ) {    #lambda
