@@ -72,12 +72,12 @@ FJ588878	k__Eukaryota; p__Phragmoplastophyta; c__?; o__?; f__?; g__?; s__Osyris 
 Let's simulate using SILVA138 (SLV) as custom database now, with vsearch as search algorithm and uparse OTU clusering, using the following example (this might take some time )
 *Note: databases are installed relative to the lotus2 excecutable (see above)*:
 ```{sh}
-./lotus2 -tax4refDB DB/SLV_138_SSU.tax -refDB DB/SLV_138_SSU.fasta -i Example/ -m Example/miSeqMap.sm.txt -o myTestRun3 -forwardPrimer GTGYCAGCMGCCGCGGTAA -reversePrimer GGACTACNVGGGTWTCTAAT -CL uparse -refDB SLV -taxAligner vsearch 
+./lotus2 -tax4refDB DB/SLV_138_SSU.tax -refDB DB/SLV_138_SSU.fasta -i Example/ -m Example/miSeqMap.sm.txt -o myTestRun3 -forwardPrimer GTGYCAGCMGCCGCGGTAA -reversePrimer GGACTACNVGGGTWTCTAAT -CL uparse -taxAligner vsearch 
 ```
 
 We can make this even more complicated, by having both HitDB and SLV as complimentary databases searched, using either
 ```{sh}
-./lotus2 -tax4refDB DB/SLV_138_SSU.tax,DB/HITdb/HITdb_taxonomy.txt -refDB DB/SLV_138_SSU.fasta,DB/HITdb/HITdb_sequences.fna -i Example/ -m Example/miSeqMap.sm.txt -o myTestRun3 -forwardPrimer GTGYCAGCMGCCGCGGTAA -reversePrimer GGACTACNVGGGTWTCTAAT -CL uparse -refDB SLV -taxAligner vsearch 
+./lotus2 -tax4refDB DB/SLV_138_SSU.tax,DB/HITdb/HITdb_taxonomy.txt -refDB DB/SLV_138_SSU.fasta,DB/HITdb/HITdb_sequences.fna -i Example/ -m Example/miSeqMap.sm.txt -o myTestRun3 -forwardPrimer GTGYCAGCMGCCGCGGTAA -reversePrimer GGACTACNVGGGTWTCTAAT -CL uparse -taxAligner vsearch 
 ```
 or (this is a shortcut, possible because GG and SLV are in-built):
 

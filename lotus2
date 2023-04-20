@@ -363,7 +363,7 @@ GetOptions(
     # "flashAvgLength" => \$flashLength,
     #"flashAvgLengthSD" => \$flashSD,
 ) or usage();
-
+#die "$refDBwanted\n";
 
 #routines that are external of a proper 16S run
 if ($versionOut){
@@ -2971,14 +2971,19 @@ sub prepLtsOptions{
 		$doBlasting_pre = "2";
 		print "Greengenes ID as species ID requested (for integration with software that requires greengenes ID).\nUsing Lambda OTU similarity search and greengenes ref DB\n";
 	}    #
-	if ( -f $refDBwanted ) {
+	#die "$refDBwanted\n";
+	foreach my $refW (split /,/,$refDBwanted){
+		#print $refW."\n";
+		if ( -f $refW ) {
+			#die "$refDBwanted\n";
+		}elsif ( $refW =~ m/^GG|SLV|UNITE|HITDB|PR2|BEETAX$/i ) {
+			#$refDBwanted = uc($refDBwanted);
+		}elsif ( $refW ne "" ) {
+			print "$refDBwanted not recognized. Aborting..\n";
+			exit(5);
+		}
 	}
-	elsif ( $refDBwanted =~ m/^GG|SLV|UNITE|HITDB|PR2|BEETAX$/i ) {
-		#$refDBwanted = uc($refDBwanted);
-	}elsif ( $refDBwanted ne "" ) {
-		print "$refDBwanted not recognized. Aborting..\n";
-		exit(5);
-	}
+	#die;
 	if ( $platform eq "hiseq" ) {
 		#$linesPerFile = 8000000;
 		$sdmOpt = $sdmHiseqOpt if ($ClusterPipe_pre eq "CD-HIT"|| $ClusterPipe_pre eq "CDHIT" || $ClusterPipe_pre eq "3");
