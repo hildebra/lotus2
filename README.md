@@ -1,6 +1,4 @@
 # LotuS2
-[![Linux](https://svgshare.com/i/Zhy.svg)](https://svgshare.com/i/Zhy.svg)
-[![macOS](https://svgshare.com/i/ZjP.svg)](https://svgshare.com/i/ZjP.svg)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/lotus2/badges/downloads.svg)](https://anaconda.org/bioconda/lotus2)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/lotus2/badges/latest_release_relative_date.svg)](https://anaconda.org/bioconda/lotus2)
 
@@ -46,7 +44,7 @@ If you installed LotuS2 via "git clone", you can get the latest release via "git
 LotuS2 has a built in mechanism to upgrade LotuS2, so that properitary programs & databases (once installed) don't have to be downloaded again. To use this feature a) install LotuS2 for the first time using the autoinstaller. 
 Once you know or want to check for new updates, simply excecute the autoinstaller again and you will be prompted if LotuS2 should be updated. In case no new updates are available, the autoinstaller will exit without making changes, so this function can be used frequently. New updates will be avaialble from the LotuS2 webpage (http://lotus2.earlham.ac.uk/) or from github (https://github.com/hildebra/lotus2).
 
-## EXAMPLES
+## EXAMPLES & CONFIGURATION
 To test your installation, run a minimal example using test files distributed with LotuS2
 *Note: files can be found relative to the lotus2 executable. If you used a conda installation, use "which lotus2", the databases and examples will be present in the shared conda folder*
 :
@@ -86,6 +84,33 @@ or (this is a shortcut, possible because GG and SLV are in-built):
 ```
 
 Note that "-refDB GG,SLV" and "-refDB SLV,GG" would likely give a different result, as GG is the primary annotation source in the first, SLV is primary in the second case.
+
+###  PacBio CCS amplicon sequence processing with LotuS2
+
+When using PacBio CCS (HiFi) amplicons, set the ** -p PacBio ** flag first, this will be set important default options that in our hands work relatively well for PacBio. As clustering algortithm, CD-HIT might be a good choice because it's independent of read quality and read length differences, but in the end any of the clusterings will work.
+
+However, you might want to adopt the sdm read quality filtering options further. Have a look at either **configs/sdm_PacBio_ITS.txt** or **configs/sdm_PacBio_LSSU.txt**, these are the default configuration for ITS or SSU/LSU PacBio amplicons, respectively. Parameters can be freely modified, but of specific importance are:
+```
+minSeqLength	700
+maxSeqLength	2000
+TruncateSequenceLength	-1
+```
+
+The first two describe the length distribution you expect of your amplicon (e.g. full length 16S would be ~1500 bp). Narrowing this further down can help avoid false positives, but beeing too narrow will also remove some natural biological variation. The range 700-1500bp in the LSSU file is chosen to be inclusive, but if you know you have full length 16S, 1300-1600 might be a better choice. For 18S amplicons, 1600-2000 might be a better choice. It's important to note that **TruncateSequenceLength -1** deactivates sequence truncation. This option is very important for illumina amplicons, because truncating amplicons is extremely important for DADA2 and UPARSE and UNOISE3 clusterings (please refer to [R Edgars excellent UPARSE paper](https://www.nature.com/articles/nmeth.2604)). However, since PacBio reads do not have a length dependent decay in quality scores and under the assumption that the complete amplicon is sequenced, truncating sequences for the clustering step is not necessary.
+
+Also note the option 
+```
+ExtensivePrimerChecks	T
+RejectSeqWithoutFwdPrim	T
+RejectSeqWithoutRevPrim	T
+```
+This options are important to remove faulty amplicons that can result from longer PCRs and suboptimal primers, PCR and sample conditions and faulty CCS derivations. This doesn't need to be the case for your experiment, but sometimes they occur and hence we decided to use a very strict quality filtering for PacBio data. Note that you need to pass your amplicon primers to LotuS2, otherwise all reads will be removed during quality filtering (**RejectSeqWithoutFwdPrim	T** option).
+
+So to summarize, maybe create your copy of the default **configs/sdm_PacBio_ITS.txt** or **configs/sdm_PacBio_LSSU.txt**, modify it to your needs, and run LotuS2 with a command similar to:
+
+```{sh}
+./lotus2 -i PacBioDir/ -p PacBio -id 0.97 -CL cdhit -s configs/sdm_PacBio_my_copy.txt -refDB SLV  -m PacBioDir/my_PacBio.map -o /my/PacBio/LotuS2 -forwardPrimer XYZ -reversePrimer XYZ ...
+```
 
 
 ## Publications related to LotuS2

@@ -2,7 +2,7 @@
 #* indicates alternative quality filtering options, saved in *.add.fna etc. files separately from initial quality filtered dataset
 #sequence length refers to sequence length AFTER removal of Primers, Barcodes and trimming. this ensures that downstream analyis tools will have appropiate sequence information
 minSeqLength	300
-maxSeqLength	1500
+maxSeqLength	2000
 minAvgQuality	27
 *minSeqLength	200
 *minAvgQuality	20
@@ -52,7 +52,7 @@ TrimStartNTs	0
 PEheaderPairFmt	1
 
 #sets if sequences without match to reverse primer will be accepted (T=reject ; F=accept all); default=F
-RejectSeqWithoutRevPrim	F
+RejectSeqWithoutRevPrim	T
 *RejectSeqWithoutRevPrim	F
 
 #sets if sequences without a forward (LinkerPrimerSequence) primer will be accepted (T=reject ; F=accept all); default=T
@@ -66,3 +66,6 @@ CheckForReversedSeqs	T
 
 #this option should be "T" if your amplicons are possibly shorter than a single read in a paired end sequencing run (e.g. if the 16S amplicon length is 200bp in a 250x2 miSeq run, set this to "T"). This option increases runtime by 10%, if in doubt just set to "T". *Requires* LinkerPrimerSequence and ReversePrimer to be defined in mapping file.Also used to remove fwd and rev primer from long Pacbio sequences
 AmpliconShortPE	T
+
+#mostly used for PacBio data: check if  more than once the reverse primer occurrs on reads, if yes, cut length to first fwd-rev primer pairing
+ExtensivePrimerChecks	T

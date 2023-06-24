@@ -13,6 +13,7 @@ ITSx_out.summary.txt
 lotusInstal
 configs/sdm_miSeq_220.txt
 configs/sdm_miSeq_t.txt
+configs/sdm_PacBio_LSSU_ARC.txt
 debug.sh
 myTestRun2
 bin/ncbi-blast-*
