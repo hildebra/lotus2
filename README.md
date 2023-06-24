@@ -121,7 +121,7 @@ offtarget removal: https://microbiomejournal.biomedcentral.com/articles/10.1186/
 LotuS: http://www.microbiomejournal.com/content/2/1/30
 
 ## Acknowledgements 
-LotuS2 was developed at Quadram Institute Bioscience (QIB) & Earlham Institaute (EI), Norwich, UK. Various memmbers of the Hildebrand group contributed to the pipelines (see publication Özkurt et al., 2022).
+LotuS2 was developed at Quadram Institute Bioscience (QIB) & Earlham Institaute (EI), Norwich, UK. Various members of the Hildebrand group contributed to the pipelines (see publication Özkurt et al., 2022).
 (c) Falk.Hildebrand {at} gmail.com
 
 **Please cite LotuS2 with:**
