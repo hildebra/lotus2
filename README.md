@@ -1,4 +1,4 @@
-![LotuS2](https://lotus2.earlham.ac.uk/images/logo_ei_qib11.png)
+![LotuS2](https://lotus2.earlham.ac.uk/images/logo_ei_qib11_no_border.png)
 
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/lotus2/badges/downloads.svg)](https://anaconda.org/bioconda/lotus2)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/lotus2/badges/latest_release_relative_date.svg)](https://anaconda.org/bioconda/lotus2)
