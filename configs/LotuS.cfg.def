@@ -70,10 +70,17 @@ UCHIME_REFDB_LSU DB//SLV_119_LSU.fa
 UCHIME_REFDB_ITS DB//ITS_chimera/uchime_sh_refs_dynamic_original_985_11.03.2015.fasta
 UCHIME_REFDB_ITS2 DB//ITS_chimera/ITS1_ITS2_datasets/uchime_sh_refs_dynamic_develop_985_11.03.2015.ITS2.fasta
 UCHIME_REFDB_ITS1 DB//ITS_chimera/ITS1_ITS2_datasets/uchime_sh_refs_dynamic_develop_985_11.03.2015.ITS1.fasta
-#greengenes fasta ref database - requires blastn
+
+#outdated - greengenes fasta ref database - requires blastn
 TAX_REFDB_GG DB//gg_13_5.fasta
-#greengenes taxnomic assignments for ref fasta database - requires blastn
+#outdated - greengenes taxnomic assignments for ref fasta database - requires blastn
 TAX_RANK_GG DB//gg_13_5_taxonomy
+
+#greengenes2 fasta ref database - requires blastn
+TAX_REFDB_GG2 DB//GG2.2022.10.fasta
+#greengenes2 taxnomic assignments for ref fasta database - requires blastn
+TAX_RANK_GG2 DB//GG2.2022.10.tax
+
 #SILVA SSU fasta ref database - requires blastn
 TAX_REFDB_SSU_SLV DB//SLV_138_SSU.fasta
 #SILVA SSU taxnoomic assignments for ref fasta database - requires blastn
@@ -100,6 +107,10 @@ TAX_REFDB_ITS_UTAX DB//utaxref/unite_v7/
 TAX_REFDB_BEE DB//beeTax/beeTax.fna
 TAX_RANK_BEE DB//beeTax/beeTax.txt
 infernal bin//infernal-1.1.2-linux-intel-gcc/binaries/
+
+#KSGP database.. combination of several DBs, supplemented by environmental full length 16S/18S sequences
+TAX_RANK_KSGP DB//KSGP_v1.0.fasta
+TAX_REFDB_KSGP DB//KSGP_v1.0.tax
 
 
 # --------------------

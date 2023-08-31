@@ -45,7 +45,8 @@ if (`whereis wget` eq ""){
 }
 
 sub addInfoLtS;sub finishAI;
-sub getGG;sub getSLV;sub getHITdb; sub getPR2db;sub getbeetax;
+#subroutines to download various DBs..
+sub getGG; sub getGG2; sub getSLV;sub getHITdb; sub getPR2db;sub getKSGP;sub getbeetax;
 sub buildIndex;
 sub get_DBs;
 sub getS2;
@@ -103,6 +104,10 @@ my $usearchInstall ="";
 if (@ARGV > 0 && $ARGV[0] eq "-link_usearch"){
 	$usearchInstall =$ARGV[1];
 }
+
+
+##### TESTING / DEBUG ##########
+#		@txt = getGG2(\@txt); @txt = getKSGP(\@txt);die;
 
 
 ###### GET USER OPTIONS ###################
@@ -475,6 +480,35 @@ sub getHITdb($){
 	buildIndex($DB);
 	return (@txt);
 }
+
+
+sub getGG2($){
+	my ($aref) = @_;
+	my @txt = @{$aref};
+	#greengenes ------------------------
+	my $gg1 = "https://ksgp.earlham.ac.uk/downloads/greengenes2/GG2.2022.10.fasta.gz";
+	my $gg2 = "https://ksgp.earlham.ac.uk/downloads/greengenes2/GG2.2022.10.tax.gz";
+	my $DB = "$ddir/GG2.2022.10.fasta";
+	system "rm -f $DB"."*";
+	#system("wget -O $DB.gz $gg1");
+	print "Downloading GreenGenes2 2022 release..\n";
+	getS2($gg1,"$DB.gz");
+	sleep(10);
+	system("gunzip -c $DB.gz > $DB");
+	unlink("$DB.gz");
+	@txt = addInfoLtS("TAX_REFDB_GG2",$DB,\@txt,1);
+	buildIndex($DB);
+	$DB = "$ddir/GG2.2022.10.tax";
+	#system("wget -O $DB.gz $gg2");
+	getS2($gg2,"$DB.gz");
+	sleep(3);
+	system("gunzip -c $DB.gz > $DB");
+	unlink("$DB.gz");
+	@txt = addInfoLtS("TAX_RANK_GG2",$DB,\@txt,1);
+	return @txt;
+}
+
+
 sub getGG($){
 	my ($aref) = @_;
 	my @txt = @{$aref};
@@ -498,6 +532,21 @@ sub getGG($){
 	system("gunzip -c $DB.gz > $DB");
 	unlink("$DB.gz");
 	@txt = addInfoLtS("TAX_RANK_GG",$DB,\@txt,1);
+	return @txt;
+}
+
+sub getKSGP($){
+	my ($aref) = @_;
+	my @txt = @{$aref};
+	my $DB = "$ddir/KSGP_v1.0";
+	system "rm -f $DB"."*";
+	print "Downloading KSGP 2023 release..\n";
+	my $tarUTN = "$ddir/KSGP.tar.gz";
+	getS2("https://ksgp.earlham.ac.uk/downloads/v1.0/KSGP_v1.0.tar.gz",$tarUTN);
+	system "tar -xzf $tarUTN -C $ddir;rm -f $tarUTN";
+	@txt = addInfoLtS("TAX_RANK_KSGP","$DB.tax",\@txt,1);
+	@txt = addInfoLtS("TAX_REFDB_KSGP","$DB.fasta",\@txt,1);
+	print "Added $DB.fasta and $DB.tax to lotus config.\n";
 	return @txt;
 }
 
@@ -949,17 +998,20 @@ sub get_DBs{
 	if ($refDBinstall[2] || $refDBinstall[8]){
 		@txt = getSLV(\@txt);
 	}
-	if ($refDBinstall[1] || $refDBinstall [8]){
-		@txt = getGG(\@txt);
+	if ($refDBinstall[1] || $refDBinstall[8]){
+		@txt = getKSGP(\@txt);
+	}
+	if ($refDBinstall[3] || $refDBinstall [8]){
+		@txt = getGG2(\@txt);
 	}
 
-	if ($refDBinstall [3] || $refDBinstall [8]){
+	if ($refDBinstall [4] || $refDBinstall [8]){
 		@txt = getHITdb(\@txt);
 	}
-	if ($refDBinstall [4] || $refDBinstall [8]){
+	if ($refDBinstall [5] || $refDBinstall [8]){
 		@txt = getPR2db(\@txt);
 	}
-	if ($refDBinstall [5] || $refDBinstall [8]){
+	if ($refDBinstall [6] || $refDBinstall [8]){
 		@txt = getbeetax(\@txt);
 	}
 
@@ -1454,10 +1506,10 @@ sub user_options(){
 	#decide on database options
 
 	print "\n\nDo you want to install a reference database 16S database for similarity based 16S annotations?\n";
-	print " (1) greengenes (~1 GB)\n (2) SILVA (~2.5 GB), contains LSU as well as SSU\n (3) HITdb (~100 MB) 16S bacterial database specialized on the gut environment.\n";
-	print " (4) PR2 (~100 MB) a LSU database spezialized on Ocean samples.\n";
-	print " (5) beeTax (~2 MB) database specialized (and named) on taxonomy specific to the bee gut.\n";
-	print " (8) HITdb + SILVA + greengenes + PR2 + beeTax (one has to be select for each LotuS run)\n (0) no database\n";
+	print " (1) KSGP (~1.5 GB), covering SSU for Archaea, Bacteria and Eukaryotes, 2023 release. \n (2) SILVA (~2.5 GB), contains LSU as well as SSU, 138.1 2020 release.\n (3) GreenGenes2 (~1 GB), 2022 release.\n (4) HITdb (~100 MB) 16S bacterial database specialized on the gut environment.\n";
+	print " (5) PR2 (~100 MB) a LSU database spezialized on Ocean samples.\n";
+	print " (6) beeTax (~2 MB) database specialized (and named) on taxonomy specific to the bee gut.\n";
+	print " (8) KSGP + SILVA + GG2 + PR2 + HITdb + beeTax (select specific DB in each LotuS2 run)\n (0) no database.\n";
 	print "Answer:";
 	while (<>){
 		chomp($_); 
@@ -1469,7 +1521,7 @@ sub user_options(){
 	}
 	#SILVA license
 	if (!$skipAll && ($refDBinstall[2] || $refDBinstall[8])){
-		print "Please read and accept the SILVA license: https://www.arb-silva.de/fileadmin/silva_databases/LICENSE.txt\n Accepted it (y/n)? \n";
+		print "Please read the SILVA license: https://www.arb-silva.de/fileadmin/silva_databases/LICENSE.txt. Do you accept (y/n)? \n";
 		while (<>){
 			chomp($_);
 			if ($_ eq "y" || $_ eq "Y" || $_ eq "yes"){
@@ -1480,7 +1532,7 @@ sub user_options(){
 		}
 	}
 
-	print "\n\nDo you want to\n (1) install databases and programs required to process ITS data (including fungi ITS UNITE database)\n (0) no ITS related packages\n Answer:";
+	print "\n\n -- ITS -- Do you want to\n (1) install databases and programs required to process ITS data (including fungi ITS UNITE database)\n (0) no ITS related packages\n Answer:";
 
 	while (<>){
 		chomp($_); 
@@ -1491,7 +1543,7 @@ sub user_options(){
 	}
 
 	#UTAX ref DBs..
-	print "\n\nDo you want to\n (1) install utax taxonomic classification databases (16S, ITS)?\n (0) no utax related databases\n Answer:";
+	print "\n\n -- UTAX -- Do you want to\n (1) install utax taxonomic classification databases (16S, ITS)?\n (0) no utax related databases\n Answer:";
 	while (<>){
 		chomp($_);
 		if ($_ == 1 ||$_ == 0){

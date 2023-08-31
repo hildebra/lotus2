@@ -109,7 +109,7 @@ This options are important to remove faulty amplicons that can result from longe
 So to summarize, maybe create your copy of the default **configs/sdm_PacBio_ITS.txt** or **configs/sdm_PacBio_LSSU.txt**, modify it to your needs, and run LotuS2 with a command similar to:
 
 ```{sh}
-./lotus2 -i PacBioDir/ -p PacBio -id 0.97 -CL cdhit -s configs/sdm_PacBio_my_copy.txt -refDB SLV  -m PacBioDir/my_PacBio.map -o /my/PacBio/LotuS2 -forwardPrimer XYZ -reversePrimer XYZ ...
+./lotus2 -i /my/PacBioDir/  -s configs/sdm_PacBio_my_copy.txt  -m PacBioDir/my_PacBio.map -o /my/PacBio/LotuS2 -p PacBio -id 0.97 -CL cdhit -refDB SLV  -forwardPrimer XYZ -reversePrimer XYZ ...
 ```
 
 

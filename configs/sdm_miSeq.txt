@@ -55,7 +55,7 @@ TrimStartNTs	0
 PEheaderPairFmt	1
 
 #sets if sequences without match to reverse primer (ReversePrimer) will be accepted (T=reject ; F=accept all); default=F
-RejectSeqWithoutRevPrim	F
+RejectSeqWithoutRevPrim	T
 #*RejectSeqWithoutRevPrim	F
 #sets if sequences without a forward (LinkerPrimerSequence) primer will be accepted (T=reject ; F=accept all); default=F
 RejectSeqWithoutFwdPrim	T
