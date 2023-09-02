@@ -22,7 +22,7 @@ QualWindowThreshhold	25
 
 #Trim the end of a sequence if a window falls below quality threshhold. Useful for removing low qulaity trailing ends of sequence
 TrimWindowWidth	20
-TrimWindowThreshhold	25
+TrimWindowThreshhold	-1
 
 #Probabilistic max number of accumulated sequencing errors. After this length, the rest of the sequence will be deleted. Complimentary to TrimWindowThreshhold. (-1) deactivates this option.
 maxAccumulatedError	-1

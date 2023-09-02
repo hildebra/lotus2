@@ -1,28 +1,30 @@
 #sdm options file to control sequence quality filtering, demultiplexing and preparation (can also be used without demultiplexing)
 #* indicates alternative quality filtering options, saved in *.add.fna etc. files separately from initial quality filtered dataset
 #sequence length refers to sequence length AFTER removal of Primers, Barcodes and trimming. this ensures that downstream analyis tools will have appropiate sequence information
-minSeqLength	300
+#experimental options for ONT (Q20!) data
+#use at your own risk
+minSeqLength	700
 maxSeqLength	2000
 minAvgQuality	27
-*minSeqLength	200
+*minSeqLength	500
 *minAvgQuality	20
 #truncate total Sequence length to X (length after Barcode, Adapter and Primer removals, set to -1 to deactivate)
-TruncateSequenceLength	1500
+TruncateSequenceLength	-1
 
 #Ambiguous bases in Sequence
-maxAmbiguousNT	2
-*maxAmbiguousNT	3
+maxAmbiguousNT	10
+*maxAmbiguousNT	15
 
 #sequence is discarded if a homonucleotide run in sequence is longer
-maxHomonucleotide	16
+maxHomonucleotide	22
 
 #Filter whole sequence if one window of quality scores is below average
-QualWindowWidth	50
-QualWindowThreshhold	-1
+QualWindowWidth	150
+QualWindowThreshhold	18
 
 #Trim the end of a sequence if a window falls below quality threshhold. Useful for removing low qulaity trailing ends of sequence
-TrimWindowWidth	20
-TrimWindowThreshhold	25
+TrimWindowWidth	100
+TrimWindowThreshhold	-1
 
 #Probabilistic max number of accumulated sequencing errors. After this length, the rest of the sequence will be deleted. Complimentary to TrimWindowThreshhold. (-1) deactivates this option.
 maxAccumulatedError	-1
@@ -31,8 +33,8 @@ maxAccumulatedError	-1
 
 
 #Max Barcode Errors 
-maxBarcodeErrs	0
-maxPrimerErrs	0
+maxBarcodeErrs	1
+maxPrimerErrs	2
 
 #keep Barcode / Primer Sequence in the output fasta file - in a normal 16S analysis this should be deactivated (0) for Barcode and deactivated (0) for primer
 keepBarcodeSeq	0
@@ -57,15 +59,18 @@ RejectSeqWithoutRevPrim	T
 
 #sets if sequences without a forward (LinkerPrimerSequence) primer will be accepted (T=reject ; F=accept all); default=T
 RejectSeqWithoutFwdPrim	T
-*RejectSeqWithoutFwdPrim	F
+*RejectSeqWithoutFwdPrim	T
+
 
 #checks if pair1 and pair2 were switched (ignore if single read data)
 CheckForMixedPairs	T
 #checks if whole amplicon was reverse-transcribed sequenced (not switched, just reverse translated)
 CheckForReversedSeqs	T
 
-#this option should be "T" if your amplicons are possibly shorter than a single read in a paired end sequencing run (e.g. if the 16S amplicon length is 200bp in a 250x2 miSeq run, set this to "T"). This option increases runtime by 10%, if in doubt just set to "T". *Requires* LinkerPrimerSequence and ReversePrimer to be defined in mapping file.Also used to remove fwd and rev primer from long Pacbio sequences
+#this option should be "T" if your amplicons are possibly shorter than a single read in a paired end sequencing run (e.g. if the 16S amplicon length is 200bp in a 250x2 miSeq run, set this to "T"). This option increases runtime by 10%, if in doubt just set to "T". *Requires* LinkerPrimerSequence and ReversePrimer to be defined in mapping file. Also used to remove fwd and rev primer from long Pacbio sequences
 AmpliconShortPE	T
+
 
 #mostly used for PacBio data: check if  more than once the reverse primer occurrs on reads, if yes, cut length to first fwd-rev primer pairing
 ExtensivePrimerChecks	T
+
