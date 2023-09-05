@@ -5522,7 +5522,9 @@ sub makeAbundTable2($ $) {
         }
         my $LCxtr = "";
         if ($pseudoRefOTU) { $LCxtr = "-showHitRead -reportBestHit"; }
-        my $cmd = "$LCABin  -i " . join( ",", @blOuts ) . " -r " . join( ",", @TAX_RANKS ) . " -o $SIM_hierFile $LCxtr -LCAfrac $LCAfraction  -cover $LCAcover -minAlignLen $LCAminAliLen -id " . join( ",", @idThr ) . ";";
+		my $repHitPat = "-reportHitPattern $logDir/LCAhits.log";
+
+        my $cmd = "$LCABin  -i " . join( ",", @blOuts ) . " -r " . join( ",", @TAX_RANKS ) . " -o $SIM_hierFile $repHitPat $LCxtr -LCAfrac $LCAfraction  -cover $LCAcover -minAlignLen $LCAminAliLen -id " . join( ",", @idThr ) . ";";
 
         #die $cmd;
         if ( systemL $cmd) { printL "LCA command $cmd failed\n", 44; }
