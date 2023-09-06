@@ -53,7 +53,7 @@ To test your installation, run a minimal example using test files distributed wi
 ./lotus2 -i Example/ -m Example/miSeqMap.sm.txt -o myTestRun
 ```
 
-LotuS2 will try to choose default options. However, note that you should have seen a warning that no PCR primers were provided.
+Note that you should have seen a warning that no PCR primers were provided. LotuS2 will try to choose default options, like using RDPclassifier for taxonomic annotations. While RDP is great in our opinion, it does not assign species level annotations, for that we need a similarity based comparison to a reference database.
 
 In the next example, we will explicitly configure the read filtering by providing sdm_miSeq2.txt, explicitly defining this to be 16S data from an illumina miSeq machine, to remove PCR primers used in this experiment, to use DADA2 instead of UPARSE clustering algorithm, to use alginments of ASVs against SILVA reference database instead of RDPclassifier taxonomic annotations:
 ```{sh}
@@ -78,13 +78,13 @@ We can make this even more complicated, by having both HitDB and SLV as complime
 ```{sh}
 ./lotus2 -tax4refDB DB/SLV_138_SSU.tax,DB/HITdb/HITdb_taxonomy.txt -refDB DB/SLV_138_SSU.fasta,DB/HITdb/HITdb_sequences.fna -i Example/ -m Example/miSeqMap.sm.txt -o myTestRun3 -forwardPrimer GTGYCAGCMGCCGCGGTAA -reversePrimer GGACTACNVGGGTWTCTAAT -CL uparse -taxAligner vsearch 
 ```
-or (this is a shortcut, possible because GG and SLV are in-built):
+or (this is a shortcut, possible because GG2 and SLV are in-built):
 
 ```{sh}
 ./lotus2 -refDB SLV,HITdb -i Example/ -m Example/miSeqMap.sm.txt -o myTestRun3 -forwardPrimer GTGYCAGCMGCCGCGGTAA -reversePrimer GGACTACNVGGGTWTCTAAT -CL uparse -refDB SLV -taxAligner vsearch 
 ```
 
-Note that "-refDB GG,SLV" and "-refDB SLV,GG" would likely give a different result, as GG is the primary annotation source in the first, SLV is primary in the second case.
+Note that "-refDB GG2,SLV" and "-refDB SLV,GG2" would likely give a different result, as GG2 is the primary annotation source in the first, SLV is primary in the second case.
 
 ###  PacBio CCS amplicon sequence processing with LotuS2
 
