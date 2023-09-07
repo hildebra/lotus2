@@ -82,7 +82,7 @@ sub annotateFaProTax;
 sub systemW;
 
 #versioning
-my $selfID = "LotuS 2.27"; 
+my $selfID = "LotuS 2.28"; 
 
 
 #keep track of time
@@ -169,6 +169,8 @@ my $sdmPacBioITSOpt = "$RealBin/configs/sdm_PacBio_ITS.txt";
 my $ClusterPipe_pre = "?"; #default is unknown..
 my $ClusterPipe     = 1; #use UPARSE (1) or otupipe(0) or SWARM (2) or cd-hit(3), dnaclust (4), micca (5), unoise (6), dada2(7), vsearch (8)
 my $clusteringNameStr = "UPARSE";
+my $clustMode = "de novo";
+
 my $lotus_tempDir    = "";
 my $sdmOpt           = "";    #default sdm (simple demultiplexer) options
 my $damagedFQ        = 0;
@@ -248,7 +250,7 @@ my $backMapID       = -1.; #0.97; #min cutoff for backmapping mid qual etc reads
 my $swarmClus_d     = 1;
 my $id_OTU_noise =
   .99;   # Id threshold for error correction (noise removal) round #Default: .99
-my $uthreads                = 1;
+my $uthreads                = -1;
 my $sdmThreads              = -1;
 my $dereplicate_minsize_def = "8:1,4:2,3:3"; # Discard clusters < dereplicate_minsize in error correction round #Default: 2 for UPARSE, 4 for otupipe
 my $dereplicate_minsize = -1;
@@ -299,7 +301,7 @@ GetOptions(
 	"create_map=s"          => \$create_map,
 	"q|qual=s"              => \$inq,
 	"s|sdmopt=s"            => \$sdmOpt,
-	"tmp|tmpDir=s"          => \$lotus_tempDir,
+	"T|tmp|tmpDir=s"          => \$lotus_tempDir,
 	"c|config=s"            => \$lotusCfg,
 	"exe|executionMode=i"   => \$exec,
 	"keepTmpFiles=i"        => \$keepTmpFiles,
@@ -380,7 +382,6 @@ if ($create_map ne ""){
 	autoMap($input, $create_map);
 	exit(0); 
 }
-
 if ($installUsearch ne ""){
 	print "Will only install usearch into LotuS2 and exist afterwards.\nProvided path to usearch binary was $installUsearch\n";
 	die "Can't find file at $installUsearch\n" unless (-f $installUsearch);
@@ -396,59 +397,24 @@ my $extendedLogD = $outdir . "/ExtraFiles/";
 $mainLogFile = $logDir . "LotuS_run.log";
 my $cmdLogFile = $logDir . "LotuS_cmds.log";
 my $progOutPut = $logDir . "LotuS_progout.log";
-#create dirs
-if ($TaxOnly eq "0" ){
-	system("rm -f -r $outdir") if ( $exec == 0 && $onlyTaxRedo == 0 );
-	system "rm -f $progOutPut\n"; #from here log systemL
-	
-} else {
-	unless (-d $outdir && -d $logDir){
-		if (-f $TaxOnly){
-			$outdir = $TaxOnly;$outdir =~ s/[^\/]+$//;
-			print "TaxOnly option specified, but not an output dir. Assumming: $outdir\n" ;
-		} else {
-			die "No output dir defined, only possible if -taxOnly argument is a file\n";
-		}
-		
-		$logDir       = $outdir . "/LotuSLogS/";
-		$mainLogFile = $logDir . "LotuS_run.log";
-		$extendedLogD = $outdir . "/ExtraFiles/" ;
-		$cmdLogFile = $logDir . "LotuS_cmds.log";
-		$progOutPut = $logDir . "LotuS_progout.log";
-	}
-}
-#reset logfile
-#create output folders
-system("mkdir -p $outdir/primary/;") unless ( -d "$outdir/primary" );
-system("mkdir -p $outdir") unless ( -d $outdir );
-system("mkdir -p $logDir") unless ( -d $logDir );
-system("mkdir -p $extendedLogD;") if ( !-d $extendedLogs );	
-open LOG, ">", $mainLogFile or die "Can't open Logfile $mainLogFile\n";
-open cmdLOG , ">$cmdLogFile" or die "Can't open cmd log $cmdLogFile\n";
 
-
+my $highLvlDir   = $outdir . "/higherLvl/";
+my $FunctOutDir = $outdir . "/derrivedFunctions/";
+my $RDP_hierFile = "$outdir/hiera_RDP.txt";
+my $SIM_hierFile = "$outdir/hiera_BLAST.txt";
+my $taxHiear = $RDP_hierFile;
+my @inputArray ;my @inqArray;
 
 #just setup options to default pars, check consistency of options etc
+#LOG is initialized here!!
 prepLtsOptions();
-
+#just print a nice logo..
+announce_self();
 
 #-----------------
 #all parameters set; pipeline starts from here
-announce_self();
 
-
-my @inputArray = split( /,/, $input );
-my @inqArray   = split( /,/, $inq );
-$numInput = scalar(@inputArray);
-if ( scalar(@inqArray) > 0
-    && $numInput != scalar(@inqArray)
-    && -f $inqArray[0] ){
-    printL("Error: fasta input file number does not correspond ot quality file number.\n", 1);
-}
-
-#unless ($platform eq "miSeq" || $platform eq "hiSeq") {#only support paired reads for hi/miSeq
-#	$numInput = 1;
-#}
+announce_options($ClusterPipe);
 
 #read map, also check map file format
 my ( $mapHref, $combHref, $hasCombiSmpls ) = ( {}, {}, 0 );
@@ -458,19 +424,6 @@ if ( $TaxOnly eq "0" ) {
 	%mapH = %{$mapHref};
 }
 
-#my %combi = %{$combHref}; print "CC ". $combi{"A1.0_S47"} ."\n"; die;
-
-
-#die "$cpMapFile\n\n";
-
-#die $exec."\n";
-
-#CONSTANT file paths
-my $highLvlDir   = $outdir . "/higherLvl/";
-my $FunctOutDir = $outdir . "/derrivedFunctions/";
-my $RDP_hierFile = "$outdir/hiera_RDP.txt";
-my $SIM_hierFile = "$outdir/hiera_BLAST.txt";
-my $taxHiear = $RDP_hierFile;
 
 systemL("rm -f -r $lotus_tempDir;") if ( $exec == 0 );
 systemL("mkdir -p $lotus_tempDir;") unless ( -d $lotus_tempDir );
@@ -478,11 +431,6 @@ die( "Failed to make tmp dir or doesn't exist: \"" . $lotus_tempDir . "\"\n" ) i
 
 
 
-#my $currdir=`pwd`;
-my $clustMode = "de novo";
-$clustMode = "reference closed" if ( $otuRefDB eq "ref_closed" );
-$clustMode = "reference open"   if ( $otuRefDB eq "ref_open" );
-announce_options($ClusterPipe);
 
 #die;
 
@@ -1323,7 +1271,7 @@ sub ITSxOTUs {
 	}
 	
 
-	printL frame( "ITSx analysis: Kept " . scalar( keys(%ITSo) ) . ", deleted $delOTUs ${OTU_prefix}'s identified as $ITSxReg (of "  . scalar( keys(%FNA) ) . " ${OTU_prefix}'s).\n"),0;
+	printL frame( "ITSx analysis: Kept " . scalar( keys(%ITSo) ) . " identified as $ITSxReg, deleted $delOTUs ${OTU_prefix}'s (of "  . scalar( keys(%FNA) ) . " ${OTU_prefix}'s).\n"),0;
 	#die scalar( keys(%ret) )."\n";
 
 	#systemL "cat $outBFile.full.fasta > $otusFA";
@@ -2772,11 +2720,12 @@ sub announce_options{
 	my $tmpXtra = "";
 	$tmpXtra = " (-keepTmpFiles 1)" if ($keepTmpFiles);
 	printL "TempDir     $lotus_tempDir$tmpXtra\n";
-	printL "------------ Configuration LotuS --------------\n", 0;
-	printL "$clustMode sequence clustering with $clusteringNameStr into ${OTU_prefix}'s\n",0;
+	printL "NumCores    $uthreads\n";
+	printL "------------ Pipeline config   --------------\n", 0;
+	#printL "$clustMode sequence clustering with $clusteringNameStr into ${OTU_prefix}'s\n",0;
 	printL "Sequencing platform     $platform\n", 0 ;
 	printL "Amplicon target         $organism, $ampliconType\n", 0;
-	printL "Dereplication filter    $dereplicate_minsize\n", 0;
+	printL "Dereplication filter    -derepMin $dereplicate_minsize\n", 0;
 	printL "Clustering algorithm    $clusteringNameStr -> ${OTU_prefix}'s\n",0;
 	
 	printL "Read mapping to ${OTU_prefix}     $internalMapper, at $backMapID %id cutoff\n",0;
@@ -3064,6 +3013,61 @@ sub getDefAligner(){
 
 sub prepLtsOptions{
 	
+	#create dirs
+	if ($TaxOnly eq "0" ){
+		system("rm -f -r $outdir") if ( $exec == 0 && $onlyTaxRedo == 0 );
+		system "rm -f $progOutPut\n"; #from here log systemL
+		
+	} else {
+		unless (-d $outdir && -d $logDir){
+			if (-f $TaxOnly){
+				$outdir = $TaxOnly;$outdir =~ s/[^\/]+$//;
+				print "TaxOnly option specified, but not an output dir. Assumming: $outdir\n" ;
+			} else {
+				die "No output dir defined, only possible if -taxOnly argument is a file\n";
+			}
+			$logDir       = $outdir . "/LotuSLogS/";
+			$mainLogFile = $logDir . "LotuS_run.log";
+			$extendedLogD = $outdir . "/ExtraFiles/" ;
+			$cmdLogFile = $logDir . "LotuS_cmds.log";
+			$progOutPut = $logDir . "LotuS_progout.log";
+		}
+	}
+	
+	#reset logfile
+	#create output folders
+	system("mkdir -p $outdir/primary/;") unless ( -d "$outdir/primary" );
+	system("mkdir -p $outdir") unless ( -d $outdir );
+	system("mkdir -p $logDir") unless ( -d $logDir );
+	system("mkdir -p $extendedLogD;") if ( !-d $extendedLogs );	
+	open LOG, ">", $mainLogFile or die "Can't open Logfile $mainLogFile\n";
+	open cmdLOG , ">$cmdLogFile" or die "Can't open cmd log $cmdLogFile\n";
+	
+	
+	#check and format input:
+	@inputArray = split( /,/, $input );
+	@inqArray   = split( /,/, $inq );
+	$numInput = scalar(@inputArray);
+	if ( scalar(@inqArray) > 0  && $numInput != scalar(@inqArray)  && -f $inqArray[0] ){
+		printL("Error: fasta input file number does not correspond ot quality file number.\n", 1);
+	}
+
+	
+
+	#clustering mode.. not used any longer
+	$clustMode = "reference closed" if ( $otuRefDB eq "ref_closed" );
+	$clustMode = "reference open"   if ( $otuRefDB eq "ref_open" );
+
+	#auto set num threads to max on system..
+	if ($uthreads == -1){
+		my $tcres = `nproc`; chomp $tcres; $tcres+=0; $tcres=int($tcres);
+		if ($tcres > 0 && $tcres < 100){
+			$uthreads = $tcres ;
+		} else {
+			$uthreads = 1;
+		}
+	}
+	#tmp dir config
 	$lotus_tempDir = $outdir . "/tmpFiles/" if (!defined($lotus_tempDir) || $lotus_tempDir eq "");
 	$BlastCores = $uthreads;
 	if ($sdmThreads == -1){		$sdmThreads = $uthreads ;	}
@@ -3127,9 +3131,9 @@ sub prepLtsOptions{
 	if ( !-e $sdmOpt && $TaxOnly eq "0") {
 		if ( $sdmOpt eq "" ) {
 			$sdmOpt = $sdmMiseqOpt; 
-			printL "No sdm Option specified, using standard miSeq sdm options: $sdmOpt\n", 0;
+			#printL "No sdm Option specified, using default miSeq sdm options: $sdmOpt\n", 0;
 		} else {
-			printL "Using sdm option: $sdmOpt\n",0;
+			#printL "Using sdm option: $sdmOpt\n",0;
 		}
 		if (!-e $sdmOpt){
 			printL "Could not find sdm options file (specified via \"-s $sdmOpt\"). Please make sure this is available.\n Aborting run..\n",33;
