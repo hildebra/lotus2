@@ -546,6 +546,7 @@ sub getKSGP($){
 	system "tar -xzf $tarUTN -C $ddir;rm -f $tarUTN";
 	@txt = addInfoLtS("TAX_RANK_KSGP","$DB.tax",\@txt,1);
 	@txt = addInfoLtS("TAX_REFDB_KSGP","$DB.fasta",\@txt,1);
+	buildIndex("$DB.fasta");
 	print "Added $DB.fasta and $DB.tax to lotus config.\n";
 	return @txt;
 }
