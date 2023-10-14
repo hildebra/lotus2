@@ -161,15 +161,23 @@ We would like to acknowledge the following proprietary software, that is used in
 
 ## Databases
 
-* **Greengenes** - McDonald D, Price MN, Goodrich J, Nawrocki EP, DeSantis TZ, Probst A, Andersen GL, Knight R, Hugenholtz P. 2012. An improved Greengenes taxonomy with explicit ranks for ecological and evolutionary analyses of bacteria and archaea. ISME J 6: 610–8.
-
 * **SILVA** - Yilmaz P, Parfrey LW, Yarza P, Gerken J, Pruesse E, Quast C, Schweer T, Peplies J, Ludwig W, Glockner FO (2014) The SILVA and "All-species Living Tree Project (LTP)" taxonomic frameworks. Nucleic Acid Res. 42:D643-D648 
+
+* **Greengenes2** - McDonald, D. et al. Greengenes2 unifies microbial data in a single reference tree. Nat Biotechnol 1–4 (2023) doi:10.1038/s41587-023-01845-1.
+
+<!---
+* **Greengenes** - McDonald D, Price MN, Goodrich J, Nawrocki EP, DeSantis TZ, Probst A, Andersen GL, Knight R, Hugenholtz P. 2012. An improved Greengenes taxonomy with explicit ranks for ecological and evolutionary analyses of bacteria and archaea. ISME J 6: 610–8.
+--->
+
+* **PR2** - Guillou L, Bachar D, Audic S, et al. The Protist Ribosomal Reference database (PR2): a catalog of unicellular eukaryote small sub-unit rRNA sequences with curated taxonomy. Nucleic Acids Res. 2013;41(Database issue):D597-D604
+
+* **KSPG** -  Alastair Grant, Abdullah Aleidan, Charli S. Davies, et al.(2023) Improved taxonomic annotation of Archaea communities using LotuS2, the Genome Taxonomy Database and RNAseq data.  bioRxiv https://ksgp.earlham.ac.uk/
+
 
 * **HITdb** - Ritari J, Salojärvi J, Lahti L & de Vos WM. Improved taxonomic assignment of human intestinal 16S rRNA sequences by a dedicated reference database. BMC Genomics. 2015 Dec 12;16(1):1056.
 
 * **beetax** - Jones, JC, Fruciano, C, Hildebrand, F, et al. Gut microbiota composition is associated with environmental landscape in honey bees. Ecol Evol. 2018; 8: 441– 451.
 
-* **PR2** - Guillou L, Bachar D, Audic S, et al. The Protist Ribosomal Reference database (PR2): a catalog of unicellular eukaryote small sub-unit rRNA sequences with curated taxonomy. Nucleic Acids Res. 2013;41(Database issue):D597-D604
 
 ## ITS specific
 
