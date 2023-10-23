@@ -2,7 +2,7 @@
 #* indicates alternative quality filtering options, saved in *.add.fna etc. files separately from initial quality filtered dataset
 #sequence length refers to sequence length AFTER removal of Primers, Barcodes and trimming. this ensures that downstream analyis tools will have appropiate sequence information
 #options with a star in front are lenient parameters for mid qual sequences (only used for estimating OTU abundance, not for OTU building itself).
-minSeqLength	130
+minSeqLength	110
 maxSeqLength	1000
 minAvgQuality	27
 *minSeqLength	110
