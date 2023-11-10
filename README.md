@@ -171,7 +171,7 @@ We would like to acknowledge the following proprietary software, that is used in
 
 * **PR2** - Guillou L, Bachar D, Audic S, et al. The Protist Ribosomal Reference database (PR2): a catalog of unicellular eukaryote small sub-unit rRNA sequences with curated taxonomy. Nucleic Acids Res. 2013;41(Database issue):D597-D604
 
-* **KSPG** -  Alastair Grant, Abdullah Aleidan, Charli S. Davies, et al.(2023) Improved taxonomic annotation of Archaea communities using LotuS2, the Genome Taxonomy Database and RNAseq data.  bioRxiv https://ksgp.earlham.ac.uk/
+* **KSGP** -  Alastair Grant, Abdullah Aleidan, Charli S. Davies, et al.(2023) Improved taxonomic annotation of Archaea communities using LotuS2, the Genome Taxonomy Database and RNAseq data.  bioRxiv https://ksgp.earlham.ac.uk/
 
 
 * **HITdb** - Ritari J, Salojärvi J, Lahti L & de Vos WM. Improved taxonomic assignment of human intestinal 16S rRNA sequences by a dedicated reference database. BMC Genomics. 2015 Dec 12;16(1):1056.
