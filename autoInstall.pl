@@ -66,7 +66,7 @@ my $condaDBinstall=0;
 my $compile_lambda=0;
 if (@ARGV > 0 && $ARGV[0] eq "-forceUpdate"){$forceUpdate=1};
 if (@ARGV > 0 && $ARGV[0] eq "-condaDBinstall"){$condaDBinstall=1};
-if (@ARGV > 1 && $ARGV[1] eq "-lambdaIndex"){$compile_lambda=1};
+if (@ARGV > 1 && ($ARGV[1] eq "-lambdaIndex" || $ARGV[0] eq "-lambdaIndex")){$compile_lambda=1};
 #die "$ARGV[0] $forceUpdate\n";
 
 my $isMac = 1;
