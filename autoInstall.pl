@@ -424,7 +424,7 @@ sub buildIndex($){
 	my $xtraLmbdI = "";
 	my $cmdIdx =  "$lambdaIdxBin -p blastn -t $BlastCores -d $DBfna $xtraLmbdI;";
 	system "touch $DBfna.dna5.fm.lf.drv.wtc.24;";
-	print "###################################\nCompiling lambda database for $DBfna using 6 cores\n";
+	print "###################################\nCompiling lambda database for $DBfna using $BlastCores cores\n";
 	if ( system($cmdIdx) ) {
 		print "Could not compile index for $DBfna with call\n$cmdIdx\n\n";
 	} else {
