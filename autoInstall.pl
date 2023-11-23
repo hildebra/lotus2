@@ -426,11 +426,10 @@ sub buildIndex($){
 	system "touch $DBfna.dna5.fm.lf.drv.wtc.24;";
 	print "###################################\nCompiling lambda database for $DBfna using $BlastCores cores\n";
 	if ( system($cmdIdx) ) {
-		print "Could not compile index for $DBfna with call\n$cmdIdx\n\n";
+		die "Could not compile index for $DBfna with call\n$cmdIdx\n\n";
 	} else {
 		print "Compile index for $DBfna \n\n";
 	}
-	#die "$DBfna\n";
 }
 
 sub getbeetax($){
