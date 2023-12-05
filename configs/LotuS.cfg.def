@@ -40,6 +40,7 @@ makeBlastDB makeblastdb
 #lambda binaries used for ref taxa searches
 lambda_index lambda_indexer
 lambda lambda
+lambda3 lambda3
 
 #clustalo multiple alignment binary (e.g. /YY/clustaloBin-1.2.0-OS-x86_64)
 clustalo clustalo-1.2.0-Ubuntu-x86_64

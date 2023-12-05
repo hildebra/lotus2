@@ -25,25 +25,6 @@ use warnings;
 use Getopt::Long qw( GetOptions );
 use Cwd 'abs_path';
 use Net::FTP;
-my $FILEfetch = eval
-{
-  require File::Fetch;
-  File::Fetch->import();
-  1;
-};
-use File::Copy qw(move);
-my $LWPsimple = eval
-{
-  require LWP::Simple;
-  LWP::Simple->import();
-  1;
-};
-my $WGETpres=1;
-#if (`command -v wget` eq ""){
-if (`whereis wget` eq ""){
-	$WGETpres=0;
-}
-
 sub addInfoLtS;sub finishAI;
 #subroutines to download various DBs..
 sub getGG; sub getGG2; sub getSLV;sub getHITdb; sub getPR2db;sub getKSGP;sub getbeetax;
@@ -59,6 +40,24 @@ sub checkLtsVer;
 sub check_exists;
 sub check_version;
 sub user_options;
+my $FILEfetch = eval{
+  require File::Fetch;
+  File::Fetch->import();
+  1;
+};
+use File::Copy qw(move);
+my $LWPsimple = eval{
+  require LWP::Simple;
+  LWP::Simple->import();
+  1;
+};
+my $WGETpres=1;
+#if (`command -v wget` eq ""){
+if (`whereis wget` eq ""){
+	$WGETpres=0;
+}
+
+
 
 
 my $forceUpdate=0;
@@ -84,11 +83,20 @@ my $onlyDbinstall = 0;
 #options on programs to install..
 my $installBlast = 2; my @refDBinstall = 0 x 10; my $ITSready = 1;my $getUTAX=1;$refDBinstall[8]=1;
 
+#DEBUG
+#get_programs();die;
+#@refDBinstall = 0 x 10; $ITSready = 1;$getUTAX = 0; get_DBs();die;
+
+
 #autoinstaller, test if install was done before
 my @txt; my $mainCfg = "$ldir/lOTUs.cfg";
-unless (-e $mainCfg){
-	if (-e "configs/LotuS.cfg.def"){
-		system "cp configs/LotuS.cfg.def $mainCfg";
+my $defCfg = "$ldir/configs/LotuS.cfg.def";
+
+if (!-e $mainCfg ){
+	if ( -e $defCfg){
+		system "cp $defCfg $mainCfg";
+	} else {
+		die "Something wrong: can't find configs: $mainCfg and $defCfg";
 	}
 }
 open I,"<","$mainCfg" or die $!;
@@ -267,11 +275,11 @@ $nsdmp = compile_rtk("rtk_src");
 #rest of programs can be installed now
 get_programs();
 
-
-
-print "\n\nInstallation script finished. Please read the readme on the software used in this pipeline. Excecute autoinstall.pl again, to upgrade LotuS to a newer version (if available).\n";
-
 finishAI("");
+
+
+print "\n\nInstallation script finished.\nPlease read the README for examples and references to proprietary software used in this pipeline.\n";
+
 
 #After install on your system, open\n   ".$ldir."lOTUs.cfg\nand search for the entry \"usearch {XX}\".\nReplace {XX} with the absolute path to your usearch install, e.g. /User/Thomas/bin/usearch/usearch7.0.1001_i86linux32\n LotuS is ready to run.\n";
 
@@ -414,16 +422,27 @@ sub parse_PR2($ $){
 sub buildIndex($){
 	my ($DBfna) = @_;
 	return unless ($compile_lambda);
+	
 	my $lambdaIdxBin = "";#find where lambda is installed in
 	foreach my $line (@txt){
-		if ($line =~ m/^lambda_index\s+(\S+)/ ) {
+		#change to lambda 3
+		#if ($line =~ m/^lambda_index\s+(\S+)/ ) {
+		#	$lambdaIdxBin = $1;
+		#}
+		if ($line =~ m/^lambda3\s+(\S+)/ ) {
 			$lambdaIdxBin = $1;
 		}
 	}
 	my $BlastCores = 8; #just pick reasonable number
 	my $xtraLmbdI = "";
-	my $cmdIdx =  "$lambdaIdxBin -p blastn -t $BlastCores -d $DBfna $xtraLmbdI;";
-	system "touch $DBfna.dna5.fm.lf.drv.wtc.24;";
+	#my $cmdIdx =  "$lambdaIdxBin -p blastn -t $BlastCores -d $DBfna $xtraLmbdI;";
+	my $cmdIdx = "$lambdaIdxBin mkindexn -t $BlastCores -d $DBfna ;\n";
+	my $gzipC = "gzip";
+	$gzipC = "pigz -p $BlastCores " if (`sh -c 'command -v pigz'`);
+	$cmdIdx .= "$gzipC $DBfna.lba;\n";
+
+
+	#system "touch $DBfna.dna5.fm.lf.drv.wtc.24;";
 	print "###################################\nCompiling lambda database for $DBfna using $BlastCores cores\n";
 	if ( system($cmdIdx) ) {
 		die "Could not compile index for $DBfna with call\n$cmdIdx\n\n";
@@ -488,7 +507,7 @@ sub getGG2($){
 	my $gg1 = "https://ksgp.earlham.ac.uk/downloads/greengenes2/GG2.2022.10.fasta.gz";
 	my $gg2 = "https://ksgp.earlham.ac.uk/downloads/greengenes2/GG2.2022.10.tax.gz";
 	my $DB = "$ddir/GG2.2022.10.fasta";
-	system "rm -f $DB"."*";
+	system "rm -f ${DB}*";
 	#system("wget -O $DB.gz $gg1");
 	print "Downloading GreenGenes2 2022 release..\n";
 	getS2($gg1,"$DB.gz");
@@ -515,7 +534,7 @@ sub getGG($){
 	my $gg1 = "http://lotus2.earlham.ac.uk/lotus/packs/gg_13_5.fasta.gz";
 	my $gg2 = "http://lotus2.earlham.ac.uk/lotus/packs/gg_13_5_taxonomy.gz";
 	my $DB = "$ddir/gg_13_5.fasta";
-	system "rm -f $DB"."*";
+	system "rm -f ${DB}*";
 	#system("wget -O $DB.gz $gg1");
 	print "Downloading Greengenes may 2013 release..\n";
 	getS2($gg1,"$DB.gz");
@@ -538,7 +557,7 @@ sub getKSGP($){
 	my ($aref) = @_;
 	my @txt = @{$aref};
 	my $DB = "$ddir/KSGP_v1.0";
-	system "rm -f $DB"."*";
+system "rm -f ${DB}*";
 	print "Downloading KSGP 2023 release..\n";
 	my $tarUTN = "$ddir/KSGP.tar.gz";
 	getS2("https://ksgp.earlham.ac.uk/downloads/v1.0/KSGP_v1.0.tar.gz",$tarUTN);
@@ -569,7 +588,7 @@ sub getSLV($){
 	
 	my $DB2 = "$ddir/$baseLN"."_SSU.tax";
 	my $DB = "$ddir/$baseLN"."_SSU.fasta";
-	system "rm -f $DB"."*";
+	system "rm -f ${DB}*";
 	print "Downloading SILVA SSU release $SLVver..\n";
 	if ($locSLBdl){ #in case silva server doesn't work again..
 		$baseSP = "http://lotus2.earlham.ac.uk/lotus/packs/DB/SLV/";
@@ -626,196 +645,196 @@ sub getSLV($){
 }
 
 sub prepareSILVA($ $ $ $){
-#taxf3 is for 18S/28S #taxf3 is for SSU/LSU
-my ($path, $SeqF,$taxF,$taxGuide,$taxGuide2) = @_;
-print("Rewriting SILVA DB..\n");
-my %taxG;
+	#taxf3 is for 18S/28S #taxf3 is for SSU/LSU
+	my ($path, $SeqF,$taxF,$taxGuide,$taxGuide2) = @_;
+	print("Rewriting SILVA DB..\n");
+	my %taxG;
 
 
-open I,"<",$taxGuide or die "Can't find taxguide file $taxGuide\n";
-while (my $line = <I>){
-	chomp($line); my @splg = split("\t",$line);
-	if (scalar(@splg) > 0){
+	open I,"<",$taxGuide or die "Can't find taxguide file $taxGuide\n";
+	while (my $line = <I>){
+		chomp($line); my @splg = split("\t",$line);
+		if (scalar(@splg) > 0){
+			my $newN =  $splg[0]; #lc
+			$taxG{$newN} =  $splg[2];
+		}
+	} 
+	close I;
+
+	if ($taxGuide2 ne ""){
+	open I,"<",$taxGuide2 or die "Can't find taxguide file $taxGuide2\n";
+	while (my $line = <I>){
+		chomp($line); my @splg = split("\t",$line);
+		next if (@splg < 2);
 		my $newN =  $splg[0]; #lc
 		$taxG{$newN} =  $splg[2];
+	} 
+	close I;
 	}
-} 
-close I;
 
-if ($taxGuide2 ne ""){
-open I,"<",$taxGuide2 or die "Can't find taxguide file $taxGuide2\n";
-while (my $line = <I>){
-	chomp($line); my @splg = split("\t",$line);
-	next if (@splg < 2);
-	my $newN =  $splg[0]; #lc
-	$taxG{$newN} =  $splg[2];
-} 
-close I;
-}
-
-open I,"<",$path or die ("could not find SILVA file \n$path\n");
-open OT,">",$taxF;
-open OS,">",$SeqF;
-#open OT2,">",$taxF2;open OS2,">",$SeqF2;
-my @tdesign = (" k__"," p__"," c__"," o__"," f__"," g__"," s__");
-my $skip = 0;
-my $eukMode = 0;
-my $replacementTax =0; my $allTax=0;
-while (my $line = <I>){
-	chomp($line);
-	if ($line =~ m/^>/){#header
-		$skip=0;$eukMode = 0;
-		my @spl = split("\\.",$line);
-		if (1){
-			; #do nothing
-		}elsif ($spl[0] =~ m/>AB201750/){
-			$line = ">AB201750.1.1495 Bacteria;Firmicutes;Clostridia;Clostridiales;Clostridiaceae 2;Anaerovirgula;Anaerovirgula multivorans";
-			@spl = split("\\.",$line);
-		} elsif ($spl[0] =~ m/>DQ643978/){
-			$line = ">DQ643978.1.1627 Bacteria;Firmicutes;Clostridia;Clostridiales;Clostridiaceae 4;Geosporobacter;Geosporobacter subterraneus";
-			@spl = split("\\.",$line);
-		}elsif ($spl[0] =~ m/>X99238/){
-			$line = ">X99238.1.1404 Bacteria;Firmicutes;Clostridia;Clostridiales;Clostridiaceae 1;Thermobrachium;Thermobrachium celere";
-			@spl = split("\\.",$line);
-		} elsif ($spl[0] =~ m/>FJ481102/){
-			$line = ">FJ481102.1.1423 Bacteria;Firmicutes;Clostridia;Clostridiales;Clostridiaceae 1;Fervidicella;Fervidicella metallireducens AeB";
-			@spl = split("\\.",$line);
-		} elsif ($spl[0] =~ m/>EU443727/){
-			$line = ">EU443727.1.1627 Bacteria;Firmicutes;Clostridia;Clostridiales;Clostridiaceae 4;Thermotalea;Thermotalea metallivorans";
-			@spl = split("\\.",$line);
-		}elsif ($spl[0] =~ m/>FR690973/){
-			$line = ">FR690973.1.2373 Bacteria;Proteobacteria;Gammaproteobacteria;Thiotrichales;Thiotrichaceae;Candidatus Thiopilula;Candidatus Thiopilula aggregata";
-			@spl = split("\\.",$line);
-		}elsif ($spl[0] =~ m/>CP002161/){
-			$line = ">CP002161.5310.6845 Bacteria;Proteobacteria;Gammaproteobacteria;Enterobacteriales;Enterobacteriaceae;Candidatus Zinderia;Candidatus Zinderia insecticola CARI";
-			@spl = split("\\.",$line);
-		} elsif ($spl[0] =~ m/>FR690975/){
-			$line = ">FR690975.1.2297 Bacteria;Proteobacteria;Gammaproteobacteria;Thiotrichales;Thiotrichaceae;Candidatus Thiopilula;Candidatus Thiopilula aggregata";
-			@spl = split("\\.",$line);
-		}elsif ($spl[0] =~ m/>FR690991/){
-			$line = ">FR690991.1.2147 Bacteria;Proteobacteria;Gammaproteobacteria;Thiotrichales;Thiotrichaceae;Candidatus Thiopilula;Candidatus Marithioploca araucae";
-			@spl = split("\\.",$line);
-		}elsif ($spl[0] =~ m/>FR690991/){
-			$line = ">AB910318.1.1553 Bacteria;Firmicutes;Clostridia;Clostridiales;Clostridiaceae 4;Thermotalea;uncultured bacterium";
-			@spl = split("\\.",$line);
-		}elsif ($spl[0] =~ m/>AB910318/){
-			$line = ">AB910318.1.1553 Bacteria;Firmicutes;Clostridia;Clostridiales;Clostridiaceae 4;Thermotalea;uncultured bacterium";
-			@spl = split("\\.",$line);
-		}elsif ($spl[0] =~ m/>AY796047/){
-			$line = ">AY796047.1.1592 Bacteria;Firmicutes;Clostridia;Clostridiales;Clostridiaceae 4;Thermotalea;uncultured bacterium";
-			@spl = split("\\.",$line);
-		}
-
-		
-		my $ID = $spl[0];
-		$ID = substr($ID,1);
-		$line =~ m/[^\s]+\s(.*)$/;
-		my $tax = $1; chomp $tax;
-		if ($tax =~ m/^\s*Eukaryota/){$eukMode = 1;}#$skip = 1; next;}
-		
-		print OS ">".$ID."\n";
-		@spl = split(";",$tax);
-		for (my $i=0;$i<@spl;$i++){
-			$spl[$i] =~ s/^\s*//; $spl[$i] =~ s/\s*$//;
-		}
-		#die "@spl\n";
-		my $tline;
-		if (!$eukMode){
-			if (@spl > 7 ){
-				print $line."\n";
-				print("too many categories\n");
+	open I,"<",$path or die ("could not find SILVA file \n$path\n");
+	open OT,">",$taxF;
+	open OS,">",$SeqF;
+	#open OT2,">",$taxF2;open OS2,">",$SeqF2;
+	my @tdesign = (" k__"," p__"," c__"," o__"," f__"," g__"," s__");
+	my $skip = 0;
+	my $eukMode = 0;
+	my $replacementTax =0; my $allTax=0;
+	while (my $line = <I>){
+		chomp($line);
+		if ($line =~ m/^>/){#header
+			$skip=0;$eukMode = 0;
+			my @spl = split("\\.",$line);
+			if (1){
+				; #do nothing
+			}elsif ($spl[0] =~ m/>AB201750/){
+				$line = ">AB201750.1.1495 Bacteria;Firmicutes;Clostridia;Clostridiales;Clostridiaceae 2;Anaerovirgula;Anaerovirgula multivorans";
+				@spl = split("\\.",$line);
+			} elsif ($spl[0] =~ m/>DQ643978/){
+				$line = ">DQ643978.1.1627 Bacteria;Firmicutes;Clostridia;Clostridiales;Clostridiaceae 4;Geosporobacter;Geosporobacter subterraneus";
+				@spl = split("\\.",$line);
+			}elsif ($spl[0] =~ m/>X99238/){
+				$line = ">X99238.1.1404 Bacteria;Firmicutes;Clostridia;Clostridiales;Clostridiaceae 1;Thermobrachium;Thermobrachium celere";
+				@spl = split("\\.",$line);
+			} elsif ($spl[0] =~ m/>FJ481102/){
+				$line = ">FJ481102.1.1423 Bacteria;Firmicutes;Clostridia;Clostridiales;Clostridiaceae 1;Fervidicella;Fervidicella metallireducens AeB";
+				@spl = split("\\.",$line);
+			} elsif ($spl[0] =~ m/>EU443727/){
+				$line = ">EU443727.1.1627 Bacteria;Firmicutes;Clostridia;Clostridiales;Clostridiaceae 4;Thermotalea;Thermotalea metallivorans";
+				@spl = split("\\.",$line);
+			}elsif ($spl[0] =~ m/>FR690973/){
+				$line = ">FR690973.1.2373 Bacteria;Proteobacteria;Gammaproteobacteria;Thiotrichales;Thiotrichaceae;Candidatus Thiopilula;Candidatus Thiopilula aggregata";
+				@spl = split("\\.",$line);
+			}elsif ($spl[0] =~ m/>CP002161/){
+				$line = ">CP002161.5310.6845 Bacteria;Proteobacteria;Gammaproteobacteria;Enterobacteriales;Enterobacteriaceae;Candidatus Zinderia;Candidatus Zinderia insecticola CARI";
+				@spl = split("\\.",$line);
+			} elsif ($spl[0] =~ m/>FR690975/){
+				$line = ">FR690975.1.2297 Bacteria;Proteobacteria;Gammaproteobacteria;Thiotrichales;Thiotrichaceae;Candidatus Thiopilula;Candidatus Thiopilula aggregata";
+				@spl = split("\\.",$line);
+			}elsif ($spl[0] =~ m/>FR690991/){
+				$line = ">FR690991.1.2147 Bacteria;Proteobacteria;Gammaproteobacteria;Thiotrichales;Thiotrichaceae;Candidatus Thiopilula;Candidatus Marithioploca araucae";
+				@spl = split("\\.",$line);
+			}elsif ($spl[0] =~ m/>FR690991/){
+				$line = ">AB910318.1.1553 Bacteria;Firmicutes;Clostridia;Clostridiales;Clostridiaceae 4;Thermotalea;uncultured bacterium";
+				@spl = split("\\.",$line);
+			}elsif ($spl[0] =~ m/>AB910318/){
+				$line = ">AB910318.1.1553 Bacteria;Firmicutes;Clostridia;Clostridiales;Clostridiaceae 4;Thermotalea;uncultured bacterium";
+				@spl = split("\\.",$line);
+			}elsif ($spl[0] =~ m/>AY796047/){
+				$line = ">AY796047.1.1592 Bacteria;Firmicutes;Clostridia;Clostridiales;Clostridiaceae 4;Thermotalea;uncultured bacterium";
+				@spl = split("\\.",$line);
 			}
-			for (my $i=0;$i<7; $i++){
-				if ($i < scalar(@spl)){
-					if ($spl[$i] =~ m/^unidentified/){$spl[$i] = "?";}
-					$spl[$i] = $tdesign[$i].$spl[$i];
-				} else {
-					$spl[$i] = $tdesign[$i];
+
+			
+			my $ID = $spl[0];
+			$ID = substr($ID,1);
+			$line =~ m/[^\s]+\s(.*)$/;
+			my $tax = $1; chomp $tax;
+			if ($tax =~ m/^\s*Eukaryota/){$eukMode = 1;}#$skip = 1; next;}
+			
+			print OS ">".$ID."\n";
+			@spl = split(";",$tax);
+			for (my $i=0;$i<@spl;$i++){
+				$spl[$i] =~ s/^\s*//; $spl[$i] =~ s/\s*$//;
+			}
+			#die "@spl\n";
+			my $tline;
+			if (!$eukMode){
+				if (@spl > 7 ){
+					print $line."\n";
+					print("too many categories\n");
 				}
-			}
-			$tline = $ID ."\t".join(";",@spl);
-		} else {#parse the levels out from taxguide
-			my $tmpTax = "";
-			my @jnd;
-			my @soughtCls = ("domain","phylum","class","order","family","genus","species");
-			my $soughtLvl = 0;  my $lastUsed = 0;
-			for (my $i=0;$i<@spl; $i++){
-				my $scanTax = $tmpTax.$spl[$i].";";
-				if (exists($taxG{$scanTax}) || $soughtLvl == 6 || $spl[$i] =~ m/^unidentified/){
-					#print "$taxG{$scanTax} LL\n";
-					#SILVA has no species level in tax guide file
-					$lastUsed = $soughtLvl;
-					if ($soughtLvl == 6){
-						push(@jnd,$tdesign[$soughtLvl].$spl[$i]);
-						$soughtLvl++;
-						last;
-					} elsif ($spl[$i] =~ m/^unidentified/ || $taxG{$scanTax} eq ""){#Euk in LSU file have no annotation..
-						$spl[$i] = "";
-						push(@jnd,$tdesign[$soughtLvl]."?");
-						$soughtLvl++;
-					} elsif ($taxG{$scanTax} eq $soughtCls[$soughtLvl]){
-						push(@jnd,$tdesign[$soughtLvl].$spl[$i]);
-						#print $tdesign[$soughtLvl].$spl[$i]."\n";
-						$soughtLvl++;
-					} elsif ($taxG{$scanTax} eq $soughtCls[$soughtLvl+1]){#fill in empty levels
-						push(@jnd,$tdesign[$soughtLvl]);
-						$soughtLvl++;
-						push(@jnd,$tdesign[$soughtLvl].$spl[$i]);
-						#print "Skipped to level ".$tdesign[$soughtLvl].$spl[$i]."\n";
-						$soughtLvl++;
-					}
-					
-				} else { #more likely to be low level species
-					my $arS = @spl;
-					#species signatuer & last entry
-					if ($spl[$i] =~ m/\S+\s\S+/ && $arS >= ($i)){
-						my $ncnt=1;
-						while ($soughtLvl<6){
-							my $nIdx = $lastUsed+ $ncnt;
-							if ($nIdx < ($arS-1) ){
-								#just impute preceding levels
-								push(@jnd,$tdesign[$soughtLvl]."?".$spl[ $nIdx ]);
-							} else {
-								push(@jnd,$tdesign[$soughtLvl]."?");
-							}
-							$soughtLvl++;$ncnt++;
-						}
-						$soughtLvl = 6;
-						#almost certainly a species
-						push(@jnd,$tdesign[$soughtLvl].$spl[$i]); 
-						$soughtLvl++;
-						$replacementTax++;
-						#print $ID."\t".join(";",@jnd)."\n$lastUsed\n";
-						last;
-					
+				for (my $i=0;$i<7; $i++){
+					if ($i < scalar(@spl)){
+						if ($spl[$i] =~ m/^unidentified/){$spl[$i] = "?";}
+						$spl[$i] = $tdesign[$i].$spl[$i];
 					} else {
-						#print $scanTax." JJ\n";
+						$spl[$i] = $tdesign[$i];
 					}
 				}
-				 #Eukaryota;Fungi;Ascomycota;Archaeorhizomycetes;Archaeorhizomycetales;Archaeorhizomycetales_incertae_sedis
-				$tmpTax .= $spl[$i].";";
-				$lastUsed = $i;
+				$tline = $ID ."\t".join(";",@spl);
+			} else {#parse the levels out from taxguide
+				my $tmpTax = "";
+				my @jnd;
+				my @soughtCls = ("domain","phylum","class","order","family","genus","species");
+				my $soughtLvl = 0;  my $lastUsed = 0;
+				for (my $i=0;$i<@spl; $i++){
+					my $scanTax = $tmpTax.$spl[$i].";";
+					if (exists($taxG{$scanTax}) || $soughtLvl == 6 || $spl[$i] =~ m/^unidentified/){
+						#print "$taxG{$scanTax} LL\n";
+						#SILVA has no species level in tax guide file
+						$lastUsed = $soughtLvl;
+						if ($soughtLvl == 6){
+							push(@jnd,$tdesign[$soughtLvl].$spl[$i]);
+							$soughtLvl++;
+							last;
+						} elsif ($spl[$i] =~ m/^unidentified/ || $taxG{$scanTax} eq ""){#Euk in LSU file have no annotation..
+							$spl[$i] = "";
+							push(@jnd,$tdesign[$soughtLvl]."?");
+							$soughtLvl++;
+						} elsif ($taxG{$scanTax} eq $soughtCls[$soughtLvl]){
+							push(@jnd,$tdesign[$soughtLvl].$spl[$i]);
+							#print $tdesign[$soughtLvl].$spl[$i]."\n";
+							$soughtLvl++;
+						} elsif ($taxG{$scanTax} eq $soughtCls[$soughtLvl+1]){#fill in empty levels
+							push(@jnd,$tdesign[$soughtLvl]);
+							$soughtLvl++;
+							push(@jnd,$tdesign[$soughtLvl].$spl[$i]);
+							#print "Skipped to level ".$tdesign[$soughtLvl].$spl[$i]."\n";
+							$soughtLvl++;
+						}
+						
+					} else { #more likely to be low level species
+						my $arS = @spl;
+						#species signatuer & last entry
+						if ($spl[$i] =~ m/\S+\s\S+/ && $arS >= ($i)){
+							my $ncnt=1;
+							while ($soughtLvl<6){
+								my $nIdx = $lastUsed+ $ncnt;
+								if ($nIdx < ($arS-1) ){
+									#just impute preceding levels
+									push(@jnd,$tdesign[$soughtLvl]."?".$spl[ $nIdx ]);
+								} else {
+									push(@jnd,$tdesign[$soughtLvl]."?");
+								}
+								$soughtLvl++;$ncnt++;
+							}
+							$soughtLvl = 6;
+							#almost certainly a species
+							push(@jnd,$tdesign[$soughtLvl].$spl[$i]); 
+							$soughtLvl++;
+							$replacementTax++;
+							#print $ID."\t".join(";",@jnd)."\n$lastUsed\n";
+							last;
+						
+						} else {
+							#print $scanTax." JJ\n";
+						}
+					}
+					 #Eukaryota;Fungi;Ascomycota;Archaeorhizomycetes;Archaeorhizomycetales;Archaeorhizomycetales_incertae_sedis
+					$tmpTax .= $spl[$i].";";
+					$lastUsed = $i;
+				}
+				$allTax++;
+				for (;$soughtLvl<7;$soughtLvl++){
+					push(@jnd,$tdesign[$soughtLvl]);
+				}
+				$tline = $ID."\t".join(";",@jnd);
+				#die $tax." CC " .$tline."\n";
 			}
-			$allTax++;
-			for (;$soughtLvl<7;$soughtLvl++){
-				push(@jnd,$tdesign[$soughtLvl]);
-			}
-			$tline = $ID."\t".join(";",@jnd);
-			#die $tax." CC " .$tline."\n";
+			print OT $tline."\n";
+			#die($tline);
+		} elsif ($skip == 0){ #work through sequence
+			$line =~ s/\s//g;
+			$line =~ s/U/T/g;
+			$line =~ s/u/t/g;
+			#die $line;
+			print OS $line."\n";
 		}
-		print OT $tline."\n";
-		#die($tline);
-	} elsif ($skip == 0){ #work through sequence
-		$line =~ s/\s//g;
-		$line =~ s/U/T/g;
-		$line =~ s/u/t/g;
-		#die $line;
-		print OS $line."\n";
 	}
-}
-#print "$replacementTax out of $allTax could not be defined to clear taxonomic levels and were imputed (with mostly empty tax levels or a \"?\" before tax name\n";
+	#print "$replacementTax out of $allTax could not be defined to clear taxonomic levels and were imputed (with mostly empty tax levels or a \"?\" before tax name\n";
 
-close I; close OT; close OS; #close OT2; close OS2;
+	close I; close OT; close OS; #close OT2; close OS2;
 }
 
 
@@ -993,6 +1012,51 @@ sub check_version {
   return $v;
 }
 
+
+
+sub getTaxSfromUNITE{
+	my ($head) = @_;
+	my $taxS = "k__?;p__?;c__?;o__?;f__?;g__?;s__";
+	if ($head =~ s/\|([^\|]+)$//){
+		$taxS = $1;
+	} else {
+		die "Error in extrTaxFromFasta:: can't find \"|\" in string $head\n";
+	}
+	return ($taxS, $head);
+}
+
+sub extrTaxFromFasta($ $ $){
+	my ($inFA, $oFA, $oTax) = @_;
+	open I,"<$inFA" or die "Can't open inFA $inFA\n";
+	open OF,">$oFA" or die "Can't open inFA $inFA\n";
+	open OT,">$oTax" or die "Can't open inFA $inFA\n";
+	
+	my $fasta="";my $head="";#my $line="";
+	while (my $line = <I>){
+		chomp $line;
+		if ($line =~ m/^>/ ){
+			if ($head ne ""){
+				my ($taxS,$h2) = getTaxSfromUNITE($head);
+				#die "$taxS\n$head\n";
+				print OF ">$h2\n$fasta\n";
+				print OT "$h2\t$taxS\n";
+			}
+			$fasta = "";
+			$head = substr($line,1);
+			next;
+		}
+		$fasta .= $line;
+	}
+	#final round..
+	my ($taxS,$h2) =getTaxSfromUNITE($head);
+	print OF ">$h2\n$fasta\n";
+	print OT "$h2\t$taxS\n";
+	
+	
+	close I; close OF; close OT;
+}
+
+
 sub get_DBs{
 #-------BIG DB INSTALL
 	if ($refDBinstall[2] || $refDBinstall[8]){
@@ -1039,6 +1103,43 @@ sub get_DBs{
 	#-------BIG DB INSTALL END
 	
 	
+	if ($ITSready){
+		#ITS DB
+		#my $tarUN = "$ddir/qITSfa.zip";
+		#v9 2023 releast
+		#getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta.zip",$tarUN);
+#		my $UNITEdb = "$ddir/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta";
+		#getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/sh_qiime_release_02.03.2015.zip",$tarUN);
+		#system("rm -fr $ddir/UNITE;unzip -q -o $tarUN -d $ddir/UNITE/");
+		#getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt.zip",$tarUN);
+		#system("unzip -q -o $tarUN -d $ddir/UNITE/;rm -rf $ddir/UNITE/__MACOSX/");
+		#@txt = addInfoLtS("TAX_RANK_ITS_UNITE","$ddir/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt",\@txt,1);
+		my $tarUN = "$ddir/qITSfa.gz";
+		getS2("https://lotus2.earlham.ac.uk/lotus/packs/UNITE/v9_Dec23/sh_general_release_dynamic_all_25.07.2023.fasta.gz",$tarUN);
+		my $UNITEdb = "$ddir/UNITE/sh_refs_v9_25.07.2023";
+		system("rm -fr $ddir/UNITE/;mkdir -p $ddir/UNITE/; gunzip -c $tarUN > $UNITEdb.fasta.tmp");
+		extrTaxFromFasta("$UNITEdb.fasta.tmp","$UNITEdb.fasta","$UNITEdb.tax");
+		system "rm $UNITEdb.fasta.tmp";
+		buildIndex($UNITEdb);
+		
+		@txt = addInfoLtS("TAX_REFDB_ITS_UNITE","$UNITEdb.fasta",\@txt,1);
+		@txt = addInfoLtS("TAX_RANK_ITS_UNITE","$UNITEdb.tax",\@txt,1);
+
+		unlink($tarUN);
+	}
+	
+	if ($ITSready){#ITS chimera check ref DB
+		my $itsDB = "http://lotus2.earlham.ac.uk/lotus/packs/DB/uchime_reference_dataset_11.03.2015.zip";
+		getS2($itsDB,"$ddir/uchITS.zip");
+		system "rm -fr $ddir/ITS_chimera/";
+		if (system("unzip -q -o $ddir/uchITS.zip -d $ddir/ITS_chimera") != 0){ die "Failed to unzip $ddir/uchITS.zip";}
+		unlink("$ddir/uchITS.zip");
+		#die "$ddir/ITS_chimera/uchime_sh_refs_dynamic_original_985_11.03.2015.fasta";
+		@txt = addInfoLtS("UCHIME_REFDB_ITS","$ddir/ITS_chimera/uchime_sh_refs_dynamic_original_985_11.03.2015.fasta",\@txt,1);
+		@txt = addInfoLtS("UCHIME_REFDB_ITS1","$ddir/ITS_chimera/ITS1_ITS2_datasets/uchime_sh_refs_dynamic_develop_985_11.03.2015.ITS1.fasta",\@txt,1);
+		@txt = addInfoLtS("UCHIME_REFDB_ITS2","$ddir/ITS_chimera/ITS1_ITS2_datasets/uchime_sh_refs_dynamic_develop_985_11.03.2015.ITS2.fasta",\@txt,1);
+	}
+
 	#-------------- install chimera check DBs
 	
 	# phiX ref genome
@@ -1055,33 +1156,6 @@ sub get_DBs{
 	system("gunzip $DB.gz");
 	@txt = addInfoLtS("UCHIME_REFDB",$DB,\@txt,1);
 
-	if ($ITSready){
-		#ITS DB
-		my $tarUN = "$ddir/qITSfa.zip";
-		getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta.zip",$tarUN);
-		#getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/sh_qiime_release_02.03.2015.zip",$tarUN);
-		system("rm -r $ddir/UNITE;unzip -q -o $tarUN -d $ddir/UNITE/");
-		my $UNITEdb = "$ddir/UNITE/sh_refs_qiime_ver8_99_s_all_02.02.2019.fasta";
-		@txt = addInfoLtS("TAX_REFDB_ITS_UNITE",$UNITEdb,\@txt,1);
-		buildIndex($UNITEdb);
-
-		getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt.zip",$tarUN);
-		system("unzip -q -o $tarUN -d $ddir/UNITE/;rm -rf $ddir/UNITE/__MACOSX/");
-		@txt = addInfoLtS("TAX_RANK_ITS_UNITE","$ddir/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt",\@txt,1);
-		unlink($tarUN);
-	}
-	
-	if ($ITSready){#ITS chimera check ref DB
-		my $itsDB = "http://lotus2.earlham.ac.uk/lotus/packs/DB/uchime_reference_dataset_11.03.2015.zip";
-		getS2($itsDB,"$ddir/uchITS.zip");
-		system "rm -r $ddir/ITS_chimera/";
-		if (system("unzip -q -o $ddir/uchITS.zip -d $ddir/ITS_chimera") != 0){ die "Failed to unzip $ddir/uchITS.zip";}
-		unlink("$ddir/uchITS.zip");
-		#die "$ddir/ITS_chimera/uchime_sh_refs_dynamic_original_985_11.03.2015.fasta";
-		@txt = addInfoLtS("UCHIME_REFDB_ITS","$ddir/ITS_chimera/uchime_sh_refs_dynamic_original_985_11.03.2015.fasta",\@txt,1);
-		@txt = addInfoLtS("UCHIME_REFDB_ITS1","$ddir/ITS_chimera/ITS1_ITS2_datasets/uchime_sh_refs_dynamic_develop_985_11.03.2015.ITS1.fasta",\@txt,1);
-		@txt = addInfoLtS("UCHIME_REFDB_ITS2","$ddir/ITS_chimera/ITS1_ITS2_datasets/uchime_sh_refs_dynamic_develop_985_11.03.2015.ITS2.fasta",\@txt,1);
-	}
 
 
 	#db Silva 119 clustered to 93% for LSUs
@@ -1136,20 +1210,30 @@ sub get_programs{
 	}
 	if ($installBlast == 2 || $installBlast == 3){
 		print "Downloading lambda executables... \n";
-		my $lmdD = "http://lotus2.earlham.ac.uk/lotus/packs/lambda/lambda-v0.9.1-linux_x86-64.tar.gz";
-		if ($isMac){
-			$lmdD = "http://lotus2.earlham.ac.uk/lotus/packs/lambda/lambda-v0.9.1-darwin_x86-64.tar.gz";
+		#my $lmdD = "http://lotus2.earlham.ac.uk/lotus/packs/lambda/lambda-v0.9.1-linux_x86-64.tar.gz";
+		#if ($isMac){
+		#	$lmdD = "http://lotus2.earlham.ac.uk/lotus/packs/lambda/lambda-v0.9.1-darwin_x86-64.tar.gz";
+		#}
+		if (!$isMac){
+			my $lmdD = "https://github.com/seqan/lambda/releases/download/lambda-v3.0.0/lambda3-3.0.0-Linux-x86_64.tar.xz";
+			$exe = "$bdir/lambda.tar.xz";
+			getS2($lmdD,$exe);
+			system("tar -xf $exe -C $bdir\nmv $bdir/lambda3-3.0.0-Linux-x86_64/bin/lambda3 $bdir/lambda3;rm -rf $bdir/lambda3-3.0.0-Linux-x86_64/");
+
+		}else{
+			my $lmdD = "https://github.com/seqan/lambda/releases/download/lambda-v3.0.0/lambda3-3.0.0-Darwin-x86_64.zip";
+			$exe = "$bdir/lambda.zip";
+			getS2($lmdD,$exe);
+			system("unzip -q -o -d $bdir $exe \nmv $bdir/lambda3-3.0.0-Darwin-x86_64/bin/lambda3 $bdir/lambda3;rm -rf $bdir/lambda3-3.0.0-Darwin-x86_64/");
 		}
 
-		$exe = "$bdir/lambda.tar.gz";
-		getS2($lmdD,$exe);
-		system("tar -xzf $exe -C $bdir\nmv $bdir/bin $bdir/lambda");
 		unlink($exe);
-		$exe = "$bdir/lambda/lambda_indexer";
-		@txt = addInfoLtS("lambda_index",$exe,\@txt,1);
-		$exe = "$bdir/lambda/lambda";
-		@txt = addInfoLtS("lambda",$exe,\@txt,1);
+		#$exe = "$bdir/lambda/lambda_indexer";
+		#@txt = addInfoLtS("lambda_index",$exe,\@txt,1);
+		$exe = "$bdir/lambda3";
+		@txt = addInfoLtS("lambda3",$exe,\@txt,1);
 	}
+	#die "$bdir/lambda3";
 	if ($installBlast == 0){
 		print "\nNo similarity comparison program will be installed.\n";
 	}
@@ -1400,15 +1484,17 @@ sub user_options(){
 		
 		if (!$forceUpdate && $usearchInstall eq ""){
 			while ($inp !~ m/\d/){
-				print "Detected previous installation of LotuS, do you want to \n (1) search & install updates\n (2) fully reinstall lotus (no LotuS update will be downloaded)\n";
-				print " (3) reinstall only databases (no LotuS update will be downloaded, no compilations)?\n";
-				print " (4) set the path to you usearch binary (can also be updated)?\n";
+				print "Detected previous installation of LotuS, do you want to \n";
+				#print " (1) search & install updates\n";
+				print " (1) fully reinstall lotus (e.g. after \"github pull\")\n";
+				print " (2) reinstall only databases (secondary software remains the same)?\n";
+				print " (3) set the path to you usearch binary (can also be updated)?\n";
 				print "Answer: \n";
 				$inp = <>;
 			}
 			chomp($inp);
 		}
-		if ($inp eq "4"){
+		if ($inp eq "3"){
 			print "Enter the full (absolute) path to your usearch binary:\n";
 			while ($usearchInstall eq ""){
 				$usearchInstall = <>; chomp $usearchInstall;
@@ -1427,7 +1513,7 @@ sub user_options(){
 			exit(0);
 		}
 		my $rerun = 0;
-		if ($inp eq "1" || $forceUpdate){
+		if (0 && $inp eq "1" || $forceUpdate){ #completely inactivated..
 			my ($lsv,$msgEnd) = checkLtsVer($lver);
 			#higher version? reinstall lotus2, autoinstall.pl, sdm
 			if ($lsv ne $lver || $forceUpdate){
@@ -1459,7 +1545,7 @@ sub user_options(){
 			} else {
 				print "You have the actual lotus version installed.\n"; exit(0);
 			}
-		} elsif($inp eq "3"){
+		} elsif($inp eq "2"){
 			$onlyDbinstall = 1;
 		}
 	}
@@ -1491,7 +1577,7 @@ sub user_options(){
 		if ($skipAll){
 			return;
 		}
-		print "\n\nFor similarity based taxonomic assignments LotuS can either use \n (1) Blastn (slow but very sensitve)\n (2) Lambda (fast, a little less sensitive than Blastn)\n (3) both, decide at runtime which to use or\n (0) none\n Answer:";
+		print "\n\nFor similarity based taxonomic assignments LotuS can either use \n (1) Blastn \n (2) Lambda \n (3) both, decide at runtime which to use or\n (0) none\n Answer:";
 		while (<> ){
 			chomp($_);
 			if ($_ == 1 || $_ == 3 ||$_ == 2 ||$_ == 0){

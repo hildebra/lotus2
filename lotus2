@@ -82,7 +82,9 @@ sub annotateFaProTax;
 sub systemW;
 
 #versioning
-my $selfID = "LotuS 2.28"; 
+#2.29: added Lambda3, replaces lamdba < 3
+#2.30: UNITE v9
+my $selfID = "LotuS 2.30"; 
 
 
 #keep track of time
@@ -118,6 +120,8 @@ my $rdpjar = ""
 my $blastBin     = "";  #Blastn+ binary (e.g. /YY/ncbi-blast-2.2.XX+/bin/blastn)
 my $mkBldbBin    = "";
 my $lambdaBin    = "";  #lambda ref DB search
+my $lambda3Bin    = "";  #lambda ref DB search
+my $gzipC = "gzip"; 
 my $lambdaIdxBin = "";
 my $clustaloBin  = ""; #clustalo multiple alignment binary (e.g. /YY/clustaloBin-1.2.0-OS-x86_64)
 my $mafftBin     = ""; #different aligner than clustalo, better performance
@@ -533,7 +537,7 @@ if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 	#some specific demulti treatment for DADA2 specifically (faster to leave files non-gz till here)
 	if ($ClusterPipe == 7 && ( $saveDemulti == 1 || $saveDemulti == 2 ) ) {    #gzip stuff
 		printL "Zipping demultiplex output..\n";
-		systemL "gzip $sdmDemultiDir/*.fq;";
+		systemL "$gzipC $sdmDemultiDir/*.fq;";
 	}
 
 	my $status = 0;
@@ -990,8 +994,8 @@ sub sdmStep1{
 			@allOuts = split /,/, $filterOutAdd;
 			foreach (@allOuts) {
 				$_ =~ m/\/([^\/]+$)/;
-				systemL "gzip -c $_.singl* > $outdir/demultiplexed/$1.gz; rm -f $_.singl*;" if (-e "$_.singl");
-				systemL "gzip -c $_* > $outdir/demultiplexed/$1.gz; rm -f $_*;" if (-e "$_");
+				systemL "$gzipC -c $_.singl* > $outdir/demultiplexed/$1.gz; rm -f $_.singl*;" if (-e "$_.singl");
+				systemL "$gzipC -c $_* > $outdir/demultiplexed/$1.gz; rm -f $_*;" if (-e "$_");
 			}
 			@allOuts = split /,/, $filterOut;
 			foreach (@allOuts) {
@@ -1006,8 +1010,8 @@ sub sdmStep1{
 	#			systemL "gzip -c $_* > $outdir/demultiplexed/$fn.gz; rm -f $_*";
 				#die "DEBUG new singl filenames\n";
 				#print "$fn\n$fdir\n$fns\n";
-				systemL "gzip -c $_.singl* > $outdir/demultiplexed/$fn.singl.gz; rm -f $_.singl*;" if (-e "$_");
-				systemL "gzip -c $_* > $outdir/demultiplexed/$fn.gz; rm -f $_*;" if (-e "$_");
+				systemL "$gzipC -c $_.singl* > $outdir/demultiplexed/$fn.singl.gz; rm -f $_.singl*;" if (-e "$_");
+				systemL "$gzipC -c $_* > $outdir/demultiplexed/$fn.gz; rm -f $_*;" if (-e "$_");
 			}
 		}
 		if ($ClusterPipe == 7){#derep by single file, combine map at end
@@ -1207,8 +1211,8 @@ sub ITSxOTUs {
 	}
 	#also check correct hmmsearch version
 	$preChk = `$hmmsrchBin -h`;
-	if ($preChk !~ m/HMMER 3.3.2 \(Nov 2020\);/){
-		printL "Wrong hmmscan version, expected HMMER 3.3.2 (Nov 2020)",82;
+	if ($preChk =~ m/HMMER (\d\.\d)[0-9\.]+.*/ && $1 < 3.1){
+		printL "Wrong hmmscan version, expected HMMER >= 3.1",82;
 	}
 	
 	my $cmd = "perl $itsxBin -i $otusFA -o $outBFile --cpu $uthreads --multi_thread T --heuristics T -t $itsxOrg --silent T --fasta T --nhmmer F --save_regions $ITSxReg --partial $ITSpartial --hmmBin $hmmsrchBin --preserve T;";
@@ -1378,7 +1382,7 @@ sub contamination_rem($ $ $ $) {
 			$anycontRem += $contRem;
 			$totHits{$nameRDB} = \%hits;
 			next if (scalar(@hitA) == 0);# { return(0);}
-			systemL ("gzip $hitsFile\nmv $hitsFile.gz $logDir;");
+			systemL ("$gzipC $hitsFile\nmv $hitsFile.gz $logDir;");
 			#open LLOG,">$storeContamIDsF";
 			#print LLOG "$nameRDB\t$refDB\n@hitA\n";
 			#close LLOG;
@@ -1621,7 +1625,7 @@ sub lulu{
 	
 	
 	systemL $cmd,"LULU Rscript",1;
-	system "gzip $logDir/lulu.log* 2> /dev/null ";
+	system "$gzipC $logDir/lulu.log* 2> /dev/null ";
 	my $rmLst = `cat $lotus_tempDir/lulu_match_list.txt.rm`;
 	chomp $rmLst;
 	my $LULUcnt=0;
@@ -2310,6 +2314,9 @@ sub readPaths_aligners($) {
 		elsif ( $line =~ m/^lambda\s+(\S+)/ ) {
 			$lambdaBin = truePath($1);
 		}
+		elsif ( $line =~ m/^lambda3\s+(\S+)/ ) {
+			$lambda3Bin = truePath($1);
+		}
 		elsif ( $line =~ m/^lambda_index\s+(\S+)/ ) {
 			$lambdaIdxBin = truePath($1);
 		} elsif ( $line =~ m/^vxtractor\s+(\S+)/ ) {$vxtrBin = truePath($1);
@@ -2567,8 +2574,9 @@ sub readPaths {    #read tax databases and setup correct usage
                 }
                 push @refDBname, "UNITE";
                 $subrdbw = "";
+				$citations .= "Abarenkov, Kessy; Zirk, Allan; Piirmann, Timo; Pöhönen, Raivo; Ivanov, Filipp; Nilsson, R. Henrik; Kõljalg, Urmas (2023): UNITE general FASTA release for eukaryotes. UNITE Community. 10.15156/BIO/2938069";
                 $citations .= "UNITE ITS chimera DB - Nilsson et al. 2015. A comprehensive, automatically updated fungal ITS sequence dataset for reference-based chimera control in environmental sequencing efforts. Microbes and Environments. \n";
-                $citations .= "UNITE ITS taxonomical refDB - Koljalg, Urmas, et al. Towards a unified paradigm for sequence-based identification of fungi. Molecular Ecology 22.21 (2013): 5271-5277.\n";
+                #$citations .= "UNITE ITS taxonomical refDB - Koljalg, Urmas, et al. Towards a unified paradigm for sequence-based identification of fungi. Molecular Ecology 22.21 (2013): 5271-5277.\n";
             }
             if ( $subrdbw =~ m/^HITDB$/ ) {
                 push @TAX_REFDB, $TAX_REFDB_16S_HITdb;
@@ -2983,8 +2991,10 @@ sub setMapperName{
 }
 
 sub checkMapperAvailable() {
-    if ( !-f $lambdaBin && ( $doBlasting == 2 ) ) {
-        printL"Requested LAMBDA based similarity tax annotation; no LAMBDA binary found at $lambdaBin\n",55;
+    if ( !-f $lambda3Bin &&  $doBlasting == 2 ){
+        printL"Requested LAMBDA based similarity tax annotation; no LAMBDA3 binary found at $lambda3Bin\n",55;
+	} elsif (!-f $lambdaBin && $doBlasting == 2  ) {
+        printL"Requested LAMBDA based similarity tax annotation; no LAMBDA binary found at $lambda3Bin\n",55;
 		if ( !-e $lambdaIdxBin ) {
 			printL "Can't find valid labmda indexer executable at $lambdaIdxBin\n",  98;
 		}
@@ -3000,12 +3010,13 @@ sub checkMapperAvailable() {
 
 sub getDefAligner(){
 	my $defaultTaxAlig = 2; #LAMBDA: No 1 default
-	if ( !-f $lambdaBin ) {
-		if ( -f $VSBin ) { $defaultTaxAlig = 4; } #VSEARCH
+	if ( !-f $lambda3Bin ) {
+		if ( -f $lambda3Bin ) { $defaultTaxAlig = 2; print "Found older lambda version, using $lambdaBin\n"; }  #lambda.. old version
+		elsif ( -f $VSBin ) { $defaultTaxAlig = 4; } #VSEARCH
 		elsif ( -f $usBin ) { $defaultTaxAlig = 5; } #USEARCH 
 		elsif ( -f $blastBin ) { $defaultTaxAlig = 1; } #BLAST
 		elsif ( !-f $blastBin && $refDBwanted ne "" ) {
-			printL "Requested similarity search ($refDBwanted), but no suitable aligner (blast, vsearch, usearch, lambda) binaries found!\n",50;
+			printL ("Requested similarity search ($refDBwanted), but no suitable aligner (blast, vsearch, usearch, lambda) binaries found!\n",50);
 		}
 	}
 	return $defaultTaxAlig;
@@ -3033,6 +3044,10 @@ sub prepLtsOptions{
 			$progOutPut = $logDir . "LotuS_progout.log";
 		}
 	}
+	
+	#check if pigz exists..
+	$gzipC = "pigz -p $uthreads " if (`sh -c 'command -v pigz'`);
+	#die "$gzipC\n";
 	
 	#reset logfile
 	#create output folders
@@ -3251,14 +3266,14 @@ sub prepLtsOptions{
 		}
 
 		if (   $doBlasting == 0
-			|| ( !-f $blastBin && !-f $lambdaBin )  || @TAX_REFDB == 0 || !-f $TAX_REFDB[0] )
+			|| ( !-f $blastBin &&  !-f $lambda3Bin && !-f $VSBin )  || @TAX_REFDB == 0 || !-f $TAX_REFDB[0] )
 		{
 			my $failedBlastITS = "ITS region was chosen as target; this requires a similarity based taxonomic annotation and excludes RDP tax annotation.\n";
 			$failedBlastITS .= "Blast similarity based annotation is not possible due to: ";
 			if ( $doBlasting == 0 ) {
 				$failedBlastITS .= "Similarity search was not explicitly activated (please use option \"-taxAligner usearch\" or vsearch,lambda,blast).";
 			}
-			elsif ( !-f $blastBin || !-f $lambdaBin ) {
+			elsif ( !-f $blastBin || !-f $lambda3Bin ) {
 				$failedBlastITS .=
 				  "Neither Lambda nor Blast binary being specified correctly";
 			}
@@ -5213,31 +5228,38 @@ sub doDBblasting($ $ $) {
 		#--blast6out $taxblastf
 		#die "$cmd\n";
     } elsif ( $doBlasting == 2 ) {    #lambda
-        printL "Could not find lambda executable.\n$lambdaBin\n", 33   unless ( -f $lambdaBin );
+        printL "Could not find lambda executable.\n$lambda3Bin\n", 33   unless ( -f $lambda3Bin );
         my $lamVer  = 0.4;
-        my $lverTxt = `$lambdaBin --version`;
-        if ( $lverTxt =~ m/lambda version: (\d\.\d)[\.0-9]* \(/ ) {$lamVer = $1;}
+        my $lverTxt = `$lambda3Bin --version`;
+        if ( $lverTxt =~ m/.*lambda\d? version: (\d\.\d)[\.0-9]*.*/ ) {$lamVer = $1;}
+		#die "$lverTxt\n\n$lamVer\n\n";
+		
+		if ($lamVer < 3.0){printL "Found Lambda v $lamVer at $lambda3Bin\nLotuS2 no longer supports lambda below version 3.0\nPlease update\n",333;}
+		#v3 fix:
+		my $query1 = ""; if ($query =~ m/\.fna$/){$query1 = $query; $query =~ s/\.fna$/\.fa/;}
+		systemL("mv $query1  $query;") unless ($query1 eq "");
         ( my $TAX_REFDB_wo = $DB ) =~ s/\.[^.]+$//;
         #print $DB. ".fm.txt.concat\n";
-        if (   $lamVer > 0.4
-            && -f $DB . ".dna5.fm.sa.val"
-            && !-f "$DB.dna5.fm.lf.drv.wtc.24" )
-        {
+		system "rm -f $DB.dna5* $DB.bin* $DB.idx* " if ($redoTaxDB);
+        if (   $lamVer > 0.4 && -f $DB . ".dna5.fm.sa.val"&& !-f "$DB.dna5.fm.lf.drv.wtc.24" ){
             printL "Rewriting taxonomy DB to Lambda > 0.9 version\n", 0;
             systemL "rm -rf $DB.*;";
+        } 
+		if ($lamVer >= 3 && -f "$DB.dna5.fm.lf.drv.wtc.24" ){
+            printL "Rewriting taxonomy DB to Lambda3 > 3.0 version\n", 0;
+            systemL "rm -rf $DB.*;";
         }
-		system "rm -f $DB.dna5* $DB.bin* $DB.idx* " if ($redoTaxDB);
-        if (  !-f $DB . ".dna5.fm.sa.val" ) {
+        if (  !-f "$DB.lba" && !-f "$DB.lba.gz" ) {
             printL "\n\nBuilding LAMBDA index anew for $DB (this only happens the first time you use this ref DB, it may take several hours to build)..\n\n",0;
 
             #die($DB.".dna5.fm.sa.val");
-            my $xtraLmbdI = "";
-            $xtraLmbdI = " --algorithm skew7ext " if ($lowMemLambI);
-            my $cmdIdx =  "$lambdaIdxBin -p blastn -t $BlastCores -d $DB $xtraLmbdI;";
+            my $xtraLmbdI = "";# $xtraLmbdI = " --algorithm skew7ext " if ($lowMemLambI);
+            my $cmdIdx =  "$lambda3Bin mkindexn -t $BlastCores -d $DB $xtraLmbdI;\n";
+			$cmdIdx .= "$gzipC $DB.lba;\n";
             #print $cmdIdx."\n";
-            systemL "touch $DB.dna5.fm.lf.drv.wtc.24;";
+            #systemL "touch $DB.dna5.fm.lf.drv.wtc.24;";
             if ( systemL($cmdIdx) ) {
-                printL( "Lamdba ref DB build failed\n$cmdIdx\n", 3 );
+                printL( "Lamdba3 ref DB build failed\n$cmdIdx\n", 3 );
             }
         }
 
@@ -5248,8 +5270,11 @@ sub doDBblasting($ $ $) {
         my $tmptaxblastf = "$lotus_tempDir/tax.m8";
 		
 		my $outcols = "'qseqid sseqid pident length mismatch gapopen qstart qend sstart send qlen'";
-        $cmd = "$lambdaBin -t $BlastCores -id 75 -nm 200 -p blastn -e 1e-8 -so 7 -sl 16 -sd 1 -b 5 -pd on -q $query -d $DB -o $tmptaxblastf -oc $outcols;";
+        #$cmd = "$lambdaBin -t $BlastCores -id 75 -nm 200 -p blastn -e 1e-8 -so 7 -sl 16 -sd 1 -b 5 -pd on -q $query -d $DB -o $tmptaxblastf -oc $outcols;";
+        $cmd = "$lambda3Bin searchn -t $BlastCores --percent-identity 75 --num-matches 200 --e-value 1e-8 -q $query -i $DB.lba.gz -o $tmptaxblastf --output-columns $outcols;";
         $cmd .= "mv $tmptaxblastf $taxblastf;";
+		$cmd .= "mv $query  $query1;" unless ($query1 eq "");
+
 
         #lambda is not guranteed to return sorted list <- apparently it does
         #$cmd .= "sort $tmptaxblastf > $taxblastf;rm -f $tmptaxblastf";
@@ -5257,7 +5282,7 @@ sub doDBblasting($ $ $) {
         if ( !-s $query ) { $cmd = "rm -f $taxblastf;touch $taxblastf\n"; }
         else { $citations .= "Lambda taxonomic similarity search: Hauswedell H, Singer J, Reinert K. 2014. Lambda: the local aligner for massive biological data. Bioinformatics 30: i349-i355\n" unless ( $citations =~ m/Lambda taxonomic similarity search:/ );
         }
-        $simMethod = "LAMBDA";
+        $simMethod = "LAMBDA3";
 
         #die $cmd."\n";
     } else {
