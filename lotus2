@@ -2994,7 +2994,7 @@ sub checkMapperAvailable() {
     if ( !-f $lambda3Bin &&  $doBlasting == 2 ){
         printL"Requested LAMBDA based similarity tax annotation; no LAMBDA3 binary found at $lambda3Bin\n",55;
 	} elsif (!-f $lambdaBin && $doBlasting == 2  ) {
-        printL"Requested LAMBDA based similarity tax annotation; no LAMBDA binary found at $lambda3Bin\n",55;
+        printL"Requested LAMBDA based similarity tax annotation; no LAMBDA binary found at $lambdaBin\n",55;
 		if ( !-e $lambdaIdxBin ) {
 			printL "Can't find valid labmda indexer executable at $lambdaIdxBin\n",  98;
 		}
@@ -3011,7 +3011,7 @@ sub checkMapperAvailable() {
 sub getDefAligner(){
 	my $defaultTaxAlig = 2; #LAMBDA: No 1 default
 	if ( !-f $lambda3Bin ) {
-		if ( -f $lambda3Bin ) { $defaultTaxAlig = 2; print "Found older lambda version, using $lambdaBin\n"; }  #lambda.. old version
+		if ( -f $lambdaBin ) { $defaultTaxAlig = 2; print "Found older lambda version, using $lambdaBin\n"; }  #lambda.. old version
 		elsif ( -f $VSBin ) { $defaultTaxAlig = 4; } #VSEARCH
 		elsif ( -f $usBin ) { $defaultTaxAlig = 5; } #USEARCH 
 		elsif ( -f $blastBin ) { $defaultTaxAlig = 1; } #BLAST
