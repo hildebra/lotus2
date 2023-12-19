@@ -120,10 +120,10 @@ my $rdpjar = ""
   ; #alternatively leave this "" and set environmental variabel to RDP_JAR_PATH, as described in RDP documentary
 my $blastBin     = "";  #Blastn+ binary (e.g. /YY/ncbi-blast-2.2.XX+/bin/blastn)
 my $mkBldbBin    = "";
-my $lambdaBin    = "";  #lambda ref DB search
+#my $lambdaBin    = "";  #lambda ref DB search
 my $lambda3Bin    = "";  #lambda ref DB search
 my $gzipC = "gzip"; 
-my $lambdaIdxBin = "";
+#my $lambdaIdxBin = "";
 my $clustaloBin  = ""; #clustalo multiple alignment binary (e.g. /YY/clustaloBin-1.2.0-OS-x86_64)
 my $mafftBin     = ""; #different aligner than clustalo, better performance
 my $fasttreeBin  = ""; #FastTree binary - for speed improvements /YY/FastTReeMP recommended -- requires clastalo
@@ -2311,15 +2311,13 @@ sub readPaths_aligners($) {
 		}
 		elsif ( $line =~ m/^minimap2\s+(\S+)/ ) {
 			$mini2Bin = truePath($1);
-		}
-		elsif ( $line =~ m/^lambda\s+(\S+)/ ) {
-			$lambdaBin = truePath($1);
-		}
-		elsif ( $line =~ m/^lambda3\s+(\S+)/ ) {
+		#}elsif ( $line =~ m/^lambda\s+(\S+)/ ) {
+		#	$lambdaBin = truePath($1);
+		}elsif ( $line =~ m/^lambda3\s+(\S+)/ ) {
 			$lambda3Bin = truePath($1);
-		}
-		elsif ( $line =~ m/^lambda_index\s+(\S+)/ ) {
-			$lambdaIdxBin = truePath($1);
+		
+		#}elsif ( $line =~ m/^lambda_index\s+(\S+)/ ) {
+		#	$lambdaIdxBin = truePath($1);
 		} elsif ( $line =~ m/^vxtractor\s+(\S+)/ ) {$vxtrBin = truePath($1);
 		} elsif ( $line =~ m/^vxtractorHMMs\s+(\S+)/ ) {$hmmsVX = $1;
 		} elsif ( $line =~ m/^itsx\s+(\S+)/ ) {$itsxBin = truePath($1);
@@ -2994,11 +2992,9 @@ sub setMapperName{
 sub checkMapperAvailable() {
     if ( !-f $lambda3Bin &&  $doBlasting == 2 ){
         printL"Requested LAMBDA based similarity tax annotation; no LAMBDA3 binary found at $lambda3Bin\n",55;
-	} elsif (!-f $lambdaBin && $doBlasting == 2  ) {
-        printL"Requested LAMBDA based similarity tax annotation; no LAMBDA binary found at $lambdaBin\n",55;
-		if ( !-e $lambdaIdxBin ) {
-			printL "Can't find valid labmda indexer executable at $lambdaIdxBin\n",  98;
-		}
+	#} elsif (!-f $lambdaBin && $doBlasting == 2  ) {
+        #printL"Requested LAMBDA based similarity tax annotation; no LAMBDA binary found at $lambdaBin\n",55;
+		#if ( !-e $lambdaIdxBin ) {printL "Can't find valid labmda indexer executable at $lambdaIdxBin\n",  98;}
     } elsif ( !-f $blastBin && ( $doBlasting == 1 ) ) {
         printL "Requested blastn based similarity tax annotation; no blastn binary found at $blastBin\n",55;
     } elsif ( !-f $VSBinOri && ( $doBlasting == 4 ) ) {
@@ -3012,8 +3008,8 @@ sub checkMapperAvailable() {
 sub getDefAligner(){
 	my $defaultTaxAlig = 2; #LAMBDA: No 1 default
 	if ( !-f $lambda3Bin ) {
-		if ( -f $lambdaBin ) { $defaultTaxAlig = 2; print "Found older lambda version, using $lambdaBin\n"; }  #lambda.. old version
-		elsif ( -f $VSBin ) { $defaultTaxAlig = 4; } #VSEARCH
+		#if ( -f $lambdaBin ) { $defaultTaxAlig = 2; print "Found older lambda version, using $lambdaBin\n"; }  #lambda.. old version
+		if ( -f $VSBin ) { $defaultTaxAlig = 4; } #VSEARCH
 		elsif ( -f $usBin ) { $defaultTaxAlig = 5; } #USEARCH 
 		elsif ( -f $blastBin ) { $defaultTaxAlig = 1; } #BLAST
 		elsif ( !-f $blastBin && $refDBwanted ne "" ) {
