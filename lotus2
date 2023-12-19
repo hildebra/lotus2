@@ -84,7 +84,8 @@ sub systemW;
 #versioning
 #2.29: added Lambda3, replaces lamdba < 3
 #2.30: UNITE v9
-my $selfID = "LotuS 2.30"; 
+#2.31: 19.12.23 autoInstall can download lambda3 index files
+my $selfID = "LotuS 2.31"; 
 
 
 #keep track of time
@@ -5249,19 +5250,19 @@ sub doDBblasting($ $ $) {
             printL "Rewriting taxonomy DB to Lambda3 > 3.0 version\n", 0;
             systemL "rm -rf $DB.*;";
         }
-        if (  !-f "$DB.lba" && !-f "$DB.lba.gz" ) {
-            printL "\n\nBuilding LAMBDA index anew for $DB (this only happens the first time you use this ref DB, it may take several hours to build)..\n\n",0;
+		if (  !-f "$DB.lba" && !-f "$DB.lba.gz" ) {
+			printL "\n\nBuilding LAMBDA index anew for $DB (this only happens the first time you use this ref DB, it may take several hours to build)..\n\n",0;
 
-            #die($DB.".dna5.fm.sa.val");
-            my $xtraLmbdI = "";# $xtraLmbdI = " --algorithm skew7ext " if ($lowMemLambI);
-            my $cmdIdx =  "$lambda3Bin mkindexn -t $BlastCores -d $DB $xtraLmbdI;\n";
+			#die($DB.".dna5.fm.sa.val");
+			my $xtraLmbdI = "";# $xtraLmbdI = " --algorithm skew7ext " if ($lowMemLambI);
+			my $cmdIdx =  "$lambda3Bin mkindexn -t $BlastCores -d $DB $xtraLmbdI;\n";
 			$cmdIdx .= "$gzipC $DB.lba;\n";
-            #print $cmdIdx."\n";
-            #systemL "touch $DB.dna5.fm.lf.drv.wtc.24;";
-            if ( systemL($cmdIdx) ) {
-                printL( "Lamdba3 ref DB build failed\n$cmdIdx\n", 3 );
-            }
-        }
+			#print $cmdIdx."\n";
+			#systemL "touch $DB.dna5.fm.lf.drv.wtc.24;";
+			if ( systemL($cmdIdx) ) {
+				printL( "Lamdba3 ref DB build failed\n$cmdIdx\n", 3 );
+			}
+		}
 
         #OMP_NUM_THREADS = $BlastCores
         #print "Starting LAMBDA similarity search..\n";

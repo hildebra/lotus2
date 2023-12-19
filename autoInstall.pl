@@ -62,10 +62,16 @@ if (`whereis wget` eq ""){
 
 my $forceUpdate=0;
 my $condaDBinstall=0;
+my $downloadLmbdIdx = 0; #download lambda index from webpage
 my $compile_lambda=0;
 if (@ARGV > 0 && $ARGV[0] eq "-forceUpdate"){$forceUpdate=1};
 if (@ARGV > 0 && $ARGV[0] eq "-condaDBinstall"){$condaDBinstall=1};
+if (@ARGV > 1 && $ARGV[1] eq "-downloadLmbdIdx" || $ARGV[0] eq "-downloadLmbdIdx"){$downloadLmbdIdx=1};
 if (@ARGV > 1 && ($ARGV[1] eq "-lambdaIndex" || $ARGV[0] eq "-lambdaIndex")){$compile_lambda=1};
+
+if ($compile_lambda && $downloadLmbdIdx){
+	die "Can't use both -lambdaIndex and -downloadLmbdIdx arguments together\nAborting..\n";
+}
 #die "$ARGV[0] $forceUpdate\n";
 
 my $isMac = 1;
@@ -456,10 +462,11 @@ sub getbeetax($){
 	my @txt = @{$aref};
 	print "Downloading bee specific database and taxonomy.\n";
 	system "rm -rf $ddir/beeTax/;mkdir -p $ddir/beeTax/";
-	my $DB = "$ddir/beeTax/beeTax.fna"; my $DBtax = "$ddir/beeTax/beeTax.txt";
+	my $DB = "$ddir/beeTax/beeTax.fasta"; my $DBtax = "$ddir/beeTax/beeTax.txt";
 	#getS2("http://5.196.17.195/pr2/download/representative_sequence_of_each_cluster/gb203_pr2_all_10_28_99p.fasta.tar.gz",$DB.".tar.gz");
 	getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/beeTax_Engel/beEngel.fna",$DB);
 	getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/beeTax_Engel/beEngel.txt",$DBtax);
+	getS2("https://lotus2.earlham.ac.uk/lambdaDBs/v3.0/beeTax.fasta.lba.gz","$DB.lba.gz") if ($downloadLmbdIdx);
 	#parse_PR2($DB,$DBtax); #unlink ($DBtax.".pre");
 	@txt = addInfoLtS("TAX_REFDB_BEE",$DB,\@txt,1);
 	@txt = addInfoLtS("TAX_RANK_BEE",$DBtax,\@txt,1);
@@ -477,6 +484,7 @@ sub getPR2db($){
 	getS2("http://lotus2.earlham.ac.uk/lotus/packs/DB/gb203PR2.tar.gz",$DB.".tar.gz");
 	
 	system "tar -xzf $DB.tar.gz -C $ddir/PR2;rm $DB.tar.gz";
+	getS2("https://lotus2.earlham.ac.uk/lambdaDBs/v3.0/gb203_pr2_all_10_28_99p.fasta.lba.gz","$ddir/PR2/gb203_pr2_all_10_28_99p.fasta.lba.gz") if ($downloadLmbdIdx);
 	$DB = "$ddir/PR2/gb203_pr2_all_10_28_99p.fasta";
 	#parse_PR2($DB,$DBtax); #unlink ($DBtax.".pre");
 	@txt = addInfoLtS("TAX_REFDB_PR2",$DB,\@txt,1);
@@ -489,9 +497,10 @@ sub getHITdb($){
 	my @txt = @{$aref};
 	print "Downloading HITdb April 2015 release..\n";
 	system "rm -rf $ddir/HITdb/; mkdir -p $ddir/HITdb/";
-	my $DB = "$ddir/HITdb/HITdb_sequences.fna"; my $DBtax = "$ddir/HITdb/HITdb_taxonomy.txt";
+	my $DB = "$ddir/HITdb/HITdb_sequences.fasta"; my $DBtax = "$ddir/HITdb/HITdb_taxonomy.txt";
 	getS2("http://lotus2.earlham.ac.uk/lotus/packs/hitdb/HITdb_sequences.fna",$DB);
 	getS2("http://lotus2.earlham.ac.uk/lotus/packs/hitdb/HITdb_taxonomy_qiime.txt",$DBtax.".pre");
+	getS2("https://lotus2.earlham.ac.uk/lambdaDBs/v3.0/HITdb_sequences.fasta.lba.gz","$DB.lba.gz") if ($downloadLmbdIdx);
 	parse_hitdb($DBtax.".pre",$DBtax); unlink ($DBtax.".pre");
 	@txt = addInfoLtS("TAX_REFDB_HITdb",$DB,\@txt,1);
 	@txt = addInfoLtS("TAX_RANK_HITdb",$DBtax,\@txt,1);
@@ -511,6 +520,7 @@ sub getGG2($){
 	#system("wget -O $DB.gz $gg1");
 	print "Downloading GreenGenes2 2022 release..\n";
 	getS2($gg1,"$DB.gz");
+	getS2("https://lotus2.earlham.ac.uk/lambdaDBs/v3.0/GG2.2022.10.fasta.lba.gz","$DB.lba.gz") if ($downloadLmbdIdx);
 	sleep(10);
 	system("gunzip -c $DB.gz > $DB");
 	unlink("$DB.gz");
@@ -529,6 +539,7 @@ sub getGG2($){
 
 sub getGG($){
 	my ($aref) = @_;
+	die "getGG::Greengenes is no longer supported\n";
 	my @txt = @{$aref};
 	#greengenes ------------------------
 	my $gg1 = "http://lotus2.earlham.ac.uk/lotus/packs/gg_13_5.fasta.gz";
@@ -557,10 +568,11 @@ sub getKSGP($){
 	my ($aref) = @_;
 	my @txt = @{$aref};
 	my $DB = "$ddir/KSGP_v1.0";
-system "rm -f ${DB}*";
+	system "rm -f ${DB}*";
 	print "Downloading KSGP 2023 release..\n";
 	my $tarUTN = "$ddir/KSGP.tar.gz";
 	getS2("https://ksgp.earlham.ac.uk/downloads/v1.0/KSGP_v1.0.tar.gz",$tarUTN);
+	getS2("https://ksgp.earlham.ac.uk/lambdaDBs/v3.0/KSGP_v1.0.fasta.lba.gz","$DB.fasta.lba.gz") if ($downloadLmbdIdx);
 	system "tar -xzf $tarUTN -C $ddir;rm -f $tarUTN";
 	@txt = addInfoLtS("TAX_RANK_KSGP","$DB.tax",\@txt,1);
 	@txt = addInfoLtS("TAX_REFDB_KSGP","$DB.fasta",\@txt,1);
@@ -602,6 +614,7 @@ sub getSLV($){
 	
 	my $SLV = $baseSP."/".$baseSN."_SSURef_NR99_tax_silva.fasta.gz";
 	getS2($SLV,"$DB.gz");
+	getS2("https://ksgp.earlham.ac.uk/lambdaDBs/v3.0/SLV_138.1_SSU.fasta.lba.gz","$DB.lba.gz") if ($downloadLmbdIdx);
 	#print "$SLV\n";
 	system("gunzip -c $DB.gz > $ddir/SSUsilva.fasta;rm -f $DB.gz"); 
 	getS2($baseSP."/taxonomy/tax_slv_ssu_$SLVver.txt.gz","$ddir/SLVtaxSSU.csv.gz");
@@ -1116,7 +1129,9 @@ sub get_DBs{
 		#@txt = addInfoLtS("TAX_RANK_ITS_UNITE","$ddir/UNITE/sh_taxonomy_qiime_ver8_99_s_all_02.02.2019.txt",\@txt,1);
 		my $tarUN = "$ddir/qITSfa.gz";
 		getS2("https://lotus2.earlham.ac.uk/lotus/packs/UNITE/v9_Dec23/sh_general_release_dynamic_all_25.07.2023.fasta.gz",$tarUN);
+
 		my $UNITEdb = "$ddir/UNITE/sh_refs_v9_25.07.2023";
+		getS2("https://lotus2.earlham.ac.uk/lambdaDBs/v3.0/sh_refs_v9_25.07.2023.fasta.lba.gz","$UNITEdb.fasta.lba.gz") if ($downloadLmbdIdx);
 		system("rm -fr $ddir/UNITE/;mkdir -p $ddir/UNITE/; gunzip -c $tarUN > $UNITEdb.fasta.tmp");
 		extrTaxFromFasta("$UNITEdb.fasta.tmp","$UNITEdb.fasta","$UNITEdb.tax");
 		system "rm $UNITEdb.fasta.tmp";
