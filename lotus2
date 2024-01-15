@@ -84,8 +84,10 @@ sub systemW;
 #versioning
 #2.29: added Lambda3, replaces lamdba < 3
 #2.30: UNITE v9
-#2.31: 19.12.23 autoInstall can download lambda3 index files
-my $selfID = "LotuS 2.31"; 
+#2.31: 19.12.23: autoInstall can download lambda3 index files
+#2.32: 15.1.23: bug fix num cores pigz, copying files
+my $selfID = "LotuS 2.32"; 
+
 
 
 #keep track of time
@@ -2708,7 +2710,7 @@ sub announce_options{
 		while ( -d $newLDir ) { $k++; $newLDir = "$outdir/prevLtsTax_$k"; }
 		printL frame("Saving previous Tax to $newLDir"), 0;
 		systemL "mkdir -p $newLDir/LotuSLogS/;";
-		systemL "mv $highLvlDir $FunctOutDir $RDP_hierFile $SIM_hierFile $outdir/hierachy_cnt.tax $extendedLogD/cnadjusted_hierachy_cnt.tax $newLDir/;";
+		systemL "mv $highLvlDir $FunctOutDir $RDP_hierFile $SIM_hierFile $outdir/hierachy_cnt.tax $extendedLogD/cnadjusted_hierachy_cnt.tax $newLDir/ 2>dev/null;";
 		systemL "mv $outdir/LotuSLogS/* $newLDir/LotuSLogS/;";
 		systemL("mkdir -p $logDir;") unless ( -d $logDir );
 
@@ -3042,9 +3044,6 @@ sub prepLtsOptions{
 		}
 	}
 	
-	#check if pigz exists..
-	$gzipC = "pigz -p $uthreads " if (`sh -c 'command -v pigz'`);
-	#die "$gzipC\n";
 	
 	#reset logfile
 	#create output folders
@@ -3079,6 +3078,10 @@ sub prepLtsOptions{
 			$uthreads = 1;
 		}
 	}
+	#check if pigz exists..
+	$gzipC = "pigz -p $uthreads " if (`sh -c 'command -v pigz'`);
+	#die "$gzipC\n";
+
 	#tmp dir config
 	$lotus_tempDir = $outdir . "/tmpFiles/" if (!defined($lotus_tempDir) || $lotus_tempDir eq "");
 	$BlastCores = $uthreads;
@@ -5363,7 +5366,16 @@ sub findUnassigned($ $ $ ) {
 
 sub runRDP{
 	my $cmd="";
-
+	
+	#first check that java is correctly installed
+	if ($doRDPing > 0){
+		my $tmpM = `java -version 2>&1`;
+		#die "D$tmpM D\n";
+		if ($tmpM !~ m/.*OpenJDK.*/){
+			printL "it seems no \"java\" (with openjdk) is installed on this system. Java is required for RDPclassifier, aborting run.\n",52;
+		}
+	}
+	
 	my $rdpGene = "16srrna";
 	$rdpGene = "fungallsu" if ( $organism eq "fungi" || $organism eq "eukarya" );
 	my $msg = "";
@@ -5407,11 +5419,11 @@ sub runRDP{
 		if ($extendedLogs && -e "$lotus_tempDir/RDPotus.tax" && -d $extendedLogD) { systemL "cp $lotus_tempDir/RDPotus.tax $extendedLogD/;"; }
 		if ( $doRDPing > 0 ) {                #move confusing files
 			if ($extendedLogs) {
-				systemL "mv $outdir/hierachy_cnt.tax $outdir/cnadjusted_hierachy_cnt.tax $extendedLogD/;";
+				systemL "mv $outdir/hierachy_cnt.tax  $extendedLogD/;" if (-e "$outdir/hierachy_cnt.tax");
+				systemL "mv $outdir/cnadjusted_hierachy_cnt.tax $extendedLogD/;" if (-e "$outdir/cnadjusted_hierachy_cnt.tax");
 			} else {
-				unlink "$outdir/hierachy_cnt.tax";
-				unlink "$outdir/cnadjusted_hierachy_cnt.tax"
-				  if ( -e "$outdir/cnadjusted_hierachy_cnt.tax" );
+				systemL "rm -rf $outdir/hierachy_cnt.tax $outdir/cnadjusted_hierachy_cnt.tax;\n";
+				#unlink "$outdir/cnadjusted_hierachy_cnt.tax" if ( -e "$outdir/cnadjusted_hierachy_cnt.tax" );
 			}
 		}
 	}
