@@ -5249,7 +5249,7 @@ sub doDBblasting($ $ $) {
             printL "Rewriting taxonomy DB to Lambda3 > 3.0 version\n", 0;
             systemL "rm -rf $DB.*;";
         }
-		if (  !-f "$DB.lba" && !-f "$DB.lba.gz" ) {
+		if (  !-f "$DB.lba.gz" || -s "$DB.lba.gz" < 100 ) {
 			printL "\n\nBuilding LAMBDA index anew for $DB (this only happens the first time you use this ref DB, it may take several hours to build)..\n\n",0;
 
 			#die($DB.".dna5.fm.sa.val");
