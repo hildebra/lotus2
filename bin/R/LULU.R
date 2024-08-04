@@ -83,7 +83,7 @@ lulu = function (otutable, matchlist, minimum_ratio_type = "min", minimum_ratio 
     curate_index <- row.names(statistics_table) == statistics_table$parent_id
     statistics_table$curated[curate_index] <- "parent"
     statistics_table <- transform(statistics_table, rank = ave(total, FUN = function(x) rank(-x, ties.method = "first")))
-    curation_table <- as.data.frame(curation_table %>% group_by(nOTUid) %>% summarise_all(funs(sum)))
+    curation_table <- as.data.frame(curation_table %>% group_by(nOTUid) %>% summarise_all(list(sum)))
     row.names(curation_table) <- as.character(curation_table$nOTUid)
     curation_table <- curation_table[, -1]
     curated_otus <- names(table(statistics_table$parent_id))

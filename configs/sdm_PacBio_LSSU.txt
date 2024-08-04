@@ -1,8 +1,8 @@
 #sdm options file to control sequence quality filtering, demultiplexing and preparation (can also be used without demultiplexing)
 #* indicates alternative quality filtering options, saved in *.add.fna etc. files separately from initial quality filtered dataset
 #sequence length refers to sequence length AFTER removal of Primers, Barcodes and trimming. this ensures that downstream analyis tools will have appropiate sequence information
-minSeqLength	700
-maxSeqLength	2000
+minSeqLength	900
+maxSeqLength	2300
 minAvgQuality	27
 *minSeqLength	500
 *minAvgQuality	20
@@ -10,7 +10,7 @@ minAvgQuality	27
 TruncateSequenceLength	-1
 
 #Ambiguous bases in Sequence
-maxAmbiguousNT	3
+maxAmbiguousNT	2
 *maxAmbiguousNT	3
 
 #sequence is discarded if a homonucleotide run in sequence is longer
@@ -18,7 +18,7 @@ maxHomonucleotide	16
 
 #Filter whole sequence if one window of quality scores is below average
 QualWindowWidth	50
-QualWindowThreshhold	25
+QualWindowThreshhold	-1
 
 #Trim the end of a sequence if a window falls below quality threshhold. Useful for removing low qulaity trailing ends of sequence
 TrimWindowWidth	20

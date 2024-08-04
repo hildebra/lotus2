@@ -85,8 +85,10 @@ sub systemW;
 #2.29: added Lambda3, replaces lamdba < 3
 #2.30: UNITE v9
 #2.31: 19.12.23: autoInstall can download lambda3 index files
-#2.32: 15.1.23: bug fix num cores pigz, copying files
-my $selfID = "LotuS 2.32"; 
+#2.32: 15.1.24: bug fix num cores pigz, copying files
+#2.33: 21.5.24: sdm 2.17
+#2.34: 2.8.24: sdm 2.18 (AVITI support), usearch v12 added, LULU fix, -platform AVITI added
+my $selfID = "LotuS 2.34"; 
 
 
 
@@ -166,6 +168,7 @@ my $versionOut=0;
 my $rmOutDir = 0;
 my $lotusCfg  = "$RealBin/lOTUs.cfg";
 my $sdmMiseqOpt = "$RealBin/configs/sdm_miSeq.txt";
+my $sdmAVITIOpt = "$RealBin/configs/sdm_AVITI.txt";
 my $sdm454Opt = "$RealBin/configs/sdm_454.txt";
 my $sdmMiseqCDHITOpt = "$RealBin/configs/sdm_miSeq_cdhit.txt";
 my $sdm454CDHITOpt = "$RealBin/configs/sdm_454_cdhit.txt";
@@ -200,7 +203,7 @@ my $saveDemulti      = 0;            #save a copy of demultiplexed reads??
 my $check_map        = "";
 my $create_map       = "";
 my $curSdmV          = 1.6;
-my $platform         = "miSeq";        #454, miSeq, hiSeq, PacBio
+my $platform         = "miSeq";        #454, miSeq, hiSeq, PacBio, AVITI
 my $keepUnclassified = 1;
 my $keepOfftargets   = 0;
 my $doITSx           = -1;            #run itsx in its mode?
@@ -324,7 +327,7 @@ GetOptions(
 	"greengenesSpecies=i"   => \$greengAnno,
 	"id=f"                  => \$id_OTU, #clustering id for OTUs
 	"backmap_id=f"          => \$backMapID,
-	"xtalk=i"               => \$doXtalk,
+	"xtalk=i"               => \$doXtalk, #usearch cross talk algo (only in usearch v 11 )
 	"saveDemultiplex=i"     => \$saveDemulti,        #1=yes, 0=not, 2=yes,unfiltered
 	"rdp_thr=f"             => \$RDPCONF,
 	"ITSx|itsextraction=i"  => \$doITSx,
@@ -397,6 +400,11 @@ if ($installUsearch ne ""){
 }
 
 
+if ($outdir eq "" || !defined($outdir)){
+	die "outdir (-o) undefined! Aborting LotuS2 run!\n";
+}
+
+#die "\"$outdir\"\n";
 
 #declare global vars
 my $logDir       = $outdir . "/LotuSLogS/";
@@ -533,9 +541,9 @@ if ( $exec == 0 && $onlyTaxRedo == 0 && $TaxOnly eq "0" ) {
 		$sdmIn = "-i_fastq $derepOutHQ";
 		#$finalClustMap $finalAddMap $finalAddMapRef $finalRestMap $finalRestMapRef
 		if ( $numInput == 2 ) { $sdmIn = "-i_fastq $derepOutHQ,$derepOutHQ2"; }
-		$sdmcmd ="$sdmBin $sdmIn $sdmOut2 $upVer $mainMapping -paired $numInput -sample_sep $sep_smplID -derep_map $derepOutMap -options $sdmOpt $mergeOptions $qualOffset -mergedPairs $didMerge -log $logDir/SeedExtensionStats.txt  -OTU_fallback $tmpOTU -ucAdditionalCounts $ucFinalFile[1] -ucAdditionalCounts1 $ucFinalFile[3] -otu_matrix $OTUmFile $mapRestr -count_chimeras $chimCnt $refClusSDM";
+		$sdmcmd ="$sdmBin $sdmIn $sdmOut2 $upVer $mainMapping -paired $numInput -sample_sep $sep_smplID -derep_map $derepOutMap -options $sdmOpt $mergeOptions $qualOffset -mergedPairs $didMerge -log $logDir/SeedExtensionStats.txt  -OTU_fallback $tmpOTU -ucAdditionalCounts $ucFinalFile[1] -ucAdditionalCounts1 $ucFinalFile[3] -otu_matrix $OTUmFile $mapRestr -count_chimeras $chimCnt $refClusSDM ";
 	} else {
-		$sdmcmd = "$sdmBin $sdmIn $sdmOut2 $upVer $mainMapping -paired $numInput -sample_sep $sep_smplID -map $cpMapFile -options $sdmOpt $qualOffset $mergeOptions -mergedPairs $didMerge -log $logDir/SeedExtensionStats.txt -OTU_fallback $tmpOTU -otu_matrix $OTUmFile -ucAdditionalCounts $ucFinalFile[1] -ucAdditionalCounts1 $ucFinalFile[3] $mapRestr -count_chimeras $chimCnt $refClusSDM";
+		$sdmcmd = "$sdmBin $sdmIn $sdmOut2 $upVer $mainMapping -paired $numInput -sample_sep $sep_smplID -map $cpMapFile -options $sdmOpt $qualOffset $mergeOptions -mergedPairs $didMerge -log $logDir/SeedExtensionStats.txt -OTU_fallback $tmpOTU -otu_matrix $OTUmFile -ucAdditionalCounts $ucFinalFile[1] -ucAdditionalCounts1 $ucFinalFile[3] $mapRestr -count_chimeras $chimCnt $refClusSDM ";
 	}
 	#some specific demulti treatment for DADA2 specifically (faster to leave files non-gz till here)
 	if ($ClusterPipe == 7 && ( $saveDemulti == 1 || $saveDemulti == 2 ) ) {    #gzip stuff
@@ -1583,8 +1591,8 @@ sub checkXtalk($ $) {
 		printL "Cross talk check only avaialable with usearch installed\n";
 		return \%ret;
 	}
-	if ( $usearchVer < 11 ) {
-        printL "cannot check for cross-talk, as only implemented in usearch version > 11\n",83;
+	if ( $usearchVer < 11 || $usearchVer > 11) {
+        printL "cannot check for cross-talk in your usearch version ($usearchVer), as only implemented in usearch version 11\n",83;
     }
 	
     my $otuM1 = $otuM . ".noXref";
@@ -2844,13 +2852,20 @@ sub checkProgVersions{
 
 #usearch version check
 	if (defined $usBin && -f $usBin){
-		my $usvstr = `$usBin --version`;
-		$usvstr =~ m/usearch v(\d+\.\d+)\.(\d+)/;
-		$usearchVer = $1;$usearchsubV = $2;
+		my $usvstr = `$usBin --version 2>/dev/null`;
+		if ($usvstr =~ m/usearch v(\d+)\.([\d\.]+)\s/){
+			$usearchVer = $1;$usearchsubV = $2;
+		} else {
+			#print "TEST\n\n";
+			$usvstr = `$usBin `;
+			#print "$usvstr\n";
+			$usvstr =~ m/usearch v(\d+)\.([\d\.]+)\s/;
+			$usearchVer = $1;$usearchsubV = $2;
+		}
 	}
 	
 	#if ($usearchVer == 9){printL "Usearch ver 9 currently not supported, please install ver 8.\n",39;}
-	if ( $usearchVer > 11 ) {
+	if ( $usearchVer > 12 ) {
 		printL "Usearch ver $usearchVer is not supported.\n", 55;
 	}elsif ( $usearchVer >= 8 && $usearchVer < 9 ) {
 		printL"Usearch ver 8 is outdated, it is recommended to install ver 9.\nDownload from http://drive5.com/ and execute \n\"./autoInstall.pl -link_usearch [path to usearch9]\"\n",0;
@@ -3138,7 +3153,11 @@ sub prepLtsOptions{
 			$sdmOpt = $sdmPacBioOpt ;
 			$sdmOpt = $sdmPacBioITSOpt if (substr( $ampliconType, 0, 3 ) eq "ITS" );
 		}
+	} elsif ($platform eq "aviti"){
+		$sdmOpt =$sdmAVITIOpt;
 	}
+	
+	
 	if (  $dereplicate_minsize eq "-1" ){
 		$dereplicate_minsize = $dereplicate_minsize_def ;
 	}
@@ -3324,7 +3343,7 @@ my %further_options = (
   '-barcode|-MID <file>', 'Filepath to fastq formated file with barcodes (this is a processed mi/hiSeq format). The complementary option in a mapping file would be the column "MIDfqFile". (Default: "")',
   '-s|sdmopt <file>', 'SDM option file, defaults to "configs/sdm_miSeq.txt" in current dir. (Default: miSeq)',
   '-c <file>', 'LotuS.cfg, config file with program paths. (Default: <LotuS2_dir>/lOTUs.cfg)',
-  '-p <454/miSeq/hiSeq/PacBio>', 'sequencing platform: PacBio, 454, miSeq or hiSeq. (Default: miSeq)',
+  '-p <454/miSeq/hiSeq/PacBio>', 'sequencing platform: PacBio, 454, AVITI, miSeq or hiSeq. (Default: miSeq)',
   '-t|-threads <num>', 'number of threads to be used. (Default: 1)',
   '-tmp|-tmpDir <dir>', 'temporary directory used to save intermediate results. (Default: <outputDir>/tmpDir)'
 );
@@ -5064,10 +5083,8 @@ sub readMap() {
         }
 		
 		#insert new data?
-		if ($fwdPrimSeq ne ""){
-		}
-		if ($revPrimSeq ne ""){
-		}
+		#if ($fwdPrimSeq ne ""){}
+		#if ($revPrimSeq ne ""){}
 		
 
         #print $smplNms."\n";
@@ -5139,7 +5156,7 @@ sub utaxTaxAssign($ $) {
     #contains path to utax dir
     my $taxLconf = "120";    #250,500,full_length
     if ( $platform eq "454" )    { $taxLconf = 500; }    #454, miSeq, hiSeq
-    if ( $platform eq "miseq" )  { $taxLconf = 250; }
+    if ( $platform eq "miseq" ||$platform eq  "aviti" )  { $taxLconf = 250; }
     if ( $platform eq "pacbio" ) { $taxLconf = 700; }
     my $utFas  = "$dbfa/fasta/refdb.fa";
     my $utUdb  = "$dbfa/fasta/refdb.$taxLconf.udb";
