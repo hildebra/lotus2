@@ -158,7 +158,6 @@ if (!-e $uspath){
 #die "@txt\n";
 
 
-getUsearch();
 
 
 ######## get programs ####################
@@ -1263,7 +1262,10 @@ sub get_programs{
 		print "\nNo similarity comparison program will be installed.\n";
 	}
 	#-------BLAST LAMBDA INSTALL END
-
+	
+	#usearch
+	getUsearch();
+	
 	#swarm
 	print "Downloading swarm executables..\n";
 	my $swarmdir = $bdir."swarm-master/";
