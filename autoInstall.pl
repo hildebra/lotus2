@@ -1650,6 +1650,9 @@ sub user_options(){
     if ($skipAll) {
         print "Skipping all interactive prompts as per '--skipAll' parameter.\n";
     } else {
+      if (defined $previous_installation_overide && $previous_installation_overide =~ m/^[1-3]$/) {
+        print "Skipping confirmation as per '--overidePrevious' parameter.\n";
+      } else {
         print "Continue (y/n)?\nAnswer: ";
         while (<>) {
             chomp($_);
@@ -1669,6 +1672,7 @@ sub user_options(){
                 exit(0);
             }
         }
+      }
     }
 		#print "\nThis is an experimental installer. Please send feedback and bug reports to: falk.hildebrand [at] gmail.com\n\n";
 		if ($isMac){print "Mac system detected, installing corresponding mac software.\n";}
