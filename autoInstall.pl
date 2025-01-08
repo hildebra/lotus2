@@ -58,7 +58,7 @@ if (`whereis wget` eq ""){
 }
 
 
-# 2025-01-08. modify the code, and instead of positional arugments take named arguments
+# 2025-01-08. modify the code, and instead of positional arguments take named arguments
 # Define variables for arguments
 my $forceUpdate = 0;
 my $condaDBinstall = 0;
@@ -89,18 +89,6 @@ GetOptions(
     'get_UTAX=i'        => \$getUTAX,  # Flag to set getUTAX value (0 or 1)
 ) or die "Error in command line arguments\n";
 
-# Debug: print the arguments (optional, for development)
-print "forceUpdate: $forceUpdate\n";
-print "condaDBinstall: $condaDBinstall\n";
-print "downloadLmbdIdx: $downloadLmbdIdx\n";
-print "lambdaIndex: $compile_lambda\n";
-print "custom_binPath: $custom_binPath\n";
-print "skipAll: $skipAll\n";
-print "installBlast: $installBlast\n";
-print "accept_silva: $accept_silva\n";
-print "refDBinstall_param: $refDBinstall_param\n";
-print "ITSready: $ITSready\n";
-print "getUTAX: $getUTAX\n";
 
 if ($compile_lambda && $downloadLmbdIdx){
 	die "Can't use both -lambdaIndex and -downloadLmbdIdx arguments together\nAborting..\n";
