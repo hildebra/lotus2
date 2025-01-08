@@ -86,7 +86,7 @@ GetOptions(
     'refDBinstall=i'    => \$refDBinstall_param,  # Accepts an integer value for refDBinstall 
     'accept_silva'      => \$accept_silva,
     'install_ITS=i'     => \$ITSready,  # Flag to set ITSready value (0 or 1)
-    'get_UTAX=i'        => \$getUTAX,  # Flag to set ITSready value (0 or 1)
+    'get_UTAX=i'        => \$getUTAX,  # Flag to set getUTAX value (0 or 1)
 ) or die "Error in command line arguments\n";
 
 # Debug: print the arguments (optional, for development)
