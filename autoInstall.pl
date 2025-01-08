@@ -41,15 +41,15 @@ sub check_exists;
 sub check_version;
 sub user_options;
 my $FILEfetch = eval{
-  require File::Fetch;
-  File::Fetch->import();
-  1;
+	require File::Fetch;
+	File::Fetch->import();
+	1;
 };
 use File::Copy qw(move);
 my $LWPsimple = eval{
-  require LWP::Simple;
-  LWP::Simple->import();
-  1;
+	require LWP::Simple;
+	LWP::Simple->import();
+	1;
 };
 my $WGETpres=1;
 #if (`command -v wget` eq ""){
@@ -75,18 +75,18 @@ my $getUTAX;
 
 # Parse command-line arguments
 GetOptions(
-    'forceUpdate'       => \$forceUpdate,
-    'condaDBinstall'    => \$condaDBinstall,
-    'downloadLmbdIdx'   => \$downloadLmbdIdx,
-    'lambdaIndex'       => \$compile_lambda,
-    'custom_binPath=s'  => \$custom_binPath,
-    'overidePrevious=i' => \$previous_installation_overide, # Accepts integer values (e.g., 0, 1, 2, 3)   
-    'skipAll=s'         => \$skipAll,
-    'installBlast=i'    => \$installBlast,  # Accepts integer values (e.g., 0, 1, 2, 3)   
-    'refDBinstall=i'    => \$refDBinstall_param,  # Accepts an integer value for refDBinstall 
-    'accept_silva'      => \$accept_silva,
-    'install_ITS=i'     => \$ITSready,  # Flag to set ITSready value (0 or 1)
-    'get_UTAX=i'        => \$getUTAX,  # Flag to set getUTAX value (0 or 1)
+	'forceUpdate'       => \$forceUpdate,
+	'condaDBinstall'    => \$condaDBinstall,
+	'downloadLmbdIdx'   => \$downloadLmbdIdx,
+	'lambdaIndex'       => \$compile_lambda,
+	'custom_binPath=s'  => \$custom_binPath,
+	'overidePrevious=i' => \$previous_installation_overide, # Accepts integer values (e.g., 0, 1, 2, 3)   
+	'skipAll=s'         => \$skipAll,
+	'installBlast=i'    => \$installBlast,  # Accepts integer values (e.g., 0, 1, 2, 3)   
+	'refDBinstall=i'    => \$refDBinstall_param,  # Accepts an integer value for refDBinstall 
+	  'accept_silva'      => \$accept_silva,
+	'install_ITS=i'     => \$ITSready,  # Flag to set ITSready value (0 or 1)
+	'get_UTAX=i'        => \$getUTAX,  # Flag to set getUTAX value (0 or 1)
 ) or die "Error in command line arguments\n";
 
 
@@ -190,24 +190,24 @@ print "Several Software packages have to be downloaded and this can take some ti
 # Check if Rscript is installed
 my $install_dada = 1;
 if (check_exists('Rscript')) {
-  my $v = check_version('Rscript');
-  
-  if ($v < 4) {
-    print("$0 requires Rscript version > 4.0.0\nThe found version is < 4.\nType\n  \'c\' to install LotuS2 without dada2 and phyloseq\n  \'t\' to continue and try to install phyloseq only\n  \'a\' to abort installation process\n");
-    my $instr = <STDIN>;
-    chomp $instr;
-    if (lc($instr) eq "c") {
-      $install_dada = 0;
-    } elsif (lc($instr) eq "t") {
-      $install_dada = 1;
-    } else {
-      print("Abort installation.\n");
-      exit(0);
-    }
-  }
+	my $v = check_version('Rscript');
+
+	if ($v < 4) {
+		print("$0 requires Rscript version > 4.0.0\nThe found version is < 4.\nType\n  \'c\' to install LotuS2 without dada2 and phyloseq\n  \'t\' to continue and try to install phyloseq only\n  \'a\' to abort installation process\n");
+		my $instr = <STDIN>;
+		chomp $instr;
+		if (lc($instr) eq "c") {
+			$install_dada = 0;
+		} elsif (lc($instr) eq "t") {
+			$install_dada = 1;
+		} else {
+			print("Abort installation.\n");
+			exit(0);
+		}
+	}
 } else {
-  print("$0 requires Rscript (version > 4.0.0). No \"Rscript\" detected on current system.\n");
-  exit(0);
+	print("$0 requires Rscript (version > 4.0.0). No \"Rscript\" detected on current system.\n");
+	exit(0);
 }
 
 
@@ -230,9 +230,9 @@ if ($condaDBinstall){
 ###################   R packages ... #########################
 
 if ($install_dada) {
-  print("Install dada2 and other R packages \n");
-  my $r_output = `Rscript bin/R/autoInstall.R 2>&1`;
-  print($r_output);
+	print("Install dada2 and other R packages \n");
+	my $r_output = `Rscript bin/R/autoInstall.R 2>&1`;
+	print($r_output);
 }
 
 
@@ -332,7 +332,7 @@ sub addInfoLtS($ $ $ $){
 	#print $txt[$i]."\n";
 	return @txt;
 }
-               
+
 sub getInfoLtS($ $){
 	my ($cmd,$aref) = @_;
 	my @txt = @{$aref};
@@ -896,14 +896,14 @@ sub checkLtsVer($){
 sub compile_LCA($){
 	my ($ldi2) = @_;
 	my $expPath = "$bdir/LCA";
-  
-  # 2025-01-08. Override expPath if custom_binPath is provided
-  # This is needed for docker creation, where the export path needs to be different 
-  # (For example "/home/condauser/miniconda/envs/lotus2_env/bin"
-  if ($custom_binPath) {
-      $expPath = "$custom_binPath/LCA";
-  }  
-  
+	
+	# 2025-01-08. Override expPath if custom_binPath is provided
+	# This is needed for docker creation, where the export path needs to be different 
+	# (For example "/home/condauser/miniconda/envs/lotus2_env/bin"
+	if ($custom_binPath) {
+		$expPath = "$custom_binPath/LCA";
+	}
+
 	if (-e $expPath){#test if can excecute locally
 		my $sdmV = `$expPath -v`;
 		return $expPath if ($sdmV =~ m/0\.\d+$/);
@@ -932,14 +932,14 @@ sub compile_LCA($){
 sub compile_rtk($){
 	my ($ldi2) = @_;
 	my $expPath = "$bdir/rtk";
-  
-  # 2025-01-08. Override expPath if custom_binPath is provided
-  # This is needed for docker, where the bin path is different 
-  # (For example "/home/condauser/miniconda/envs/lotus2_env/bin"
-  if ($custom_binPath) {
-      $expPath = "$custom_binPath/rtk";
-  }   
-      
+
+	# 2025-01-08. Override expPath if custom_binPath is provided
+	# This is needed for docker, where the bin path is different 
+	# (For example "/home/condauser/miniconda/envs/lotus2_env/bin"
+	if ($custom_binPath) {
+		$expPath = "$custom_binPath/rtk";
+	}
+
 	if (-e $expPath){#test if can excecute locally
 		my $sdmV = `$expPath -v`;
 		return $expPath if ($sdmV =~ m/rtk \d/);
@@ -970,12 +970,12 @@ sub compile_rtk($){
 sub compile_sdm($){
 	my ($ldi2) = @_;
 	my $expPath = "$bdir/sdm";
-  # 2025-01-08. Override expPath if custom_binPath is provided
-  # This is needed for docker, where the bin path is different 
-  # (For example "/home/condauser/miniconda/envs/lotus2_env/bin"
-  if ($custom_binPath) {
-      $expPath = "$custom_binPath/sdm";
-  }
+	# 2025-01-08. Override expPath if custom_binPath is provided
+	# This is needed for docker, where the bin path is different 
+	# (For example "/home/condauser/miniconda/envs/lotus2_env/bin"
+	if ($custom_binPath) {
+		$expPath = "$custom_binPath/sdm";
+	}
 
 	if (-e $expPath){#test if can excecute locally
 		my $sdmV = `$expPath -v`;
@@ -1012,19 +1012,19 @@ sub compile_sdm($){
 }
 
 sub check_exists {
-  my $check = `sh -c 'command -v $_[0]'`;
-  return $check;
+	my $check = `sh -c 'command -v $_[0]'`;
+	return $check;
 }
 
 sub check_version {
-  my $check = `$_[0] --version 2>&1`;
-  if ($check =~ m/version (\d)\./){
+	my $check = `$_[0] --version 2>&1`;
+	if ($check =~ m/version (\d)\./){
 	return $1;
-  }
-  
-  my @vstr = split /\./, $check, 2;
-  my $v = substr $vstr[0], -1;
-  return $v;
+	}
+
+	my @vstr = split /\./, $check, 2;
+	my $v = substr $vstr[0], -1;
+	return $v;
 }
 
 
@@ -1553,24 +1553,24 @@ sub user_options(){
 	if ( ($UID ne "??" && -f $uspath) || $forceUpdate || $usearchInstall ne ""){#set UID, means lotus was installed here
 		my $inp="";
 		
-    if (!$forceUpdate && $usearchInstall eq "") {
-        if (defined $previous_installation_overide && $previous_installation_overide =~ m/^[1-3]$/) {
-            # Use the override parameter directly if it's valid
-            $inp = $previous_installation_overide;
-            print "Using override parameter: $inp for what to do with previous installation\n";
-        } else {
-            # Fallback to interactive prompt if no valid override is provided
-            while ($inp !~ m/^[1-3]$/) {
-                print "Detected previous installation of LotuS, do you want to \n";
-                print " (1) fully reinstall lotus (e.g. after \"github pull\")\n";
-                print " (2) reinstall only databases (secondary software remains the same)?\n";
-                print " (3) set the path to your usearch binary (can also be updated)?\n";
-                print "Answer: \n";
-                $inp = <>;
-                chomp($inp);
-            }
-        }
-    }
+		if (!$forceUpdate && $usearchInstall eq "") {
+			if (defined $previous_installation_overide && $previous_installation_overide =~ m/^[1-3]$/) {
+				# Use the override parameter directly if it's valid
+				$inp = $previous_installation_overide;
+				print "Using override parameter: $inp for what to do with previous installation\n";
+			} else {
+				# Fallback to interactive prompt if no valid override is provided
+				while ($inp !~ m/^[1-3]$/) {
+					print "Detected previous installation of LotuS, do you want to \n";
+					print " (1) fully reinstall lotus (e.g. after \"github pull\")\n";
+					print " (2) reinstall only databases (secondary software remains the same)?\n";
+					print " (3) set the path to your usearch binary (can also be updated)?\n";
+					print "Answer: \n";
+					$inp = <>;
+					chomp($inp);
+				}
+			}
+		}
 		if ($inp eq "3"){
 			print "Enter the full (absolute) path to your usearch binary:\n";
 			while ($usearchInstall eq ""){
@@ -1630,147 +1630,145 @@ sub user_options(){
 	if ($onlyDbinstall){
 		print "Installing LotuS tax databases anew.. \nplease choose which databases to install in the following dialogs\n\n";
 	}else{
-    print "Total space required will be 0.3 - 5 Gb.\n";
-    print "Some programs require a recent version of the C++ compiler gcc.\n";
-    print "WARNING: removes all files in \$bdir and \$ddir, rewrites the local lotus.cfg file.\n";
+		print "Total space required will be 0.3 - 5 Gb.\n";
+		print "Some programs require a recent version of the C++ compiler gcc.\n";
+		print "WARNING: removes all files in \$bdir and \$ddir, rewrites the local lotus.cfg file.\n";
 
-    # Handle the --skipAll flag
-    if ($skipAll) {
-        print "Skipping all interactive prompts as per '--skipAll' parameter.\n";
-    } else {
-      if (defined $previous_installation_overide && $previous_installation_overide =~ m/^[1-3]$/) {
-        print "Skipping confirmation as per '--overidePrevious' parameter.\n";
-      } else {
-        print "Continue (y/n)?\nAnswer: ";
-        while (<>) {
-            chomp($_);
-            if ($_ eq "y" || $_ eq "Y" || $_ eq "yes") {
-                last;
-            } elsif ($_ eq "x") {
-                $skipAll = 1;
-                last;
-            } elsif ($_ eq "xx") {
-                $skipAll = 1;
-                $refDBinstall[0] = 1;
-                $refDBinstall[8] = 0;
-                $ITSready = 0;
-                $getUTAX = 0;
-                last;
-            } else {
-                exit(0);
-            }
-        }
-      }
-    }
+		# Handle the --skipAll flag
+		if ($skipAll) {
+			print "Skipping all interactive prompts as per '--skipAll' parameter.\n";
+		} else {
+			if (defined $previous_installation_overide && $previous_installation_overide =~ m/^[1-3]$/) {
+				print "Skipping confirmation as per '--overidePrevious' parameter.\n";
+			} else {
+				print "Continue (y/n)?\nAnswer: ";
+				while (<>) {
+					chomp($_);
+					if ($_ eq "y" || $_ eq "Y" || $_ eq "yes") {
+						last;
+					} elsif ($_ eq "x") {
+						$skipAll = 1;
+						last;
+					} elsif ($_ eq "xx") {
+						$skipAll = 1;
+						$refDBinstall[0] = 1;
+						$refDBinstall[8] = 0;
+						$ITSready = 0;
+						$getUTAX = 0;
+						last;
+					} else {
+						exit(0);
+					}
+				}
+			}
+		}
 		#print "\nThis is an experimental installer. Please send feedback and bug reports to: falk.hildebrand [at] gmail.com\n\n";
 		if ($isMac){print "Mac system detected, installing corresponding mac software.\n";}
 
-    # Decide on Blast installation
-    if ($skipAll) {
-        print "Skipping similarity-based taxonomic assignment selection due to '--skipAll'.\n";
-    } else {
-        if (defined $installBlast) {
-            print "Custom setup: Using similarity-based taxonomic assignments with option $installBlast.\n";
-        } else {
-            print "\n\nFor similarity-based taxonomic assignments LotuS can either use:\n";
-            print " (1) Blastn\n (2) Lambda\n (3) Both, decide at runtime which to use\n (0) None\nAnswer: ";
-            while (<>) {
-                chomp($_);
-                if ($_ == 1 || $_ == 3 || $_ == 2 || $_ == 0) {
-                    $installBlast = $_;
-                    last;
-                }
-            }
-        }
-    }
-	
+		# Decide on Blast installation
+		if ($skipAll) {
+			print "Skipping similarity-based taxonomic assignment selection due to '--skipAll'.\n";
+		} else {
+			if (defined $installBlast) {
+				print "Custom setup: Using similarity-based taxonomic assignments with option $installBlast.\n";
+			} else {
+				print "\n\nFor similarity-based taxonomic assignments LotuS can either use:\n";
+				print " (1) Blastn\n (2) Lambda\n (3) Both, decide at runtime which to use\n (0) None\nAnswer: ";
+				while (<>) {
+					chomp($_);
+					if ($_ == 1 || $_ == 3 || $_ == 2 || $_ == 0) {
+						$installBlast = $_;
+						last;
+					}
+				}
+			}
+		}
 	}
 
 
 	#decide on database options
-  if (defined $refDBinstall_param) {
-      if ($refDBinstall_param >= 0 && $refDBinstall_param <= 8) {
-          print "Overriding refDBinstall selection with parameter: $refDBinstall_param\n";
-          $refDBinstall[8] = 0;
-          $refDBinstall[$refDBinstall_param] = 1;
-      } else {
-          die "Invalid value for --refDBinstall. Must be an integer between 0 and 8.\n";
-      }
-  } else {
-  	print "\n\nDo you want to install a reference database 16S database for similarity based 16S annotations?\n";
-    print " (1) KSGP (~1.5 GB), covering SSU for Archaea, Bacteria and Eukaryotes, 2023 release. \n";
-    print " (2) SILVA (~2.5 GB), contains LSU as well as SSU, 138.1 2020 release.\n";
-    print " (3) GreenGenes2 (~1 GB), 2022 release.\n";
-    print " (4) HITdb (~100 MB) 16S bacterial database specialized on the gut environment.\n";
-  	print " (5) PR2 (~100 MB) a LSU database spezialized on Ocean samples.\n";
-  	print " (6) beeTax (~2 MB) database specialized (and named) on taxonomy specific to the bee gut.\n";
-  	print " (8) KSGP + SILVA + GG2 + PR2 + HITdb + beeTax (select specific DB in each LotuS2 run)\n (0) no database.\n";
-  	print "Answer:";
-  	while (<>){
-  		chomp($_); 
-  		if (defined($_) && $_ ne "" && ($_ == 1 ||$_ == 4 || $_ == 3 ||$_ == 2 ||$_ == 5 ||$_ == 0 ||$_ == 8)){
-  			$refDBinstall[8] = 0;
-  			$refDBinstall[$_] = 1;
-  			last;
-  		} else { print "Invalid answer, aborting.."; exit(); }
-  	}
-  }
-  
-  
-  # SILVA license check
-  if (!$skipAll && ($refDBinstall[2] || $refDBinstall[8])) {
-      if ($accept_silva) {
-          print "SILVA license accepted via parameter.\n";
-      } else {
-          print "Please read the SILVA license: https://www.arb-silva.de/fileadmin/silva_databases/LICENSE.txt. Do you accept (y/n)? \n";
-          while (<>) {
-              chomp($_);
-              if ($_ eq "y" || $_ eq "Y" || $_ eq "yes") {
-                  last;
-              } elsif ($_ eq "n" || $_ eq "N") {
-                  print " You need to accept the SILVA license before the install can finish\n";
-                  exit(0);
-              }
-          }
-      }
-  }
+	if (defined $refDBinstall_param) {
+		if ($refDBinstall_param >= 0 && $refDBinstall_param <= 8) {
+			print "Overriding refDBinstall selection with parameter: $refDBinstall_param\n";
+			$refDBinstall[8] = 0;
+			$refDBinstall[$refDBinstall_param] = 1;
+		} else {
+			die "Invalid value for --refDBinstall. Must be an integer between 0 and 8.\n";
+		}
+	} else {
+		print "\n\nDo you want to install a reference database 16S database for similarity based 16S annotations?\n";
+		print " (1) KSGP (~1.5 GB), covering SSU for Archaea, Bacteria and Eukaryotes, 2023 release. \n";
+		print " (2) SILVA (~2.5 GB), contains LSU as well as SSU, 138.1 2020 release.\n";
+		print " (3) GreenGenes2 (~1 GB), 2022 release.\n";
+		print " (4) HITdb (~100 MB) 16S bacterial database specialized on the gut environment.\n";
+		print " (5) PR2 (~100 MB) a LSU database spezialized on Ocean samples.\n";
+		print " (6) beeTax (~2 MB) database specialized (and named) on taxonomy specific to the bee gut.\n";
+		print " (8) KSGP + SILVA + GG2 + PR2 + HITdb + beeTax (select specific DB in each LotuS2 run)\n (0) no database.\n";
+		print "Answer:";
+		while (<>){
+			chomp($_); 
+			if (defined($_) && $_ ne "" && ($_ == 1 ||$_ == 4 || $_ == 3 ||$_ == 2 ||$_ == 5 ||$_ == 0 ||$_ == 8)){
+				$refDBinstall[8] = 0;
+				$refDBinstall[$_] = 1;
+				last;
+			} else { print "Invalid answer, aborting.."; exit(); }
+		}
+	}
 
-  # Check ITSready value
-  if (defined $ITSready) {
-      if ($ITSready == 0) {
-          print "No ITS related packages will be installed.\n";
-      } elsif ($ITSready == 1) {
-          print "\n\n -- ITS -- Installing databases and programs required to process ITS data (including fungi ITS UNITE database).\n";
-      }
-  } else {
-      # Original interactive prompt if ITSready is not set
-      print "\n\n -- ITS -- Do you want to\n (1) install databases and programs required to process ITS data (including fungi ITS UNITE database)\n (0) no ITS related packages\n Answer:";
-      while (<>) {
-          chomp($_);
-          if ($_ == 1 || $_ == 0) {
-              $ITSready = $_;
-              last;
-          }
-      }
-  }
+	# SILVA license check
+	if (!$skipAll && ($refDBinstall[2] || $refDBinstall[8])) {
+		if ($accept_silva) {
+			print "SILVA license accepted via parameter.\n";
+		} else {
+			print "Please read the SILVA license: https://www.arb-silva.de/fileadmin/silva_databases/LICENSE.txt. Do you accept (y/n)? \n";
+			while (<>) {
+				chomp($_);
+				if ($_ eq "y" || $_ eq "Y" || $_ eq "yes") {
+					last;
+				} elsif ($_ eq "n" || $_ eq "N") {
+					print " You need to accept the SILVA license before the install can finish\n";
+					exit(0);
+				}
+			}
+		}
+	}
 
-  # UTAX ref DBs..
-  if (defined $getUTAX) {  
-      if ($getUTAX == 0) {
-          print "Skipping UTAX installation.\n";
-      } elsif ($getUTAX == 1) {
-          print "Installing UTAX.\n";
-      }
-  } else {
-      # Original interactive prompt if getUTAX is not set
-      print "\n\nDo you want to install UTAX?\n (1) Yes\n (0) No\n Answer:";
-      while (<>) {
-          chomp($_);
-          if ($_ == 1 || $_ == 0) {
-              $getUTAX = $_;
-              last;
-          }
-      }
-  }
+	# Check ITSready value
+	if (defined $ITSready) {
+		if ($ITSready == 0) {
+			print "No ITS related packages will be installed.\n";
+		} elsif ($ITSready == 1) {
+			print "\n\n -- ITS -- Installing databases and programs required to process ITS data (including fungi ITS UNITE database).\n";
+		}
+	} else {
+		# Original interactive prompt if ITSready is not set
+		print "\n\n -- ITS -- Do you want to\n (1) install databases and programs required to process ITS data (including fungi ITS UNITE database)\n (0) no ITS related packages\n Answer:";
+		while (<>) {
+			chomp($_);
+			if ($_ == 1 || $_ == 0) {
+				$ITSready = $_;
+				last;
+			}
+		}
+	}
+
+	# UTAX ref DBs..
+	if (defined $getUTAX) {
+		if ($getUTAX == 0) {
+			print "Skipping UTAX installation.\n";
+		} elsif ($getUTAX == 1) {
+			print "Installing UTAX.\n";
+		}
+	} else {
+		# Original interactive prompt if getUTAX is not set
+		print "\n\nDo you want to install UTAX?\n (1) Yes\n (0) No\n Answer:";
+		while (<>) {
+			chomp($_);
+			if ($_ == 1 || $_ == 0) {
+				$getUTAX = $_;
+				last;
+			}
+		}
+	}
 
 }
