@@ -6,6 +6,12 @@
 LotuS2 is a amplicon sequencing pipeline, that is programmed to be lightweight, easy to use, fast without comprimising the quality of reconstructing microbial communitites. It supports 16S, 18S and ITS amplicons, and support for other amplicon targets is available. Currently five different sequence clustering algorithms (DADA2, uparse, unoise3, cd-hit, vsearch) are supported as well as multiple options to assigning taxonomic annotations. LotuS2 output can be imported directly into R or as text file into other programs.
 Full documentation on http://lotus2.earlham.ac.uk/
 
+### IMPORTANT NOTICE
+
+LotuS3 is the latesst version of LotuS and can be found on https://github.com/hildebra/lotus3/ 
+
+LotuS2 is no longer updated, please use LotuS3 for the latest advancements.
+
 ### REQUIREMENTS
 LotuS2 requires a perl installation and sdm requires a fairly recent C++ compiler (like gcc or clang) that supports C++11.
 Lambda currently only works under linux, the option to use lambda is not available on mac os. Instead, Blast, vsearch or usearch can be used.
